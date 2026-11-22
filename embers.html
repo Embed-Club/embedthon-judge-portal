@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>EMBERS '26 · Symposium Management & Scheduling Console</title>
+  <meta name="description" content="Official Management, Scheduling, and Google Forms Sync Console for EMBERS '26, Department of Computer Science & Engineering, P.A. College of Engineering.">
+  <link rel="icon" type="image/png" href="assets/pace_crest.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brandNavy: '#0f172a',
+            brandInk: '#1e293b',
+            brandSlate: '#475569',
+            brandMuted: '#64748b',
+            brandOrange: '#ea580c',
+            brandOrangeLight: '#fff7ed',
+            brandCream: '#fdfbf7',
+            brandCreamDark: '#f6f1e6',
+            brandBorder: '#e3dccd',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-[#fdfbf7] text-[#1e293b] antialiased pb-16 flex flex-col justify-between">
+
+  <!-- ========================================================= -->
+  <!-- 1. TOP OFFICIAL HEADER & BRANDING                         -->
+  <!-- ========================================================= -->
+  <header class="bg-white border-b-2 border-[#e3dccd] shadow-xs sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+      
+      <!-- Left: PACE Crest & Department Details -->
+      <div class="flex items-center gap-3 min-w-0">
+        <a href="index.html" title="Back to Scoring Portal">
+          <img src="assets/pace_crest.png" alt="PACE Crest" class="h-10 sm:h-11 w-auto object-contain hover:scale-105 transition" onerror="this.style.display='none'">
+        </a>
+        <div class="truncate">
+          <div class="flex items-center gap-2">
+            <h1 class="text-xs sm:text-sm font-black tracking-wider text-[#0f172a] uppercase leading-tight truncate">
+              P.A. College of Engineering, Mangaluru
+            </h1>
+            <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-orange-100 text-[#ea580c] border border-orange-200 hidden sm:inline">
+              EMBERS '26 HUB
+            </span>
+          </div>
+          <p class="text-[10px] text-[#64748b] leading-tight truncate">
+            Dept. of Computer Science & Engineering · In Association with IEEE Bangalore & IEEE CEDA
+          </p>
+        </div>
+      </div>
+
+      <!-- Right: Portal Links & Sync Quick Indicator -->
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <div id="syncIndicator" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-bold">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="syncIndicatorText">Google Forms Ready</span>
+        </div>
+
+        <a href="admin.html" class="px-2.5 py-1.5 rounded-xl bg-[#f6f1e6] hover:bg-[#efe8da] border border-[#e3dccd] text-xs font-bold text-[#475569] transition flex items-center gap-1 active:scale-95" title="Admin Evaluation Console">
+          <span>⚙️</span>
+          <span class="hidden md:inline">Admin Jury</span>
+        </a>
+
+        <a href="reveal.html" target="_blank" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs font-black transition flex items-center gap-1 shadow-xs active:scale-95" title="Open Stage Reveal Ceremony">
+          <span>🏆</span>
+          <span class="hidden md:inline">Reveal Stage ↗</span>
+        </a>
+
+        <a href="index.html" class="px-3 py-1.5 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1 active:scale-95">
+          <span>Scoring Portal</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Official Navy Banner Ribbon -->
+    <div class="navy-strip py-1.5 px-4 bg-[#0f172a] text-white">
+      <div class="max-w-7xl mx-auto flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2">
+          <span class="font-black tracking-wider text-amber-400">EMBERS '26</span>
+          <span class="text-slate-400">·</span>
+          <span class="text-amber-200 font-bold uppercase tracking-wider">NATIONAL LEVEL TECHNICAL SYMPOSIUM</span>
+          <span class="text-slate-400 hidden sm:inline">·</span>
+          <span class="text-slate-300 font-medium text-[11px] hidden sm:inline">Symposium Logistics, Master Schedule & Google Forms Integration</span>
+        </div>
+        <div class="flex items-center gap-3 text-[10px] font-mono text-amber-300">
+          <span>NOV 24 & 25, 2026</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ========================================================= -->
+  <!-- 2. MAIN APPLICATION CONTAINER                             -->
+  <!-- ========================================================= -->
+  <main class="max-w-7xl mx-auto p-3 sm:p-5 w-full flex-1 space-y-5">
+    
+    <!-- STATS OVERVIEW CARDS -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+      <div class="p-3.5 bg-white rounded-2xl border border-[#e3dccd] shadow-xs">
+        <span class="text-[10px] font-black uppercase text-[#64748b] block">Total Registrations</span>
+        <div class="flex items-baseline gap-1 mt-0.5">
+          <span id="statTotalRegs" class="text-2xl font-black text-[#0f172a]">0</span>
+          <span class="text-[10px] text-[#64748b]">teams</span>
+        </div>
+        <span class="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-0.5">
+          <span>●</span> <span id="statTrack1Count">0</span> Embeddathon
+        </span>
+      </div>
+
+      <div class="p-3.5 bg-white rounded-2xl border border-[#e3dccd] shadow-xs">
+        <span class="text-[10px] font-black uppercase text-[#64748b] block">Track 2: Project Expo</span>
+        <div class="flex items-baseline gap-1 mt-0.5">
+          <span id="statTrack2Count" class="text-2xl font-black text-[#ea580c]">0</span>
+          <span class="text-[10px] text-[#64748b]">stalls (Edusat Hall)</span>
+        </div>
+        <span class="text-[10px] text-[#64748b] block mt-0.5">Hardware & Software Demos</span>
+      </div>
+
+      <div class="p-3.5 bg-white rounded-2xl border border-[#e3dccd] shadow-xs">
+        <span class="text-[10px] font-black uppercase text-[#64748b] block">Track 3: Paper Presentations</span>
+        <div class="flex items-baseline gap-1 mt-0.5">
+          <span id="statTrack3Count" class="text-2xl font-black text-indigo-600">0</span>
+          <span class="text-[10px] text-[#64748b]">papers (Multipurpose Hall)</span>
+        </div>
+        <span class="text-[10px] text-[#64748b] block mt-0.5">IEEE 2-Column Manuscript Defense</span>
+      </div>
+
+      <div class="p-3.5 bg-white rounded-2xl border border-[#e3dccd] shadow-xs">
+        <span class="text-[10px] font-black uppercase text-[#64748b] block">Google Forms Live Sync</span>
+        <div class="flex items-baseline gap-1 mt-0.5">
+          <span id="statSyncStatus" class="text-base font-black text-emerald-600 uppercase">ACTIVE</span>
+        </div>
+        <span id="statLastSynced" class="text-[10px] text-[#64748b] block mt-0.5 truncate">Direct Google Sheet Connected</span>
+      </div>
+    </div>
+
+
+    <!-- TAB NAVIGATION BAR -->
+    <div class="flex items-center gap-2 border-b border-[#e3dccd] pb-2 overflow-x-auto">
+      <button type="button" id="tabBtnSchedule" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-[#ea580c] text-white shadow-xs">
+        <span>📅</span>
+        <span>Master Schedule & Timeline</span>
+      </button>
+
+      <button type="button" id="tabBtnRegistrations" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-[#f6f1e6] text-[#475569] hover:bg-[#efe8da]">
+        <span>📋</span>
+        <span>Google Forms & Registrations</span>
+      </button>
+
+      <button type="button" id="tabBtnVenues" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-[#f6f1e6] text-[#475569] hover:bg-[#efe8da]">
+        <span>🏟️</span>
+        <span>Tracks & Venue Allocations</span>
+      </button>
+
+      <button type="button" id="tabBtnWebhook" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-[#f6f1e6] text-[#475569] hover:bg-[#efe8da]">
+        <span>⚡</span>
+        <span>Google Forms Sync Setup</span>
+      </button>
+    </div>
+
+
+    <!-- ======================================================= -->
+    <!-- TAB 1: MASTER SCHEDULE & TIMELINE                       -->
+    <!-- ======================================================= -->
+    <section id="tabContentSchedule" class="space-y-4">
+      
+      <!-- Filter & Action Controls -->
+      <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#e3dccd] shadow-xs flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs font-bold text-[#64748b]">Filter Day:</span>
+          <div class="inline-flex rounded-xl bg-[#f6f1e6] p-1 border border-[#e3dccd]">
+            <button type="button" class="btn-day-filter px-3 py-1 rounded-lg text-xs font-bold bg-white text-[#ea580c] shadow-xs" data-day="ALL">All Days</button>
+            <button type="button" class="btn-day-filter px-3 py-1 rounded-lg text-xs font-bold text-[#64748b] hover:text-[#0f172a]" data-day="1">Day 1 (Nov 24)</button>
+            <button type="button" class="btn-day-filter px-3 py-1 rounded-lg text-xs font-bold text-[#64748b] hover:text-[#0f172a]" data-day="2">Day 2 (Nov 25)</button>
+          </div>
+
+          <span class="text-xs font-bold text-[#64748b] ml-2">Track:</span>
+          <select id="scheduleTrackFilter" class="bg-[#f6f1e6] border border-[#e3dccd] text-xs font-bold text-[#0f172a] rounded-lg px-2.5 py-1">
+            <option value="ALL">All Event Tracks</option>
+            <option value="TRACK_1">Track 1: Embeddathon</option>
+            <option value="TRACK_2">Track 2: Project Expo</option>
+            <option value="TRACK_3">Track 3: Paper Presentation</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnOpenAddSlotModal" class="px-3 py-1.5 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-black shadow-xs transition active:scale-95 flex items-center gap-1">
+            <span>+ Add Slot</span>
+          </button>
+          <button type="button" onclick="window.print()" class="px-3 py-1.5 rounded-xl bg-[#f6f1e6] hover:bg-[#efe8da] border border-[#e3dccd] text-xs font-bold text-[#0f172a] shadow-xs transition flex items-center gap-1">
+            <span>🖨️ Print Schedule</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Schedule Timeline Grid -->
+      <div id="scheduleTimelineContainer" class="space-y-3">
+        <!-- Dynamically populated timeline cards -->
+      </div>
+    </section>
+
+
+    <!-- ======================================================= -->
+    <!-- TAB 2: GOOGLE FORMS & REGISTRATIONS                     -->
+    <!-- ======================================================= -->
+    <section id="tabContentRegistrations" class="hidden space-y-4">
+      
+      <!-- Google Form Sync Bar -->
+      <div class="bg-[#fff8f3] p-4 rounded-2xl border-2 border-[#fed7aa] shadow-xs space-y-3">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a] flex items-center gap-1.5">
+              <span>⚡ Google Form Live Sync Connection</span>
+              <span class="px-2 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">LIVE RESPONSES</span>
+            </h3>
+            <p class="text-[11px] text-[#64748b]">Connected to official registration form: <a href="https://forms.gle/FydTB5VYcbqmsBbj6" target="_blank" class="text-[#ea580c] underline font-bold">forms.gle/FydTB5VYcbqmsBbj6 ↗</a></p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button" id="btnSyncGoogleSheet" class="px-3.5 py-1.5 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-black shadow-md transition active:scale-95 flex items-center gap-1.5">
+              <span id="syncSpinner" class="hidden animate-spin">⟳</span>
+              <span>⚡ Fetch Latest Google Responses</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Google Sheet URL configuration input & file dropper -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-[#64748b] mb-1">
+              Google Sheet Published CSV / Export URL:
+            </label>
+            <div class="flex gap-2">
+              <input type="url" id="inputGoogleSheetCsvUrl" placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv" class="flex-1 px-3 py-1.5 text-xs bg-white border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+              <button type="button" id="btnSaveSheetUrl" class="px-3 py-1.5 rounded-xl bg-[#0f172a] text-white text-xs font-bold hover:bg-slate-800 transition">Save</button>
+            </div>
+            <p class="text-[9px] text-[#64748b] mt-1">In Google Sheet: File &gt; Share &gt; Publish to web &gt; Select 'Comma-separated values (.csv)' &gt; Paste link here</p>
+          </div>
+
+          <!-- Drag and Drop CSV file box -->
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-[#64748b] mb-1">
+              Or Drag & Drop Downloaded Responses CSV:
+            </label>
+            <div id="dropZoneCSV" class="border-2 border-dashed border-[#fed7aa] bg-white hover:bg-orange-50/50 p-2 rounded-xl text-center cursor-pointer transition flex items-center justify-center gap-2">
+              <span class="text-lg">📁</span>
+              <span class="text-xs font-bold text-[#475569]">Drop exported Google Form CSV here or <span class="text-[#ea580c] underline">Browse</span></span>
+              <input type="file" id="fileInputCSV" accept=".csv" class="hidden">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Registrations Search & Filter Bar -->
+      <div class="bg-white p-3.5 rounded-2xl border border-[#e3dccd] shadow-xs flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-2 flex-wrap flex-1 max-w-xl">
+          <input type="text" id="searchRegistrationsInput" placeholder="Search by team, title, leader name, college, or USN..." class="w-full sm:w-80 px-3 py-1.5 text-xs bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+          
+          <select id="regTrackFilter" class="bg-[#f6f1e6] border border-[#e3dccd] text-xs font-bold text-[#0f172a] rounded-xl px-2.5 py-1.5">
+            <option value="ALL">All Event Tracks</option>
+            <option value="Track 1">Track 1: Embeddathon</option>
+            <option value="Track 2">Track 2: Project Expo</option>
+            <option value="Track 3">Track 3: Paper Presentation</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnOpenAddRegModal" class="px-3 py-1.5 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-black shadow-xs transition active:scale-95 flex items-center gap-1">
+            <span>+ Manual Entry</span>
+          </button>
+          <button type="button" id="btnExportRegistrationsCSV" class="px-3 py-1.5 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-black shadow-xs transition flex items-center gap-1">
+            <span>📊 Export CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Registrant Directory Table -->
+      <div class="bg-white rounded-2xl border border-[#e3dccd] shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead class="bg-[#f6f1e6] border-b border-[#e3dccd] text-[#64748b] font-bold uppercase text-[10px]">
+              <tr>
+                <th class="py-2.5 px-3 w-12 text-center">#</th>
+                <th class="py-2.5 px-3">Track & Title</th>
+                <th class="py-2.5 px-3">Team Leader & Contact</th>
+                <th class="py-2.5 px-3">College & Dept</th>
+                <th class="py-2.5 px-2 text-center">Team Size</th>
+                <th class="py-2.5 px-2.5 text-center">Stall / Slot</th>
+                <th class="py-2.5 px-2 text-center">Fee Paid</th>
+                <th class="py-2.5 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="registrationsTableBody" class="divide-y divide-[#f0ebe0]">
+              <!-- Dynamically populated registrations -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================= -->
+    <!-- TAB 3: TRACK & VENUE ALLOCATIONS                        -->
+    <!-- ======================================================= -->
+    <section id="tabContentVenues" class="hidden space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- Track 1: Embeddathon Card -->
+        <div class="bg-white rounded-2xl border-2 border-[#fed7aa] p-4 sm:p-5 shadow-xs space-y-3">
+          <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
+            <div>
+              <span class="text-[10px] font-black uppercase text-[#ea580c] block">Track 1</span>
+              <h3 class="text-sm font-black text-[#0f172a]">Embeddathon</h3>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-[#ea580c]">Day 1 · Nov 24</span>
+          </div>
+
+          <div class="space-y-1 text-xs text-[#475569]">
+            <p><strong class="text-[#0f172a]">Venue:</strong> Computer Labs 1 & 2</p>
+            <p><strong class="text-[#0f172a]">Coordinator:</strong> Embed Club Core Leads</p>
+            <p><strong class="text-[#0f172a]">Format:</strong> Real-time Hardware Prototyping & Mentoring</p>
+            <p><strong class="text-[#0f172a]">Weightage:</strong> Phase 1 (30%) + Phase 2 (70%)</p>
+          </div>
+
+          <div class="bg-[#f6f1e6] p-2.5 rounded-xl border border-[#e3dccd] text-[11px] space-y-1">
+            <span class="font-extrabold text-[#0f172a] block">Key Protocols:</span>
+            <ul class="list-disc list-inside space-y-0.5 text-[#64748b]">
+              <li>Microcontrollers (ESP32, STM32, Arduino) permitted</li>
+              <li>230V power sockets & LAN provided at workstations</li>
+              <li>Phase 1 Mentoring score recorded on judge phone portal</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Track 2: Project Expo Card -->
+        <div class="bg-white rounded-2xl border-2 border-[#fed7aa] p-4 sm:p-5 shadow-xs space-y-3">
+          <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
+            <div>
+              <span class="text-[10px] font-black uppercase text-[#ea580c] block">Track 2</span>
+              <h3 class="text-sm font-black text-[#0f172a]">Project Exhibition / Expo</h3>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Day 2 · Nov 25</span>
+          </div>
+
+          <div class="space-y-1 text-xs text-[#475569]">
+            <p><strong class="text-[#0f172a]">Venue:</strong> Edusat Hall, PACE Campus</p>
+            <p><strong class="text-[#0f172a]">Capacity:</strong> 30 Display Stalls (Tables + Chairs + Power)</p>
+            <p><strong class="text-[#0f172a]">Jury:</strong> External Industry Experts & IEEE Members</p>
+          </div>
+
+          <div class="bg-[#f6f1e6] p-2.5 rounded-xl border border-[#e3dccd] text-[11px] space-y-1">
+            <span class="font-extrabold text-[#0f172a] block">Mandatory Deliverables:</span>
+            <ul class="list-disc list-inside space-y-0.5 text-[#64748b]">
+              <li><strong>Hardware Projects:</strong> Physical A2/A3 circuit & architecture chart</li>
+              <li><strong>Software Projects:</strong> 16:9 Slide presentation deck (Max 15 slides)</li>
+              <li>Live working demo before external jury</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Track 3: Technical Paper Card -->
+        <div class="bg-white rounded-2xl border-2 border-[#fed7aa] p-4 sm:p-5 shadow-xs space-y-3">
+          <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
+            <div>
+              <span class="text-[10px] font-black uppercase text-indigo-600 block">Track 3</span>
+              <h3 class="text-sm font-black text-[#0f172a]">Technical Paper Competition</h3>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800">Day 2 · Nov 25</span>
+          </div>
+
+          <div class="space-y-1 text-xs text-[#475569]">
+            <p><strong class="text-[#0f172a]">Venue:</strong> Multipurpose Hall, PACE Campus</p>
+            <p><strong class="text-[#0f172a]">Session Chair:</strong> Academic Review Panel</p>
+            <p><strong class="text-[#0f172a]">Presentation:</strong> 10 mins presentation + 5 mins defense</p>
+          </div>
+
+          <div class="bg-[#f6f1e6] p-2.5 rounded-xl border border-[#e3dccd] text-[11px] space-y-1">
+            <span class="font-extrabold text-[#0f172a] block">Mandatory Standards:</span>
+            <ul class="list-disc list-inside space-y-0.5 text-[#64748b]">
+              <li>Strictly IEEE 2-column format manuscript (.pdf)</li>
+              <li>Slide presentation covering problem, methodology, benchmarks</li>
+              <li>Formal Q&A defense answering panel scrutiny</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ======================================================= -->
+    <!-- TAB 4: GOOGLE FORMS SYNC SETUP & APPS SCRIPT            -->
+    <!-- ======================================================= -->
+    <section id="tabContentWebhook" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl border-2 border-[#fed7aa] p-5 shadow-xs space-y-4">
+        
+        <div>
+          <h2 class="text-sm font-black uppercase text-[#0f172a] flex items-center gap-2">
+            <span>⚡ Automatic Real-Time Sync with Google Forms</span>
+          </h2>
+          <p class="text-xs text-[#64748b] mt-1">
+            Whenever a participant submits your Google Form, this script will automatically push their submission directly into this EMBERS Management database without manual copy-pasting.
+          </p>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div class="flex items-start gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-[#ea580c] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">1</span>
+            <div>
+              <p class="font-bold text-[#0f172a]">Open your Google Form or Linked Google Sheet</p>
+              <p class="text-[#64748b]">Go to your Google Form: <a href="https://forms.gle/FydTB5VYcbqmsBbj6" target="_blank" class="text-[#ea580c] underline">forms.gle/FydTB5VYcbqmsBbj6 ↗</a>, open the <strong>Responses</strong> tab, and click <strong>View in Sheets</strong>.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-[#ea580c] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">2</span>
+            <div>
+              <p class="font-bold text-[#0f172a]">Open Apps Script</p>
+              <p class="text-[#64748b]">In the Google Sheet menu, click <strong>Extensions &gt; Apps Script</strong>.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-[#ea580c] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">3</span>
+            <div>
+              <p class="font-bold text-[#0f172a]">Paste this Script & Save</p>
+              <p class="text-[#64748b]">Delete existing code in the editor, paste the script below, and click <strong>Save</strong> (💾 icon).</p>
+            </div>
+          </div>
+
+          <!-- Code Box -->
+          <div class="relative bg-slate-900 rounded-xl p-3.5 text-slate-100 font-mono text-[11px] overflow-x-auto shadow-inner">
+            <button type="button" id="btnCopyAppsScript" class="absolute top-2 right-2 px-2.5 py-1 rounded bg-[#ea580c] hover:bg-[#c2410c] text-white text-[10px] font-sans font-bold transition">
+              Copy Script
+            </button>
+            <pre id="codeAppsScript"><code>function onFormSubmit(e) {
+  // EMBERS '26 Real-Time Google Form Sync Webhook
+  var endpoint = "https://embedthon-judge-portal.vercel.app/api/embers";
+  
+  var values = e ? e.namedValues : {};
+  var record = {
+    timestamp: values["Timestamp"] ? values["Timestamp"][0] : new Date().toISOString(),
+    track: values["Event Track"] ? values["Event Track"][0] : "Track 1: Embeddathon",
+    title: values["Project / Paper Title"] ? values["Project / Paper Title"][0] : "Untitled",
+    college: values["College Name"] ? values["College Name"][0] : "PACE",
+    dept: values["Department & Year/Semester"] ? values["Department & Year/Semester"][0] : "CSE",
+    leaderName: values["Team Leader Name"] ? values["Team Leader Name"][0] : "Leader",
+    email: values["Email Address"] ? values["Email Address"][0] : "",
+    phone: values["WhatsApp / Phone Number"] ? values["WhatsApp / Phone Number"][0] : "",
+    usn: values["College USN / Roll No"] ? values["College USN / Roll No"][0] : "",
+    membersCount: values["Total Number of Team Members (including leader)"] ? parseInt(values["Total Number of Team Members (including leader)"][0]) : 1,
+    member2: values["Member 2 Name & USN"] ? values["Member 2 Name & USN"][0] : "",
+    member3: values["Member 3 Name & USN"] ? values["Member 3 Name & USN"][0] : "",
+    member4: values["Member 4 Name & USN"] ? values["Member 4 Name & USN"][0] : "",
+    abstract: values["Brief Abstract / Description (50-100 words)"] ? values["Brief Abstract / Description (50-100 words)"][0] : "",
+    domain: values["Category / Domain"] ? values["Category / Domain"][0] : "Embedded Systems",
+    hardwareReq: values["Hardware / Power Requirement (if any)"] ? values["Hardware / Power Requirement (if any)"][0] : "None"
+  };
+
+  var payload = {
+    action: "sync_responses",
+    records: [record]
+  };
+
+  var options = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  UrlFetchApp.fetch(endpoint, options);
+}</code></pre>
+          </div>
+
+          <div class="flex items-start gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-[#ea580c] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">4</span>
+            <div>
+              <p class="font-bold text-[#0f172a]">Add Trigger</p>
+              <p class="text-[#64748b]">Click the clock icon (<strong>Triggers</strong>) on the left sidebar &gt; <strong>+ Add Trigger</strong> &gt; Select function: <code>onFormSubmit</code>, Event type: <strong>On form submit</strong> &gt; Click <strong>Save</strong>. You're done!</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ========================================================= -->
+  <!-- 3. MODALS                                                 -->
+  <!-- ========================================================= -->
+  
+  <!-- Add / Edit Schedule Slot Modal -->
+  <div id="modalSlot" class="fixed inset-0 z-50 bg-[#0f172a]/80 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 border-2 border-[#fed7aa] shadow-2xl space-y-3.5 my-auto">
+      <div class="flex items-center justify-between border-b border-[#e3dccd] pb-2">
+        <h3 id="modalSlotTitle" class="text-xs font-black uppercase tracking-wider text-[#0f172a]">Add Schedule Slot</h3>
+        <button type="button" id="btnCloseSlotModal" class="text-lg font-black text-slate-500 hover:text-slate-800">&times;</button>
+      </div>
+
+      <form id="formSlot" onsubmit="return false;" class="space-y-3 text-xs">
+        <input type="hidden" id="slotIdInput">
+        
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">Day</label>
+            <select id="slotDayInput" class="w-full px-3 py-1.5 bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl font-bold">
+              <option value="1">Day 1 (Nov 24)</option>
+              <option value="2">Day 2 (Nov 25)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">Track</label>
+            <select id="slotTrackInput" class="w-full px-3 py-1.5 bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl font-bold">
+              <option value="ALL">All Tracks / General</option>
+              <option value="TRACK_1">Track 1: Embeddathon</option>
+              <option value="TRACK_2">Track 2: Project Expo</option>
+              <option value="TRACK_3">Track 3: Paper Presentation</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">Start Time</label>
+            <input type="time" id="slotStartInput" required class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl font-mono">
+          </div>
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">End Time</label>
+            <input type="time" id="slotEndInput" required class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-[#1e293b] mb-1">Session Title</label>
+          <input type="text" id="slotTitleInput" placeholder="e.g. Inaugural Ceremony & Keynote" required class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl font-bold text-[#0f172a]">
+        </div>
+
+        <div>
+          <label class="block font-bold text-[#1e293b] mb-1">Venue</label>
+          <input type="text" id="slotVenueInput" placeholder="e.g. Main Auditorium / Edusat Hall" required class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl">
+        </div>
+
+        <div>
+          <label class="block font-bold text-[#1e293b] mb-1">Description / Notes</label>
+          <textarea id="slotDescInput" rows="2" placeholder="Brief outline of this scheduled milestone..." class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl"></textarea>
+        </div>
+
+        <button type="submit" id="btnSaveSlotSubmit" class="w-full py-2.5 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black uppercase tracking-wider text-xs shadow-md transition active:scale-95">
+          Save Slot
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Manual Add Registration Modal -->
+  <div id="modalAddReg" class="fixed inset-0 z-50 bg-[#0f172a]/80 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 border-2 border-[#fed7aa] shadow-2xl space-y-3.5 my-auto max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-[#e3dccd] pb-2">
+        <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a]">Add Team Registration</h3>
+        <button type="button" id="btnCloseAddRegModal" class="text-lg font-black text-slate-500 hover:text-slate-800">&times;</button>
+      </div>
+
+      <form id="formAddReg" onsubmit="return false;" class="space-y-3 text-xs overflow-y-auto flex-1 pr-1">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">Event Track</label>
+            <select id="regTrackSelect" class="w-full px-3 py-1.5 bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl font-bold">
+              <option value="Track 1: Embeddathon">Track 1: Embeddathon</option>
+              <option value="Track 2: Project Exhibition / Expo">Track 2: Project Expo</option>
+              <option value="Track 3: Technical Paper Competition">Track 3: Paper Presentation</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">Domain</label>
+            <input type="text" id="regDomainInput" placeholder="Embedded Systems & IoT" class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-[#1e293b] mb-1">Project / Paper Title</label>
+          <input type="text" id="regTitleInput" placeholder="e.g. Smart IoT Microgrid Energy Monitor" required class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl font-bold">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">College Name</label>
+            <input type="text" id="regCollegeInput" placeholder="P.A. College of Engineering" required class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl">
+          </div>
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">Department</label>
+            <input type="text" id="regDeptInput" placeholder="Computer Science & Engg" class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">Team Leader Name</label>
+            <input type="text" id="regLeaderNameInput" placeholder="e.g. Fathima K" required class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl font-bold">
+          </div>
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">Leader USN / Roll No</label>
+            <input type="text" id="regUsnInput" placeholder="4PA25CS014" required class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">WhatsApp / Phone</label>
+            <input type="tel" id="regPhoneInput" placeholder="+91 98765 43210" required class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl font-mono">
+          </div>
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">Email Address</label>
+            <input type="email" id="regEmailInput" placeholder="leader@pace.edu.in" required class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">Total Members</label>
+            <input type="number" id="regMembersCountInput" min="1" max="4" value="4" class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl font-bold">
+          </div>
+          <div>
+            <label class="block font-bold text-[#1e293b] mb-1">Assigned Stall / Slot</label>
+            <input type="text" id="regStallInput" placeholder="e.g. Stall 04 / Slot 02" class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-[#1e293b] mb-1">Brief Abstract</label>
+          <textarea id="regAbstractInput" rows="2" placeholder="Brief project summary..." class="w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl"></textarea>
+        </div>
+
+        <button type="submit" id="btnSaveRegSubmit" class="w-full py-2.5 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black uppercase tracking-wider text-xs shadow-md transition active:scale-95">
+          Add Registration
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="teams.js"></script>
+  <script src="embers.js"></script>
+</body>
+</html>
