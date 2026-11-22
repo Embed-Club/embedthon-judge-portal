@@ -77,3 +77,136 @@ input[type="number"] {
 button:active {
   transform: scale(0.97);
 }
+
+/* ========================================================= */
+/* CEREMONY & RESULTS REVEAL ANIMATIONS                     */
+/* ========================================================= */
+
+@keyframes goldPulse {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(234, 88, 12, 0.4), 0 0 50px rgba(245, 158, 11, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(234, 88, 12, 0.7), 0 0 80px rgba(245, 158, 11, 0.5);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes silverPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(148, 163, 184, 0.4), 0 0 40px rgba(203, 213, 225, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(148, 163, 184, 0.6), 0 0 60px rgba(203, 213, 225, 0.4);
+    transform: scale(1.015);
+  }
+}
+
+@keyframes bronzePulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(180, 83, 9, 0.4), 0 0 40px rgba(217, 119, 6, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(180, 83, 9, 0.6), 0 0 60px rgba(217, 119, 6, 0.4);
+    transform: scale(1.015);
+  }
+}
+
+@keyframes cardRevealElastic {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translateY(40px) rotateX(15deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04) translateY(-8px) rotateX(0deg);
+  }
+  80% {
+    transform: scale(0.98) translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes suspenseShake {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  20% { transform: translate(-3px, 2px) scale(1.01); }
+  40% { transform: translate(3px, -2px) scale(0.99); }
+  60% { transform: translate(-2px, -2px) scale(1.02); }
+  80% { transform: translate(2px, 2px) scale(0.98); }
+}
+
+@keyframes shimmerEffect {
+  0% { transform: translateX(-150%) skewX(-20deg); }
+  100% { transform: translateX(250%) skewX(-20deg); }
+}
+
+@keyframes countPopIn {
+  0% { transform: scale(2.2); opacity: 0; filter: blur(6px); }
+  50% { transform: scale(0.9); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes floatGentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.anim-gold-pulse {
+  animation: goldPulse 2.4s infinite ease-in-out;
+}
+
+.anim-silver-pulse {
+  animation: silverPulse 2.4s infinite ease-in-out;
+}
+
+.anim-bronze-pulse {
+  animation: bronzePulse 2.4s infinite ease-in-out;
+}
+
+.anim-card-reveal {
+  animation: cardRevealElastic 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.anim-suspense-shake {
+  animation: suspenseShake 0.25s infinite ease-in-out;
+}
+
+.anim-count-pop {
+  animation: countPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.anim-float {
+  animation: floatGentle 3s ease-in-out infinite;
+}
+
+.shimmer-bar {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-bar::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: shimmerEffect 2.5s infinite;
+}
+
+/* Olympic Podium Columns */
+.podium-gold {
+  background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+  border-top: 4px solid #fef08a;
+}
+.podium-silver {
+  background: linear-gradient(180deg, #94a3b8 0%, #475569 100%);
+  border-top: 4px solid #f1f5f9;
+}
+.podium-bronze {
+  background: linear-gradient(180deg, #d97706 0%, #78350f 100%);
+  border-top: 4px solid #fed7aa;
+}

@@ -147,6 +147,28 @@
   const btnShareWhatsApp = document.getElementById('btnShareWhatsApp');
   const btnResetEvaluations = document.getElementById('btnResetEvaluations');
 
+  // Results Reveal Ceremony Elements
+  const btnLaunchCeremony = document.getElementById('btnLaunchCeremony');
+  const revealCeremonyOverlay = document.getElementById('revealCeremonyOverlay');
+  const ceremonyCanvas = document.getElementById('ceremonyCanvas');
+  const btnCeremonyAudioToggle = document.getElementById('btnCeremonyAudioToggle');
+  const audioIcon = document.getElementById('audioIcon');
+  const audioStatusText = document.getElementById('audioStatusText');
+  const ceremonyCategorySelect = document.getElementById('ceremonyCategorySelect');
+  const btnCloseCeremony = document.getElementById('btnCloseCeremony');
+  const ceremonyStageArena = document.getElementById('ceremonyStageArena');
+  const btnCeremonyPrevStep = document.getElementById('btnCeremonyPrevStep');
+  const btnCeremonyConfetti = document.getElementById('btnCeremonyConfetti');
+  const ceremonyStepIndicator = document.getElementById('ceremonyStepIndicator');
+  const btnCeremonyNextStep = document.getElementById('btnCeremonyNextStep');
+  const btnCeremonyNextLabel = document.getElementById('btnCeremonyNextLabel');
+
+  // Ceremony state
+  let ceremonyAudioEngine = null;
+  let ceremonyCurrentStep = 0; // 0: Welcome, 1: 3rd place, 2: 2nd place, 3: Champion, 4: Podium
+  let ceremonyCategory = 'OVERALL';
+  let ceremonyWinnersList = [];
+
   // Admin Modal Elements
   const modalJurySetup = document.getElementById('modalJurySetup');
   const btnCloseSetupModal = document.getElementById('btnCloseSetupModal');
@@ -1457,6 +1479,35 @@
 
     // Reset
     btnResetEvaluations.addEventListener('click', resetAllEvaluations);
+
+    // Results Reveal Ceremony Bindings
+    if (btnLaunchCeremony) {
+      btnLaunchCeremony.addEventListener('click', openCeremonyModal);
+    }
+    if (btnCloseCeremony) {
+      btnCloseCeremony.addEventListener('click', closeCeremonyModal);
+    }
+    if (btnCeremonyAudioToggle) {
+      btnCeremonyAudioToggle.addEventListener('click', toggleCeremonyAudio);
+    }
+    if (ceremonyCategorySelect) {
+      ceremonyCategorySelect.addEventListener('change', (e) => {
+        ceremonyCategory = e.target.value;
+        startCeremony(ceremonyCategory);
+      });
+    }
+    if (btnCeremonyPrevStep) {
+      btnCeremonyPrevStep.addEventListener('click', prevCeremonyStep);
+    }
+    if (btnCeremonyNextStep) {
+      btnCeremonyNextStep.addEventListener('click', nextCeremonyStep);
+    }
+    if (btnCeremonyConfetti) {
+      btnCeremonyConfetti.addEventListener('click', () => {
+        triggerConfettiBurst('mega');
+        if (ceremonyAudioEngine) ceremonyAudioEngine.playCymbalCrash();
+      });
+    }
   }
 
   // -------------------------------------------------------------
@@ -1547,6 +1598,653 @@
       alert('Error connecting to reset endpoint.');
     }
   }
+
+  // =============================================================
+  // WEB AUDIO API SYNTHESIZER & SOUND FX ENGINE
+  // Multi-track procedural audio: Heartbeat, Drumroll, Fanfare, Cymbal, Cheer
+  // =============================================================
+  class CeremonyAudioEngine {
+    constructor() {
+      this.ctx = null;
+      this.muted = false;
+    }
+
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          this.ctx = new AudioCtx();
+        }
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+
+    toggleMute() {
+      this.muted = !this.muted;
+      return !this.muted;
+    }
+
+    // 1. Suspense Heartbeat Pulse
+    playHeartbeat() {
+      if (this.muted) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const t = this.ctx.currentTime;
+      this._playThump(t, 65, 0.5);
+      this._playThump(t + 0.12, 52, 0.4);
+    }
+
+    _playThump(startTime, freq, vol) {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+      osc.frequency.exponentialRampToValueAtTime(32, startTime + 0.18);
+
+      gain.gain.setValueAtTime(vol, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.2);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.22);
+    }
+
+    // 2. Realistic Drumroll with Crescendo
+    playDrumroll(duration = 2.0) {
+      if (this.muted) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const t = this.ctx.currentTime;
+      const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < bufferSize; i++) {
+        // High frequency snare noise with flutter envelope
+        const flutter = 0.6 + 0.4 * Math.sin(i / 120);
+        data[i] = (Math.random() * 2 - 1) * flutter;
+      }
+
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(550, t);
+      filter.frequency.linearRampToValueAtTime(1200, t + duration);
+      filter.Q.value = 2.2;
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.05, t);
+      gain.gain.exponentialRampToValueAtTime(0.75, t + duration - 0.05);
+      gain.gain.linearRampToValueAtTime(0.001, t + duration);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      noise.start(t);
+      noise.stop(t + duration);
+    }
+
+    // 3. Shimmering Cymbal Crash & Impact
+    playCymbalCrash() {
+      if (this.muted) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const t = this.ctx.currentTime;
+      const duration = 2.2;
+      const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.setValueAtTime(5000, t);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.85, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      noise.start(t);
+      noise.stop(t + duration);
+    }
+
+    // 4. Celebratory Brass Fanfares (Bronze, Silver, Gold Champion)
+    playFanfare(rank = 1) {
+      if (this.muted) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const t = this.ctx.currentTime;
+
+      // Bronze: Warm Triad (Rank 3)
+      if (rank === 3) {
+        this._playHornNote(261.63, t, 0.35, 0.45); // C4
+        this._playHornNote(329.63, t + 0.15, 0.35, 0.5); // E4
+        this._playHornNote(392.00, t + 0.3, 0.7, 0.6); // G4
+        this._playHornNote(523.25, t + 0.45, 1.3, 0.75); // C5
+      }
+      // Silver: Bright Fanfare (Rank 2)
+      else if (rank === 2) {
+        this._playHornNote(293.66, t, 0.25, 0.5); // D4
+        this._playHornNote(369.99, t + 0.12, 0.25, 0.5); // F#4
+        this._playHornNote(440.00, t + 0.24, 0.4, 0.65); // A4
+        this._playHornNote(587.33, t + 0.36, 1.5, 0.8); // D5
+        this.playCymbalCrash();
+      }
+      // Gold / Grand Champion (Rank 1): Royal Majestic Fanfare
+      else {
+        const notes = [
+          { f: 261.63, start: 0, dur: 0.16, vol: 0.65 }, // C4
+          { f: 261.63, start: 0.16, dur: 0.16, vol: 0.65 }, // C4
+          { f: 261.63, start: 0.32, dur: 0.16, vol: 0.65 }, // C4
+          { f: 349.23, start: 0.48, dur: 0.45, vol: 0.8 }, // F4
+          { f: 440.00, start: 0.95, dur: 0.22, vol: 0.8 }, // A4
+          { f: 523.25, start: 1.18, dur: 2.0, vol: 0.9 }, // C5
+          { f: 659.25, start: 1.18, dur: 2.0, vol: 0.75 }, // E5
+          { f: 783.99, start: 1.18, dur: 2.0, vol: 0.85 } // G5
+        ];
+
+        notes.forEach(n => {
+          this._playHornNote(n.f, t + n.start, n.dur, n.vol);
+        });
+
+        this.playCymbalCrash();
+        setTimeout(() => this.playCheerApplause(3.8), 1100);
+      }
+    }
+
+    _playHornNote(freq, startTime, duration, vol) {
+      const osc1 = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
+
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(freq, startTime);
+
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(freq * 1.003, startTime); // chorus detune
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(freq * 1.5, startTime);
+      filter.frequency.linearRampToValueAtTime(freq * 3.8, startTime + 0.08);
+      filter.frequency.exponentialRampToValueAtTime(freq * 1.8, startTime + duration);
+
+      gain.gain.setValueAtTime(0.001, startTime);
+      gain.gain.linearRampToValueAtTime(vol, startTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc1.start(startTime);
+      osc2.start(startTime);
+      osc1.stop(startTime + duration);
+      osc2.stop(startTime + duration);
+    }
+
+    // 5. Crowd Cheering & Applause Simulation
+    playCheerApplause(duration = 3.5) {
+      if (this.muted) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const t = this.ctx.currentTime;
+      const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < bufferSize; i++) {
+        const noise = Math.random() * 2 - 1;
+        const clapWave = Math.sin(i / 90) * Math.sin(i / 140);
+        data[i] = noise * 0.35 + (clapWave > 0.4 ? noise * 0.65 : 0);
+      }
+
+      const src = this.ctx.createBufferSource();
+      src.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1100, t);
+      filter.Q.value = 1.1;
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.01, t);
+      gain.gain.linearRampToValueAtTime(0.45, t + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      src.start(t);
+      src.stop(t + duration);
+    }
+  }
+
+  // -------------------------------------------------------------
+  // Confetti Blast Engine
+  // -------------------------------------------------------------
+  function triggerConfettiBurst(intensity = 'medium') {
+    if (typeof confetti === 'function') {
+      if (intensity === 'small') {
+        confetti({
+          particleCount: 45,
+          spread: 60,
+          origin: { y: 0.65 }
+        });
+      } else if (intensity === 'medium') {
+        confetti({
+          particleCount: 90,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+      } else if (intensity === 'mega') {
+        // Multi-stage cannon blast
+        const count = 220;
+        const defaults = { origin: { y: 0.68 } };
+        function fire(ratio, opts) {
+          confetti(Object.assign({}, defaults, opts, {
+            particleCount: Math.floor(count * ratio)
+          }));
+        }
+
+        fire(0.25, { spread: 26, startVelocity: 55 });
+        fire(0.2, { spread: 60 });
+        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+        fire(0.1, { spread: 120, startVelocity: 45 });
+
+        // Left & Right celebratory streams
+        const end = Date.now() + 2500;
+        const colors = ['#ea580c', '#f59e0b', '#3b82f6', '#10b981', '#ffffff', '#ffd700'];
+        (function frame() {
+          confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: colors });
+          confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: colors });
+          if (Date.now() < end) requestAnimationFrame(frame);
+        })();
+      }
+    }
+  }
+
+  // -------------------------------------------------------------
+  // Ceremony Modal Orchestration
+  // -------------------------------------------------------------
+  function openCeremonyModal() {
+    if (!ceremonyAudioEngine) {
+      ceremonyAudioEngine = new CeremonyAudioEngine();
+    }
+    ceremonyAudioEngine.init();
+
+    if (revealCeremonyOverlay) {
+      revealCeremonyOverlay.classList.remove('hidden');
+    }
+
+    startCeremony(ceremonyCategory || 'OVERALL');
+  }
+
+  function closeCeremonyModal() {
+    if (revealCeremonyOverlay) {
+      revealCeremonyOverlay.classList.add('hidden');
+    }
+  }
+
+  function toggleCeremonyAudio() {
+    if (!ceremonyAudioEngine) {
+      ceremonyAudioEngine = new CeremonyAudioEngine();
+    }
+    const isNowMuted = ceremonyAudioEngine.toggleMute();
+    if (audioIcon) audioIcon.textContent = isNowMuted ? '🔇' : '🔊';
+    if (audioStatusText) audioStatusText.textContent = isNowMuted ? 'MUTED' : 'SOUND ON';
+  }
+
+  function startCeremony(category = 'OVERALL') {
+    ceremonyCategory = category;
+    ceremonyCurrentStep = 0;
+    ceremonyWinnersList = computeCeremonyRankings(category);
+
+    renderCeremonyStage();
+  }
+
+  function computeCeremonyRankings(category) {
+    const list = teams
+      .map((t) => {
+        const teamEvals = masterEvaluations[t.number] || {};
+        const p1Scores = Object.values(teamEvals).filter((x) => x && x.phase1 > 0).map((x) => x.phase1);
+        const p2Scores = Object.values(teamEvals).filter((x) => x && x.phase2 > 0).map((x) => x.phase2);
+
+        const p1Avg = p1Scores.length ? Number((p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1)) : 0;
+        const p2Avg = p2Scores.length ? Number((p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1)) : 0;
+        const grandTotal = Number((p1Avg + p2Avg).toFixed(1));
+
+        return {
+          team: t,
+          p1Avg,
+          p2Avg,
+          grandTotal,
+          numJudges: Object.keys(teamEvals).length
+        };
+      })
+      .filter((item) => category === 'OVERALL' || item.team.section === category)
+      .sort((a, b) => b.grandTotal - a.grandTotal);
+
+    // If no evaluations are saved yet (demo preview mode), provide top 3 preview
+    if (!list.length || list[0].grandTotal === 0) {
+      return (category === 'OVERALL' ? teams.slice(0, 3) : teams.filter(x => x.section === category).slice(0, 3)).map((t, idx) => ({
+        team: t,
+        p1Avg: idx === 0 ? 28.5 : idx === 1 ? 27.0 : 25.5,
+        p2Avg: idx === 0 ? 66.5 : idx === 1 ? 64.0 : 61.5,
+        grandTotal: idx === 0 ? 95.0 : idx === 1 ? 91.0 : 87.0,
+        isPreview: true
+      }));
+    }
+
+    return list.slice(0, 3);
+  }
+
+  function prevCeremonyStep() {
+    if (ceremonyCurrentStep > 0) {
+      ceremonyCurrentStep--;
+      renderCeremonyStage();
+    }
+  }
+
+  function nextCeremonyStep() {
+    if (ceremonyCurrentStep < 4) {
+      ceremonyCurrentStep++;
+      renderCeremonyStage();
+    } else {
+      // Replay
+      ceremonyCurrentStep = 0;
+      renderCeremonyStage();
+    }
+  }
+  window.nextCeremonyStep = nextCeremonyStep;
+  window.triggerConfettiBurst = triggerConfettiBurst;
+  window.shareWhatsAppSummary = shareWhatsAppSummary;
+  window.openCeremonyModal = openCeremonyModal;
+
+  function renderCeremonyStage() {
+    if (!ceremonyStageArena) return;
+
+    if (btnCeremonyPrevStep) {
+      btnCeremonyPrevStep.disabled = ceremonyCurrentStep === 0;
+    }
+
+    if (ceremonyCurrentStep === 0) {
+      renderWelcomeStep();
+    } else if (ceremonyCurrentStep === 1) {
+      renderWinnerCardStep(2, 3); // 3rd Place (Index 2, Rank 3 Bronze)
+    } else if (ceremonyCurrentStep === 2) {
+      renderWinnerCardStep(1, 2); // 2nd Place (Index 1, Rank 2 Silver)
+    } else if (ceremonyCurrentStep === 3) {
+      renderWinnerCardStep(0, 1); // 1st Place (Index 0, Rank 1 Champion)
+    } else if (ceremonyCurrentStep === 4) {
+      renderPodiumStep();
+    }
+  }
+
+  function getCategoryTitle(cat) {
+    if (cat === 'A') return 'Section A Winners';
+    if (cat === 'B') return 'Section B Winners';
+    return 'Overall Champions';
+  }
+
+  // --- Step 0: Welcome Stage ---
+  function renderWelcomeStep() {
+    if (ceremonyStepIndicator) ceremonyStepIndicator.textContent = 'Stage Ready';
+    if (btnCeremonyNextLabel) btnCeremonyNextLabel.textContent = 'Begin Reveal ▶';
+
+    const count = ceremonyWinnersList.length;
+    const isPreview = ceremonyWinnersList.some(x => x.isPreview);
+
+    ceremonyStageArena.innerHTML = `
+      <div class="max-w-md w-full space-y-4 my-auto">
+        <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-[#ea580c] p-1 shadow-2xl anim-gold-pulse">
+          <img src="assets/pace_crest.png" alt="PACE Crest" class="w-full h-full object-contain bg-white rounded-full p-2">
+        </div>
+        
+        <div class="space-y-1">
+          <span class="text-[10px] font-black tracking-widest text-orange-400 uppercase">Department of Computer Science & Engineering</span>
+          <h1 class="text-2xl sm:text-3xl font-black uppercase text-amber-400 tracking-wider">
+            Grand Results Reveal
+          </h1>
+          <p class="text-xs font-bold text-slate-300">
+            EMBEDTHON '26 · EMBERS '26 Official Valedictory Ceremony
+          </p>
+        </div>
+
+        <div class="p-3.5 bg-slate-900/80 border border-slate-700/80 rounded-2xl text-xs space-y-2 text-left">
+          <div class="flex items-center justify-between text-slate-300">
+            <span class="text-slate-400">Award Category:</span>
+            <span class="font-black text-amber-400">${getCategoryTitle(ceremonyCategory)}</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-300">
+            <span class="text-slate-400">Jury Status:</span>
+            <span class="font-bold text-emerald-400">Consensus Computed ✓</span>
+          </div>
+          ${isPreview ? '<p class="text-[10px] text-amber-300/80 pt-1 border-t border-slate-800 italic">💡 Running in Demo Preview mode. Real scores update dynamically once judges submit scores.</p>' : ''}
+        </div>
+
+        <button type="button" class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-[#ea580c] hover:from-amber-400 hover:to-orange-500 font-black text-sm uppercase tracking-wider text-white shadow-xl hover:scale-[1.02] active:scale-95 transition" onclick="window.nextCeremonyStep()">
+          Announce Winners Now 🏆
+        </button>
+      </div>
+    `;
+  }
+
+  // --- Step 1, 2, 3: Individual Winner Card Step ---
+  function renderWinnerCardStep(winnerIndex, rankNumber) {
+    const item = ceremonyWinnersList[winnerIndex];
+    if (!item) {
+      renderPodiumStep();
+      return;
+    }
+
+    const t = item.team;
+    const isChamp = rankNumber === 1;
+    const isSilver = rankNumber === 2;
+
+    const rankBadgeText = isChamp ? '👑 GRAND CHAMPION · 1ST PLACE' : isSilver ? '🥈 1ST RUNNER-UP · 2ND PLACE' : '🥉 2ND RUNNER-UP · 3RD PLACE';
+    const animClass = isChamp ? 'anim-gold-pulse' : isSilver ? 'anim-silver-pulse' : 'anim-bronze-pulse';
+    const borderGlow = isChamp ? 'border-amber-400 shadow-orange-500/30' : isSilver ? 'border-slate-300 shadow-slate-400/20' : 'border-amber-600/70 shadow-amber-700/20';
+
+    if (ceremonyStepIndicator) {
+      ceremonyStepIndicator.textContent = `Rank ${rankNumber} · ${isChamp ? 'Champion' : isSilver ? '1st Runner-Up' : '2nd Runner-Up'}`;
+    }
+    if (btnCeremonyNextLabel) {
+      btnCeremonyNextLabel.textContent = isChamp ? 'View Podium 🏆 ▶' : isSilver ? 'Reveal Champion 👑 ▶' : 'Next: 1st Runner-Up ▶';
+    }
+
+    // Trigger sound effects & suspense
+    if (ceremonyAudioEngine) {
+      ceremonyAudioEngine.playDrumroll(isChamp ? 2.2 : 1.8);
+      setTimeout(() => {
+        ceremonyAudioEngine.playFanfare(rankNumber);
+        triggerConfettiBurst(isChamp ? 'mega' : isSilver ? 'medium' : 'small');
+      }, isChamp ? 2000 : 1600);
+    }
+
+    // Render Stage
+    ceremonyStageArena.innerHTML = `
+      <div class="max-w-md w-full space-y-3.5 my-auto anim-card-reveal">
+        
+        <!-- Trophy & Rank Header -->
+        <div class="space-y-1">
+          <div class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${isChamp ? 'bg-amber-500 text-slate-950' : isSilver ? 'bg-slate-200 text-slate-900' : 'bg-amber-700 text-amber-100'} shadow-md">
+            ${rankBadgeText}
+          </div>
+          <div class="text-4xl sm:text-5xl font-black ${isChamp ? 'text-amber-400 anim-float' : isSilver ? 'text-slate-200' : 'text-amber-500'}">
+            ${isChamp ? '🏆' : isSilver ? '🥈' : '🥉'}
+          </div>
+        </div>
+
+        <!-- Team Main Winner Card -->
+        <div class="p-4 sm:p-5 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 rounded-2xl border-2 ${borderGlow} shadow-2xl text-left space-y-3 shimmer-bar ${animClass}">
+          
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div>
+              <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">TEAM ALLOTMENT</span>
+              <div class="text-2xl font-black font-serif-pace text-white">#${t.number}</div>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SECTION</span>
+              <div class="text-xs font-black px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">
+                SEC ${t.section}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h2 class="text-lg sm:text-xl font-black text-white leading-tight">
+              ${t.name}
+            </h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">
+              ${t.member_count} Members · Lead: <strong class="text-slate-200">${t.members[0]?.name || 'N/A'}</strong>
+            </p>
+          </div>
+
+          <!-- Members Grid -->
+          <div class="grid grid-cols-2 gap-1.5 pt-1 text-[10px]">
+            ${t.members.map((m, mIdx) => `
+              <div class="p-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60 truncate">
+                <span class="font-bold text-slate-200 truncate block">${m.name}</span>
+                <span class="font-mono text-[9px] text-slate-400">${m.usn}</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Final Score Pill Matrix -->
+          <div class="pt-2 border-t border-slate-800 grid grid-cols-3 gap-2 text-center">
+            <div class="p-1.5 rounded-lg bg-slate-800/80">
+              <span class="text-[9px] text-slate-400 block font-bold">P1 (30%)</span>
+              <span class="text-xs font-black text-slate-200">${item.p1Avg}</span>
+            </div>
+            <div class="p-1.5 rounded-lg bg-slate-800/80">
+              <span class="text-[9px] text-slate-400 block font-bold">P2 (70%)</span>
+              <span class="text-xs font-black text-slate-200">${item.p2Avg}</span>
+            </div>
+            <div class="p-1.5 rounded-lg bg-amber-500/20 border border-amber-400/30">
+              <span class="text-[9px] text-amber-300 block font-black">TOTAL</span>
+              <span class="text-sm font-black text-amber-400">${item.grandTotal}</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="text-[10px] text-slate-400 italic">
+          Department of Computer Science & Engineering · P.A. College of Engineering
+        </div>
+
+      </div>
+    `;
+  }
+
+  // --- Step 4: Complete Olympic Podium Stage ---
+  function renderPodiumStep() {
+    if (ceremonyStepIndicator) ceremonyStepIndicator.textContent = 'Podium Complete 🏆';
+    if (btnCeremonyNextLabel) btnCeremonyNextLabel.textContent = 'Replay Ceremony 🔄';
+
+    const champ = ceremonyWinnersList[0];
+    const silver = ceremonyWinnersList[1];
+    const bronze = ceremonyWinnersList[2];
+
+    ceremonyStageArena.innerHTML = `
+      <div class="max-w-lg w-full space-y-4 my-auto anim-card-reveal">
+        
+        <div class="space-y-0.5">
+          <div class="text-xs font-black text-amber-400 uppercase tracking-widest">EMBEDTHON '26 · OFFICIAL PODIUM</div>
+          <h2 class="text-xl sm:text-2xl font-black text-white uppercase tracking-wider">
+            ${getCategoryTitle(ceremonyCategory)}
+          </h2>
+        </div>
+
+        <!-- 3-Tier Olympic Podium -->
+        <div class="grid grid-cols-3 gap-2 sm:gap-3 items-end pt-4 pb-2">
+          
+          <!-- Silver (2nd) -->
+          <div class="text-center space-y-1.5">
+            <span class="text-2xl sm:text-3xl block">🥈</span>
+            <div class="p-2.5 rounded-t-xl podium-silver shadow-lg space-y-1 text-slate-950 min-h-[140px] flex flex-col justify-between">
+              <div>
+                <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-slate-100 text-slate-800">2ND RANK</span>
+                <div class="text-base sm:text-lg font-black font-serif-pace mt-1">#${silver ? silver.team.number : '—'}</div>
+                <div class="text-[11px] font-bold truncate">${silver ? silver.team.name : 'Awaiting'}</div>
+              </div>
+              <div class="font-black text-xs sm:text-sm bg-white/40 py-0.5 rounded">
+                ${silver ? silver.grandTotal : '—'} / 100
+              </div>
+            </div>
+          </div>
+
+          <!-- Gold (1st Champion Elevated) -->
+          <div class="text-center space-y-1.5">
+            <span class="text-3xl sm:text-4xl block anim-float">👑</span>
+            <div class="p-3 rounded-t-xl podium-gold shadow-2xl space-y-1 text-slate-950 min-h-[180px] flex flex-col justify-between anim-gold-pulse">
+              <div>
+                <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-amber-200 text-amber-950">1ST CHAMPION</span>
+                <div class="text-lg sm:text-xl font-black font-serif-pace mt-1">#${champ ? champ.team.number : '—'}</div>
+                <div class="text-xs sm:text-sm font-black truncate">${champ ? champ.team.name : 'Awaiting'}</div>
+              </div>
+              <div class="font-black text-sm sm:text-base bg-amber-100/70 py-1 rounded shadow-xs">
+                ${champ ? champ.grandTotal : '—'} / 100
+              </div>
+            </div>
+          </div>
+
+          <!-- Bronze (3rd) -->
+          <div class="text-center space-y-1.5">
+            <span class="text-2xl sm:text-3xl block">🥉</span>
+            <div class="p-2.5 rounded-t-xl podium-bronze shadow-lg space-y-1 text-amber-950 min-h-[110px] flex flex-col justify-between">
+              <div>
+                <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-100 text-amber-900">3RD RANK</span>
+                <div class="text-base sm:text-lg font-black font-serif-pace mt-1">#${bronze ? bronze.team.number : '—'}</div>
+                <div class="text-[11px] font-bold truncate">${bronze ? bronze.team.name : 'Awaiting'}</div>
+              </div>
+              <div class="font-black text-xs sm:text-sm bg-white/40 py-0.5 rounded">
+                ${bronze ? bronze.grandTotal : '—'} / 100
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="pt-2 flex items-center justify-center gap-2 flex-wrap">
+          <button type="button" class="py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition" onclick="triggerConfettiBurst('mega'); if (ceremonyAudioEngine) ceremonyAudioEngine.playCymbalCrash();">
+            <span>🎉 Celebrate With Confetti</span>
+          </button>
+          <button type="button" class="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition" onclick="shareWhatsAppSummary()">
+            <span>📲 Share Official Results</span>
+          </button>
+        </div>
+
+      </div>
+    `;
+  }
+
 
   // -------------------------------------------------------------
   // Start on Load
