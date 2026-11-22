@@ -800,72 +800,93 @@
   <!-- ========================================================= -->
   <!-- 7. FULLSCREEN RESULTS REVEAL CEREMONY & STAGE            -->
   <!-- ========================================================= -->
-  <div id="revealCeremonyOverlay" class="fixed inset-0 z-50 bg-[#090d16] text-white hidden flex flex-col justify-between overflow-hidden select-none">
+  <div id="revealCeremonyOverlay" class="fixed inset-0 z-50 bg-[#fdfbf7] text-[#1e293b] hidden flex flex-col justify-between overflow-hidden select-none">
     
-    <!-- Ambient Stage Lighting Effect -->
-    <div class="pointer-events-none absolute -top-40 -left-40 w-96 h-96 bg-orange-600/20 rounded-full blur-3xl"></div>
-    <div class="pointer-events-none absolute -bottom-40 -right-40 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl"></div>
-    <div class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-900/10 rounded-full blur-3xl"></div>
+    <!-- Ambient Stage Lighting Effect in Warm Amber & Orange -->
+    <div class="pointer-events-none absolute -top-40 -left-40 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl"></div>
+    <div class="pointer-events-none absolute -bottom-40 -right-40 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl"></div>
+    <div class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-orange-500/5 rounded-full blur-3xl"></div>
 
-    <!-- Canvas for confetti & particle stars -->
+    <!-- Canvas for confetti & particles -->
     <canvas id="ceremonyCanvas" class="pointer-events-none absolute inset-0 z-10 w-full h-full"></canvas>
 
-    <!-- Top Ceremony Header -->
-    <div class="relative z-20 flex items-center justify-between p-3 sm:p-4 bg-[#0f172a]/90 backdrop-blur-md border-b border-amber-500/20 shadow-md">
-      <div class="flex items-center gap-2.5">
-        <img src="assets/pace_crest.png" alt="PACE Crest" class="h-8 w-auto object-contain">
-        <div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs font-black tracking-wider uppercase text-amber-400 block leading-tight">EMBEDTHON '26</span>
-            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">CEREMONY</span>
+    <!-- Top Official Letterhead Header for Ceremony -->
+    <header class="relative z-20 bg-white border-b-2 border-[#e3dccd] shadow-xs">
+      <div class="max-w-4xl mx-auto px-3.5 py-2 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <img src="assets/pace_crest.png" alt="PACE Crest" class="h-9 w-auto object-contain flex-shrink-0" onerror="this.style.display='none'">
+          <div class="truncate">
+            <h1 class="text-xs font-black tracking-wider text-[#0f172a] uppercase leading-tight truncate">
+              P.A. College of Engineering
+            </h1>
+            <p class="text-[9px] text-[#64748b] leading-tight truncate">
+              Autonomous · VTU Belagavi · Approved by AICTE, New Delhi
+            </p>
+            <p class="text-[9px] font-bold text-[#ea580c] tracking-wide uppercase leading-tight truncate">
+              Department of Computer Science & Engineering
+            </p>
           </div>
-          <span class="text-[9px] font-bold text-slate-300 uppercase tracking-widest block">OFFICIAL RESULTS ANNOUNCEMENT</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <!-- Audio Synthesizer Toggle -->
+          <button id="btnCeremonyAudioToggle" type="button" class="px-2.5 py-1.5 rounded-xl bg-[#fff8f3] border border-[#fed7aa] text-xs font-bold flex items-center gap-1.5 hover:bg-[#ffedd5] text-[#ea580c] transition active:scale-95 shadow-xs">
+            <span id="audioIcon">🔊</span>
+            <span id="audioStatusText" class="text-[10px] hidden sm:inline font-mono">SOUND ON</span>
+          </button>
+
+          <!-- Category Selector -->
+          <select id="ceremonyCategorySelect" class="bg-[#f6f1e6] border border-[#e3dccd] text-xs font-bold text-[#0f172a] rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#ea580c] cursor-pointer">
+            <option value="OVERALL">🏆 Overall Champions</option>
+            <option value="A">Section A (01–11)</option>
+            <option value="B">Section B (12–24)</option>
+          </select>
+
+          <!-- Exit Button -->
+          <button id="btnCloseCeremony" type="button" title="Close & Return" class="w-8 h-8 rounded-xl bg-[#f6f1e6] hover:bg-[#efe8da] border border-[#e3dccd] text-[#0f172a] flex items-center justify-center font-black text-lg transition active:scale-95">
+            &times;
+          </button>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <!-- Audio Synthesizer Toggle -->
-        <button id="btnCeremonyAudioToggle" type="button" class="px-2.5 py-1.5 rounded-xl bg-slate-800/90 border border-slate-700 text-xs font-bold flex items-center gap-1.5 hover:bg-slate-700 text-amber-300 transition shadow-xs active:scale-95">
-          <span id="audioIcon">🔊</span>
-          <span id="audioStatusText" class="text-[10px] hidden sm:inline font-mono">SOUND ON</span>
-        </button>
-
-        <!-- Category Selector -->
-        <select id="ceremonyCategorySelect" class="bg-slate-800 border border-slate-700 text-xs font-bold text-amber-300 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer">
-          <option value="OVERALL">🏆 Overall Top 3</option>
-          <option value="A">Section A (01–11)</option>
-          <option value="B">Section B (12–24)</option>
-        </select>
-
-        <!-- Exit Button -->
-        <button id="btnCloseCeremony" type="button" title="Exit Ceremony" class="w-8 h-8 rounded-xl bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-black text-lg hover:bg-rose-900/50 transition">
-          &times;
-        </button>
+      <!-- Official Navy Ribbon -->
+      <div class="navy-strip py-1 px-3.5 bg-[#0f172a] text-white">
+        <div class="max-w-4xl mx-auto flex items-center justify-between text-[11px]">
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold tracking-wider text-amber-400">EMBEDTHON '26</span>
+            <span class="text-slate-400">·</span>
+            <span class="text-slate-200 font-medium truncate uppercase tracking-wide">GRAND RESULTS REVEAL CEREMONY</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-[10px] font-bold text-amber-300">
+            <span>IEEE CEDA & EMBED CLUB</span>
+          </div>
+        </div>
       </div>
-    </div>
+    </header>
 
-    <!-- Center Stage Arena -->
-    <div class="relative z-20 flex-1 flex flex-col items-center justify-center p-4 text-center overflow-y-auto" id="ceremonyStageArena">
+    <!-- Center Presentation Stage Arena -->
+    <div class="relative z-20 flex-1 flex flex-col items-center justify-center p-3 sm:p-5 text-center overflow-y-auto" id="ceremonyStageArena">
       <!-- Dynamic View (Rendered by JS) -->
     </div>
 
     <!-- Bottom Ceremony Navigation Bar -->
-    <div class="relative z-20 p-3 sm:p-4 bg-[#0f172a]/95 backdrop-blur-md border-t border-amber-500/20 flex items-center justify-between gap-3 shadow-lg">
+    <div class="relative z-20 p-3 sm:p-4 bg-white border-t border-[#e3dccd] shadow-lg flex items-center justify-between gap-3">
       <div class="flex items-center gap-2">
-        <button id="btnCeremonyPrevStep" type="button" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition">
+        <button id="btnCeremonyPrevStep" type="button" class="px-3 py-2 rounded-xl bg-[#f6f1e6] hover:bg-[#efe8da] border border-[#e3dccd] text-[#1e293b] text-xs font-bold disabled:opacity-30 disabled:pointer-events-none transition active:scale-95">
           ◀ Back
         </button>
-        <button id="btnCeremonyConfetti" type="button" class="px-3 py-2 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-black hover:bg-amber-500/30 active:scale-95 transition flex items-center gap-1">
+        <button id="btnCeremonyConfetti" type="button" class="px-3.5 py-2 rounded-xl bg-[#fff8f3] border border-[#fed7aa] text-[#ea580c] text-xs font-black hover:bg-[#ffedd5] active:scale-95 transition flex items-center gap-1 shadow-xs">
           <span>🎉 Confetti</span>
         </button>
       </div>
 
-      <div class="text-[11px] font-mono text-amber-300 font-bold text-center truncate max-w-[150px] sm:max-w-none" id="ceremonyStepIndicator">
-        Stage Ready
+      <div class="text-xs font-bold text-[#0f172a] text-center truncate max-w-[150px] sm:max-w-none flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-[#ea580c] animate-pulse"></span>
+        <span id="ceremonyStepIndicator">Stage Ready</span>
       </div>
 
       <div>
-        <button id="btnCeremonyNextStep" type="button" class="px-4 sm:px-6 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-[#ea580c] hover:from-amber-400 hover:to-orange-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-orange-900/50 active:scale-95 transition flex items-center gap-1.5">
+        <button id="btnCeremonyNextStep" type="button" class="px-5 sm:px-7 py-2.5 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition flex items-center gap-1.5">
           <span id="btnCeremonyNextLabel">Start Reveal ▶</span>
         </button>
       </div>

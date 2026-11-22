@@ -2038,50 +2038,56 @@
     return 'Overall Champions';
   }
 
-  // --- Step 0: Welcome Stage ---
+  // --- Step 0: Welcome Stage (Official PACE Letterhead & Banner Theme) ---
   function renderWelcomeStep() {
     if (ceremonyStepIndicator) ceremonyStepIndicator.textContent = 'Stage Ready';
-    if (btnCeremonyNextLabel) btnCeremonyNextLabel.textContent = 'Begin Reveal ▶';
+    if (btnCeremonyNextLabel) btnCeremonyNextLabel.textContent = 'Begin Announcement ▶';
 
     const count = ceremonyWinnersList.length;
     const isPreview = ceremonyWinnersList.some(x => x.isPreview);
 
     ceremonyStageArena.innerHTML = `
-      <div class="max-w-md w-full space-y-4 my-auto">
-        <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-[#ea580c] p-1 shadow-2xl anim-gold-pulse">
-          <img src="assets/pace_crest.png" alt="PACE Crest" class="w-full h-full object-contain bg-white rounded-full p-2">
+      <div class="max-w-md w-full space-y-4 my-auto anim-card-reveal">
+        <!-- Official Certificate Seal -->
+        <div class="w-24 h-24 mx-auto rounded-full bg-white border-4 border-[#ea580c] p-2.5 shadow-xl anim-gold-pulse flex items-center justify-center">
+          <img src="assets/pace_crest.png" alt="PACE Crest" class="w-full h-full object-contain">
         </div>
         
         <div class="space-y-1">
-          <span class="text-[10px] font-black tracking-widest text-orange-400 uppercase">Department of Computer Science & Engineering</span>
-          <h1 class="text-2xl sm:text-3xl font-black uppercase text-amber-400 tracking-wider">
-            Grand Results Reveal
+          <span class="text-[10px] font-black tracking-widest text-[#ea580c] uppercase block">
+            P.A. College of Engineering · Dept. of Computer Science & Engineering
+          </span>
+          <h1 class="text-2xl sm:text-3xl font-black uppercase text-[#0f172a] tracking-wider font-serif-pace">
+            Official Results Reveal
           </h1>
-          <p class="text-xs font-bold text-slate-300">
-            EMBEDTHON '26 · EMBERS '26 Official Valedictory Ceremony
+          <p class="text-xs font-bold text-[#475569]">
+            EMBEDTHON '26 · EMBERS '26 Valedictory Ceremony
           </p>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f6f1e6] border border-[#e3dccd] text-[10px] font-bold text-[#64748b] mt-1">
+            <span>In Association with IEEE CEDA Chapter & Embed Club</span>
+          </div>
         </div>
 
-        <div class="p-3.5 bg-slate-900/80 border border-slate-700/80 rounded-2xl text-xs space-y-2 text-left">
-          <div class="flex items-center justify-between text-slate-300">
-            <span class="text-slate-400">Award Category:</span>
-            <span class="font-black text-amber-400">${getCategoryTitle(ceremonyCategory)}</span>
+        <div class="p-4 bg-white border-2 border-[#fed7aa] rounded-2xl shadow-xs text-xs space-y-2 text-left">
+          <div class="flex items-center justify-between">
+            <span class="text-[#64748b] font-bold uppercase text-[10px]">Award Category:</span>
+            <span class="font-black text-[#ea580c]">${getCategoryTitle(ceremonyCategory)}</span>
           </div>
-          <div class="flex items-center justify-between text-slate-300">
-            <span class="text-slate-400">Jury Status:</span>
-            <span class="font-bold text-emerald-400">Consensus Computed ✓</span>
+          <div class="flex items-center justify-between">
+            <span class="text-[#64748b] font-bold uppercase text-[10px]">Jury Consensus:</span>
+            <span class="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Computed & Verified ✓</span>
           </div>
-          ${isPreview ? '<p class="text-[10px] text-amber-300/80 pt-1 border-t border-slate-800 italic">💡 Running in Demo Preview mode. Real scores update dynamically once judges submit scores.</p>' : ''}
+          ${isPreview ? '<p class="text-[10px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200 pt-1 italic">💡 Running in Demo Preview mode. Real scores update dynamically once judges submit marks.</p>' : ''}
         </div>
 
-        <button type="button" class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-[#ea580c] hover:from-amber-400 hover:to-orange-500 font-black text-sm uppercase tracking-wider text-white shadow-xl hover:scale-[1.02] active:scale-95 transition" onclick="window.nextCeremonyStep()">
-          Announce Winners Now 🏆
+        <button type="button" class="w-full py-3.5 px-6 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] font-black text-sm uppercase tracking-wider text-white shadow-md active:scale-95 transition" onclick="window.nextCeremonyStep()">
+          Announce Winners 🏆
         </button>
       </div>
     `;
   }
 
-  // --- Step 1, 2, 3: Individual Winner Card Step ---
+  // --- Step 1, 2, 3: Individual Winner Card Step (Official Banner & Card Theme) ---
   function renderWinnerCardStep(winnerIndex, rankNumber) {
     const item = ceremonyWinnersList[winnerIndex];
     if (!item) {
@@ -2093,15 +2099,26 @@
     const isChamp = rankNumber === 1;
     const isSilver = rankNumber === 2;
 
-    const rankBadgeText = isChamp ? '👑 GRAND CHAMPION · 1ST PLACE' : isSilver ? '🥈 1ST RUNNER-UP · 2ND PLACE' : '🥉 2ND RUNNER-UP · 3RD PLACE';
+    const rankBadgeClass = isChamp
+      ? 'bg-[#ea580c] text-white shadow-orange-300'
+      : isSilver
+      ? 'bg-[#0f172a] text-white shadow-slate-300'
+      : 'bg-[#b45309] text-white shadow-amber-300';
+
+    const rankBadgeText = isChamp
+      ? '👑 1ST PLACE · GRAND CHAMPION'
+      : isSilver
+      ? '🥈 2ND PLACE · 1ST RUNNER-UP'
+      : '🥉 3RD PLACE · 2ND RUNNER-UP';
+
     const animClass = isChamp ? 'anim-gold-pulse' : isSilver ? 'anim-silver-pulse' : 'anim-bronze-pulse';
-    const borderGlow = isChamp ? 'border-amber-400 shadow-orange-500/30' : isSilver ? 'border-slate-300 shadow-slate-400/20' : 'border-amber-600/70 shadow-amber-700/20';
+    const borderAccent = isChamp ? 'border-2 border-[#ea580c]' : isSilver ? 'border-2 border-slate-400' : 'border-2 border-amber-700';
 
     if (ceremonyStepIndicator) {
       ceremonyStepIndicator.textContent = `Rank ${rankNumber} · ${isChamp ? 'Champion' : isSilver ? '1st Runner-Up' : '2nd Runner-Up'}`;
     }
     if (btnCeremonyNextLabel) {
-      btnCeremonyNextLabel.textContent = isChamp ? 'View Podium 🏆 ▶' : isSilver ? 'Reveal Champion 👑 ▶' : 'Next: 1st Runner-Up ▶';
+      btnCeremonyNextLabel.textContent = isChamp ? 'View Complete Podium 🏆 ▶' : isSilver ? 'Reveal Champion 👑 ▶' : 'Next: 1st Runner-Up ▶';
     }
 
     // Trigger sound effects & suspense
@@ -2113,74 +2130,82 @@
       }, isChamp ? 2000 : 1600);
     }
 
-    // Render Stage
+    // Render Stage using the official Letterhead card style!
     ceremonyStageArena.innerHTML = `
       <div class="max-w-md w-full space-y-3.5 my-auto anim-card-reveal">
         
         <!-- Trophy & Rank Header -->
-        <div class="space-y-1">
-          <div class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${isChamp ? 'bg-amber-500 text-slate-950' : isSilver ? 'bg-slate-200 text-slate-900' : 'bg-amber-700 text-amber-100'} shadow-md">
+        <div class="space-y-1 text-center">
+          <div class="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${rankBadgeClass} shadow-md">
             ${rankBadgeText}
           </div>
-          <div class="text-4xl sm:text-5xl font-black ${isChamp ? 'text-amber-400 anim-float' : isSilver ? 'text-slate-200' : 'text-amber-500'}">
+          <div class="text-4xl sm:text-5xl font-black ${isChamp ? 'text-[#ea580c] anim-float' : isSilver ? 'text-slate-600' : 'text-amber-700'}">
             ${isChamp ? '🏆' : isSilver ? '🥈' : '🥉'}
           </div>
         </div>
 
-        <!-- Team Main Winner Card -->
-        <div class="p-4 sm:p-5 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 rounded-2xl border-2 ${borderGlow} shadow-2xl text-left space-y-3 shimmer-bar ${animClass}">
+        <!-- Main Official Certificate Card -->
+        <div class="p-4 sm:p-5 bg-white rounded-2xl ${borderAccent} shadow-xl text-left space-y-3 shimmer-bar ${animClass}">
           
-          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
-            <div>
-              <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">TEAM ALLOTMENT</span>
-              <div class="text-2xl font-black font-serif-pace text-white">#${t.number}</div>
+          <!-- Top Card Ribbon with Pace Crest & Team Number -->
+          <div class="flex items-center justify-between border-b border-[#fed7aa] pb-2 bg-[#fff8f3] -mx-4 -mt-4 sm:-mx-5 sm:-mt-5 p-3 sm:p-4 rounded-t-2xl">
+            <div class="flex items-center gap-2">
+              <img src="assets/pace_crest.png" alt="PACE Crest" class="h-7 w-auto object-contain">
+              <div>
+                <span class="text-[9px] font-black text-[#ea580c] uppercase tracking-wider block">TEAM ALLOTMENT</span>
+                <span class="text-2xl font-black font-serif-pace text-[#0f172a] leading-none">#${t.number}</span>
+              </div>
             </div>
             <div class="text-right">
-              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SECTION</span>
-              <div class="text-xs font-black px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">
+              <span class="text-[9px] font-bold text-[#64748b] uppercase tracking-wider block">SECTION</span>
+              <span class="text-xs font-black px-2 py-0.5 rounded bg-white text-[#ea580c] border border-[#fed7aa] shadow-2xs">
                 SEC ${t.section}
-              </div>
+              </span>
             </div>
           </div>
 
+          <!-- Team Title & Subtitle -->
           <div>
-            <h2 class="text-lg sm:text-xl font-black text-white leading-tight">
+            <h2 class="text-lg sm:text-xl font-black text-[#0f172a] leading-tight font-serif-pace">
               ${t.name}
             </h2>
-            <p class="text-[11px] text-slate-400 mt-0.5">
-              ${t.member_count} Members · Lead: <strong class="text-slate-200">${t.members[0]?.name || 'N/A'}</strong>
+            <p class="text-[11px] text-[#64748b] mt-0.5">
+              ${t.member_count} Registered Members · Lead: <strong class="text-[#0f172a]">${t.members[0]?.name || 'N/A'}</strong>
             </p>
           </div>
 
-          <!-- Members Grid -->
+          <!-- Members Grid in official chip style -->
           <div class="grid grid-cols-2 gap-1.5 pt-1 text-[10px]">
             ${t.members.map((m, mIdx) => `
-              <div class="p-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60 truncate">
-                <span class="font-bold text-slate-200 truncate block">${m.name}</span>
-                <span class="font-mono text-[9px] text-slate-400">${m.usn}</span>
+              <div class="p-1.5 rounded-lg bg-[#fdfbf7] border border-[#e3dccd] truncate ${mIdx === 0 ? 'border-[#fed7aa] bg-[#fff8f3]' : ''}">
+                <div class="flex items-center justify-between truncate">
+                  <span class="font-bold text-[#1e293b] truncate">${m.name}</span>
+                  ${mIdx === 0 ? '<span class="text-[8px] font-black px-1 rounded bg-[#ea580c] text-white uppercase flex-shrink-0">Lead</span>' : ''}
+                </div>
+                <span class="font-mono text-[9px] text-[#64748b] block">${m.usn}</span>
               </div>
             `).join('')}
           </div>
 
-          <!-- Final Score Pill Matrix -->
-          <div class="pt-2 border-t border-slate-800 grid grid-cols-3 gap-2 text-center">
-            <div class="p-1.5 rounded-lg bg-slate-800/80">
-              <span class="text-[9px] text-slate-400 block font-bold">P1 (30%)</span>
-              <span class="text-xs font-black text-slate-200">${item.p1Avg}</span>
+          <!-- Final Score Pill Matrix matching consensus style -->
+          <div class="pt-2 border-t border-[#f0ebe0] grid grid-cols-3 gap-2 text-center">
+            <div class="p-2 rounded-xl bg-[#fdfbf7] border border-[#e3dccd]">
+              <span class="text-[9px] text-[#64748b] block font-bold uppercase">Phase 1 (30%)</span>
+              <span class="text-xs font-black text-[#0f172a]">${item.p1Avg} / 30</span>
             </div>
-            <div class="p-1.5 rounded-lg bg-slate-800/80">
-              <span class="text-[9px] text-slate-400 block font-bold">P2 (70%)</span>
-              <span class="text-xs font-black text-slate-200">${item.p2Avg}</span>
+            <div class="p-2 rounded-xl bg-[#fdfbf7] border border-[#e3dccd]">
+              <span class="text-[9px] text-[#64748b] block font-bold uppercase">Phase 2 (70%)</span>
+              <span class="text-xs font-black text-[#0f172a]">${item.p2Avg} / 70</span>
             </div>
-            <div class="p-1.5 rounded-lg bg-amber-500/20 border border-amber-400/30">
-              <span class="text-[9px] text-amber-300 block font-black">TOTAL</span>
-              <span class="text-sm font-black text-amber-400">${item.grandTotal}</span>
+            <div class="p-2 rounded-xl bg-[#fff7ed] border-2 border-[#ea580c]">
+              <span class="text-[9px] text-[#ea580c] block font-black uppercase">Grand Total</span>
+              <span class="text-sm font-black text-[#ea580c]">${item.grandTotal} / 100</span>
             </div>
           </div>
 
         </div>
 
-        <div class="text-[10px] text-slate-400 italic">
+        <div class="text-[10px] text-[#64748b] font-medium text-center">
           Department of Computer Science & Engineering · P.A. College of Engineering
         </div>
 
@@ -2188,7 +2213,7 @@
     `;
   }
 
-  // --- Step 4: Complete Olympic Podium Stage ---
+  // --- Step 4: Complete Olympic Podium Stage (Official Theme) ---
   function renderPodiumStep() {
     if (ceremonyStepIndicator) ceremonyStepIndicator.textContent = 'Podium Complete 🏆';
     if (btnCeremonyNextLabel) btnCeremonyNextLabel.textContent = 'Replay Ceremony 🔄';
@@ -2200,26 +2225,33 @@
     ceremonyStageArena.innerHTML = `
       <div class="max-w-lg w-full space-y-4 my-auto anim-card-reveal">
         
-        <div class="space-y-0.5">
-          <div class="text-xs font-black text-amber-400 uppercase tracking-widest">EMBEDTHON '26 · OFFICIAL PODIUM</div>
-          <h2 class="text-xl sm:text-2xl font-black text-white uppercase tracking-wider">
+        <!-- Header Banner -->
+        <div class="space-y-0.5 text-center">
+          <div class="flex items-center justify-center gap-2 mb-1">
+            <img src="assets/pace_crest.png" alt="PACE Crest" class="h-8 w-auto object-contain">
+          </div>
+          <div class="text-xs font-black text-[#ea580c] uppercase tracking-widest">
+            EMBEDTHON '26 · OFFICIAL PODIUM
+          </div>
+          <h2 class="text-xl sm:text-2xl font-black text-[#0f172a] uppercase tracking-wider font-serif-pace">
             ${getCategoryTitle(ceremonyCategory)}
           </h2>
+          <p class="text-[10px] text-[#64748b]">P.A. College of Engineering · Dept. of CSE</p>
         </div>
 
-        <!-- 3-Tier Olympic Podium -->
-        <div class="grid grid-cols-3 gap-2 sm:gap-3 items-end pt-4 pb-2">
+        <!-- 3-Tier Olympic Podium in official theme colors -->
+        <div class="grid grid-cols-3 gap-2 sm:gap-3 items-end pt-3 pb-2">
           
           <!-- Silver (2nd) -->
           <div class="text-center space-y-1.5">
             <span class="text-2xl sm:text-3xl block">🥈</span>
-            <div class="p-2.5 rounded-t-xl podium-silver shadow-lg space-y-1 text-slate-950 min-h-[140px] flex flex-col justify-between">
+            <div class="p-2.5 rounded-t-xl bg-gradient-to-b from-slate-200 to-slate-400 border-t-4 border-slate-100 shadow-md space-y-1 text-slate-900 min-h-[140px] flex flex-col justify-between">
               <div>
-                <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-slate-100 text-slate-800">2ND RANK</span>
-                <div class="text-base sm:text-lg font-black font-serif-pace mt-1">#${silver ? silver.team.number : '—'}</div>
-                <div class="text-[11px] font-bold truncate">${silver ? silver.team.name : 'Awaiting'}</div>
+                <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-slate-900 text-white">2ND RANK</span>
+                <div class="text-base sm:text-lg font-black font-serif-pace mt-1 text-[#0f172a]">#${silver ? silver.team.number : '—'}</div>
+                <div class="text-[11px] font-bold text-[#0f172a] truncate">${silver ? silver.team.name : 'Awaiting'}</div>
               </div>
-              <div class="font-black text-xs sm:text-sm bg-white/40 py-0.5 rounded">
+              <div class="font-black text-xs sm:text-sm bg-white/80 text-[#0f172a] py-0.5 rounded shadow-2xs">
                 ${silver ? silver.grandTotal : '—'} / 100
               </div>
             </div>
@@ -2228,13 +2260,13 @@
           <!-- Gold (1st Champion Elevated) -->
           <div class="text-center space-y-1.5">
             <span class="text-3xl sm:text-4xl block anim-float">👑</span>
-            <div class="p-3 rounded-t-xl podium-gold shadow-2xl space-y-1 text-slate-950 min-h-[180px] flex flex-col justify-between anim-gold-pulse">
+            <div class="p-3 rounded-t-xl bg-gradient-to-b from-[#ea580c] via-orange-600 to-[#c2410c] border-t-4 border-amber-300 shadow-xl space-y-1 text-white min-h-[180px] flex flex-col justify-between anim-gold-pulse">
               <div>
-                <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-amber-200 text-amber-950">1ST CHAMPION</span>
-                <div class="text-lg sm:text-xl font-black font-serif-pace mt-1">#${champ ? champ.team.number : '—'}</div>
-                <div class="text-xs sm:text-sm font-black truncate">${champ ? champ.team.name : 'Awaiting'}</div>
+                <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-amber-300 text-slate-950 shadow-2xs">1ST CHAMPION</span>
+                <div class="text-xl sm:text-2xl font-black font-serif-pace mt-1 text-white">#${champ ? champ.team.number : '—'}</div>
+                <div class="text-xs sm:text-sm font-black text-amber-100 truncate">${champ ? champ.team.name : 'Awaiting'}</div>
               </div>
-              <div class="font-black text-sm sm:text-base bg-amber-100/70 py-1 rounded shadow-xs">
+              <div class="font-black text-sm sm:text-base bg-white text-[#ea580c] py-1 rounded shadow-xs">
                 ${champ ? champ.grandTotal : '—'} / 100
               </div>
             </div>
@@ -2243,13 +2275,13 @@
           <!-- Bronze (3rd) -->
           <div class="text-center space-y-1.5">
             <span class="text-2xl sm:text-3xl block">🥉</span>
-            <div class="p-2.5 rounded-t-xl podium-bronze shadow-lg space-y-1 text-amber-950 min-h-[110px] flex flex-col justify-between">
+            <div class="p-2.5 rounded-t-xl bg-gradient-to-b from-amber-600 to-amber-800 border-t-4 border-amber-300 shadow-md space-y-1 text-white min-h-[110px] flex flex-col justify-between">
               <div>
-                <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-100 text-amber-900">3RD RANK</span>
-                <div class="text-base sm:text-lg font-black font-serif-pace mt-1">#${bronze ? bronze.team.number : '—'}</div>
-                <div class="text-[11px] font-bold truncate">${bronze ? bronze.team.name : 'Awaiting'}</div>
+                <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-950 text-amber-200">3RD RANK</span>
+                <div class="text-base sm:text-lg font-black font-serif-pace mt-1 text-white">#${bronze ? bronze.team.number : '—'}</div>
+                <div class="text-[11px] font-bold text-amber-100 truncate">${bronze ? bronze.team.name : 'Awaiting'}</div>
               </div>
-              <div class="font-black text-xs sm:text-sm bg-white/40 py-0.5 rounded">
+              <div class="font-black text-xs sm:text-sm bg-white/80 text-amber-950 py-0.5 rounded shadow-2xs">
                 ${bronze ? bronze.grandTotal : '—'} / 100
               </div>
             </div>
@@ -2257,12 +2289,12 @@
 
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Action Buttons in official theme -->
         <div class="pt-2 flex items-center justify-center gap-2 flex-wrap">
-          <button type="button" class="py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition" onclick="triggerConfettiBurst('mega'); if (ceremonyAudioEngine) ceremonyAudioEngine.playCymbalCrash();">
+          <button type="button" class="py-2.5 px-4 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition" onclick="triggerConfettiBurst('mega'); if (ceremonyAudioEngine) ceremonyAudioEngine.playCymbalCrash();">
             <span>🎉 Celebrate With Confetti</span>
           </button>
-          <button type="button" class="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition" onclick="shareWhatsAppSummary()">
+          <button type="button" class="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition" onclick="shareWhatsAppSummary()">
             <span>📲 Share Official Results</span>
           </button>
         </div>
