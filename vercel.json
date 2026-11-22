@@ -2,6 +2,10 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/reveal",
+      "destination": "/reveal.html"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     },
