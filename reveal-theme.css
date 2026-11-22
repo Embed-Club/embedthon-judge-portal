@@ -1,49 +1,39 @@
-/* EMBEDTHON '26 · Reveal Ceremony — dark spotlight theme (v2)
-   Load after style.css:  <link rel="stylesheet" href="reveal-theme.css"> */
+/* EMBEDTHON / EMBERS '26 · Reveal ceremony — brand theme
+   Palette and type follow the EMBERS'26 banner: paper white, near-black ink, flame orange.
+   Load after style.css:  <link rel="stylesheet" href="reveal-theme.css">
+   Also add to <head>:
+   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet"> */
 
-body.ceremony-dark {
-  --rv-bg: #070b16;
-  --rv-panel: rgba(15, 23, 42, 0.72);
-  --rv-text: #f8fafc;
-  --rv-muted: #94a3b8;
-  --rv-gold: #fbbf24;
-  background:
-    radial-gradient(ellipse at 50% -10%, #1e293b 0%, transparent 55%),
-    radial-gradient(ellipse at 50% 120%, #7c2d12 0%, transparent 60%),
-    var(--rv-bg) !important;
-  color: var(--rv-text);
+:root {
+  --rv-paper: #f5f1eb;
+  --rv-ink: #111418;
+  --rv-body: #3a4150;
+  --rv-mute: #6b7280;
+  --rv-line: #d8d1c6;
+  --rv-orange: #f0561d;
 }
 
-/* Header & footer chrome */
-body.ceremony-dark > header,
-body.ceremony-dark > footer {
-  background: rgba(7, 11, 22, 0.88) !important;
-  border-color: rgba(251, 191, 36, 0.2) !important;
-  backdrop-filter: blur(8px);
+body.ceremony-brand {
+  background: var(--rv-paper) !important;
+  color: var(--rv-ink);
+  font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
 }
-body.ceremony-dark header h1 { color: var(--rv-text) !important; }
-body.ceremony-dark header p,
-body.ceremony-dark footer span { color: var(--rv-muted) !important; }
-body.ceremony-dark #stageStepIndicator { color: var(--rv-text) !important; }
 
-body.ceremony-dark header button:not(#btnFullscreenToggle),
-body.ceremony-dark header select,
-body.ceremony-dark header a,
-body.ceremony-dark footer button:not(#btnNextStep):not(#btnConfettiBurst) {
-  background-color: #1e293b !important;
-  color: #e2e8f0 !important;
-  border-color: #334155 !important;
+body.ceremony-brand > header,
+body.ceremony-brand > footer {
+  background: #ffffff !important;
+  border-color: var(--rv-ink) !important;
 }
-body.ceremony-dark #liveSyncStatusBadge.is-pending { color: #fbbf24 !important; }
-
-/* Canvas (confetti) stays on top of everything */
-#ceremonyCanvas { z-index: 60; }
+body.ceremony-brand .navy-strip {
+  background: var(--rv-ink) !important;
+  border-bottom: 3px solid var(--rv-orange);
+}
 
 /* ------------------------------------------------------------ */
 /* Stage                                                         */
 /* ------------------------------------------------------------ */
 @keyframes rvIn {
-  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: none; }
 }
 
@@ -56,108 +46,95 @@ body.ceremony-dark #liveSyncStatusBadge.is-pending { color: #fbbf24 !important; 
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.25rem;
-  animation: rvIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  gap: 1.1rem;
+  animation: rvIn 0.5s ease-out both;
 }
 
 .rv-kicker {
   margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.3em;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--rv-gold);
-  font-weight: 800;
+  color: var(--rv-orange);
 }
 
-.rv-crest {
-  width: clamp(70px, 10vw, 110px);
-  filter: drop-shadow(0 0 24px rgba(251, 191, 36, 0.35));
-}
+.rv-crest { width: clamp(64px, 8vw, 96px); }
 
 .rv-title {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(3rem, 9vw, 7rem);
+  font-family: Orbitron, Roboto, sans-serif;
   font-weight: 900;
-  letter-spacing: 0.04em;
+  font-size: clamp(2.6rem, 8vw, 6rem);
+  letter-spacing: 0.02em;
   line-height: 1;
-  background: linear-gradient(180deg, #ffffff 0%, #fbbf24 70%, #b45309 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--rv-ink);
 }
 
 .rv-subtitle {
   margin: 0;
-  font-size: clamp(1rem, 2.4vw, 1.5rem);
-  color: var(--rv-muted);
-  font-weight: 600;
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  font-weight: 500;
+  color: var(--rv-body);
 }
 
 .rv-pill {
-  padding: 0.5rem 1.25rem;
-  border-radius: 999px;
-  border: 1px solid rgba(251, 191, 36, 0.4);
-  background: rgba(251, 191, 36, 0.08);
-  color: var(--rv-gold);
-  font-weight: 800;
-  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+  background: #ffffff;
+  border-left: 6px solid var(--rv-orange);
+  font-weight: 900;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rv-ink);
 }
 
-.rv-status { margin: 0; font-size: 0.9rem; font-weight: 600; }
-.rv-status.is-warn { color: #fca5a5; }
-.rv-status.is-ok { color: #86efac; }
+.rv-status { margin: 0; font-size: 0.9rem; font-weight: 500; }
+.rv-status.is-warn { color: #9a3412; }
+.rv-status.is-ok { color: #166534; }
 
-.rv-hint { margin: 0.5rem 0 0; color: var(--rv-muted); font-size: 0.85rem; }
+.rv-hint { margin: 0.5rem 0 0; color: var(--rv-mute); font-size: 0.85rem; }
 .rv-hint kbd {
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
-  background: #1e293b;
-  border: 1px solid #334155;
-  font-family: ui-monospace, monospace;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--rv-line);
+  background: #ffffff;
+  font-family: inherit;
   font-size: 0.75rem;
-  color: #e2e8f0;
 }
 
 /* Rank reveal */
 .rv-rank-badge {
-  padding: 0.5rem 1.4rem;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent), #f97316);
-  color: #0f172a;
-  font-weight: 900;
-  letter-spacing: 0.14em;
+  font-family: Orbitron, Roboto, sans-serif;
+  font-weight: 800;
+  font-size: clamp(0.8rem, 1.4vw, 1rem);
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  font-size: clamp(0.8rem, 1.6vw, 1.1rem);
-  box-shadow: 0 0 30px -4px var(--accent);
+  color: var(--accent);
 }
 
 .rv-card {
   position: relative;
   width: 100%;
   max-width: 760px;
-  padding: clamp(1.25rem, 3vw, 2.5rem);
-  border-radius: 28px;
-  background: var(--rv-panel);
-  border: 1px solid var(--accent);
-  box-shadow: 0 0 60px -10px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+  background: #ffffff;
+  border: 1px solid var(--rv-line);
+  border-top: 8px solid var(--accent);
   text-align: center;
   overflow: hidden;
 }
 
 .rv-team-no {
-  font-family: ui-monospace, monospace;
-  color: var(--accent);
-  letter-spacing: 0.25em;
-  font-size: 0.8rem;
-  font-weight: 800;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  color: var(--rv-mute);
 }
 
 .rv-name-wrap {
   position: relative;
+  min-height: clamp(4rem, 11vw, 6.5rem);
   margin: 0.5rem 0;
-  min-height: clamp(4.5rem, 12vw, 7.5rem);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -165,153 +142,143 @@ body.ceremony-dark #liveSyncStatusBadge.is-pending { color: #fbbf24 !important; 
 
 .rv-name {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: Orbitron, Roboto, sans-serif;
   font-weight: 900;
-  font-size: clamp(2.2rem, 7vw, 5.5rem);
-  line-height: 1.05;
-  color: #ffffff;
-  text-shadow: 0 0 30px var(--accent);
+  font-size: clamp(1.8rem, 5.5vw, 4.2rem);
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: var(--rv-ink);
   overflow-wrap: anywhere;
 }
 
-/* Curtain that hides the name during the drumroll */
+/* Solid panel that wipes away to reveal the name */
 .rv-curtain {
   position: absolute;
   inset: 0;
-  border-radius: 16px;
+  background: var(--rv-ink);
+  color: var(--rv-orange);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border: 1px dashed var(--accent);
-  font-family: ui-monospace, monospace;
-  font-size: clamp(1.5rem, 4vw, 3rem);
+  font-family: Orbitron, sans-serif;
+  font-weight: 800;
   letter-spacing: 0.4em;
-  color: var(--accent);
-  overflow: hidden;
-  transition: transform 0.9s cubic-bezier(0.7, 0, 0.2, 1), opacity 0.6s ease;
+  transition: transform 0.6s cubic-bezier(0.7, 0, 0.2, 1);
 }
-.rv-curtain::after {
-  content: "";
+.rv-rank.is-revealed .rv-curtain {
+  transform: translateX(101%);
+}
+
+/* Slot reel shown during the spin */
+.rv-reel {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
-  transform: translateX(-100%);
-  animation: rvSheen 2.2s infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Orbitron, sans-serif;
+  font-weight: 900;
+  font-size: clamp(1.8rem, 5.5vw, 4.2rem);
+  text-transform: uppercase;
+  color: var(--rv-orange);
+  white-space: nowrap;
+  overflow: hidden;
 }
-@keyframes rvSheen { to { transform: translateX(100%); } }
-
-.rv-rank:not(.is-revealed) .rv-curtain {
-  animation: rvShake 0.22s infinite ease-in-out;
-}
-@keyframes rvShake {
-  0%, 100% { translate: 0 0; }
-  25%      { translate: -3px 2px; }
-  50%      { translate: 3px -2px; }
-  75%      { translate: -2px -1px; }
-}
-
-.rv-rank.is-revealed .rv-curtain {
-  transform: translateY(-110%);
-  opacity: 0;
-}
+.rv-reel.is-landed { color: var(--rv-ink); }
+.rv-name { visibility: hidden; }
+.rv-rank.is-revealed .rv-name { visibility: visible; }
+.rv-rank.is-revealed .rv-reel { display: none; }
 
 .rv-project {
   margin: 0;
-  color: var(--rv-muted);
-  font-style: italic;
-  font-size: clamp(0.9rem, 1.8vw, 1.15rem);
+  font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+  color: var(--rv-body);
 }
 
 .rv-members {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem 0.5rem;
   margin-top: 1rem;
   opacity: 0;
-  transition: opacity 0.6s ease 0.2s;
+  transition: opacity 0.4s ease 0.3s;
 }
 .rv-rank.is-revealed .rv-members { opacity: 1; }
 
 .rv-chip {
-  padding: 0.35rem 0.8rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--rv-line);
+  background: var(--rv-paper);
   font-size: 0.85rem;
-  font-weight: 600;
-  color: #e2e8f0;
+  font-weight: 500;
+  color: var(--rv-body);
 }
 .rv-chip.is-lead {
-  background: var(--accent);
-  border-color: transparent;
-  color: #0f172a;
+  background: var(--rv-ink);
+  border-color: var(--rv-ink);
+  color: #ffffff;
 }
 
 .rv-scores {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
   width: 100%;
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--rv-line);
   opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 0.6s ease 0.4s, transform 0.6s ease 0.4s;
+  transition: opacity 0.4s ease 0.5s;
 }
-.rv-rank.is-revealed .rv-scores { opacity: 1; transform: none; }
+.rv-rank.is-revealed .rv-scores { opacity: 1; }
 
 .rv-score {
-  padding: 0.9rem 0.5rem;
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.9rem 0.4rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  border-right: 1px solid var(--rv-line);
 }
+.rv-score:last-child { border-right: 0; }
+
 .rv-score-label {
   font-size: 0.68rem;
+  font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--rv-muted);
-  font-weight: 800;
+  color: var(--rv-mute);
 }
 .rv-score-value {
-  font-family: ui-monospace, monospace;
-  font-weight: 900;
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
-  color: #ffffff;
+  font-family: Orbitron, sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.5rem, 3.6vw, 2.2rem);
+  color: var(--rv-ink);
   font-variant-numeric: tabular-nums;
 }
-.rv-score-max { font-size: 0.7rem; color: var(--rv-muted); }
-.rv-score--hero {
-  border-color: var(--accent);
-  background: rgba(249, 115, 22, 0.12);
-}
-.rv-score--hero .rv-score-value {
-  color: var(--accent);
-  font-size: clamp(2rem, 5vw, 3rem);
-}
+.rv-score-max { font-size: 0.7rem; color: var(--rv-mute); }
 
-.rv-note { margin: 0.5rem 0 0; font-size: 0.75rem; color: #fca5a5; }
+.rv-score--hero { background: var(--rv-ink); }
+.rv-score--hero .rv-score-label,
+.rv-score--hero .rv-score-max { color: #cfc8bd; }
+.rv-score--hero .rv-score-value { color: var(--rv-orange); }
+
+.rv-note { margin: 0.5rem 0 0; font-size: 0.75rem; color: #9a3412; }
 
 /* Podium */
 .rv-podium-title {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: Orbitron, Roboto, sans-serif;
   font-weight: 900;
-  font-size: clamp(1.4rem, 4vw, 2.6rem);
+  font-size: clamp(1.2rem, 3.4vw, 2.2rem);
   text-transform: uppercase;
   text-align: center;
-  color: #ffffff;
+  color: var(--rv-ink);
 }
 
 .rv-podium {
   display: grid;
   grid-template-columns: 1fr 1.15fr 1fr;
   align-items: end;
-  gap: clamp(0.5rem, 2vw, 1.5rem);
+  gap: clamp(0.4rem, 1.5vw, 1rem);
   width: 100%;
   margin-top: 1rem;
 }
@@ -319,97 +286,166 @@ body.ceremony-dark #liveSyncStatusBadge.is-pending { color: #fbbf24 !important; 
 .rv-slot {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  animation: rvRise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: rvRise 0.6s ease-out both;
 }
 .rv-slot--3 { animation-delay: 0s; }
 .rv-slot--2 { animation-delay: 0.35s; }
 .rv-slot--1 { animation-delay: 0.9s; }
 @keyframes rvRise {
-  from { opacity: 0; transform: translateY(60px); }
+  from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: none; }
 }
 
 .rv-slot-card {
-  width: 100%;
   padding: 0.9rem 0.6rem;
-  border-radius: 18px;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #ffffff;
+  border: 1px solid var(--rv-line);
+  border-bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-}
-.rv-slot--1 .rv-slot-card {
-  border-color: #fbbf24;
-  animation: rvGlow 3s ease-in-out infinite;
-}
-@keyframes rvGlow {
-  0%, 100% { box-shadow: 0 0 30px -6px rgba(251, 191, 36, 0.45); }
-  50%      { box-shadow: 0 0 60px 0 rgba(251, 191, 36, 0.85); }
-}
-
-.rv-slot-emoji { font-size: clamp(1.5rem, 3.5vw, 2.4rem); }
-.rv-slot-team {
-  font-family: Georgia, serif;
-  font-weight: 900;
-  font-size: clamp(0.9rem, 2.2vw, 1.4rem);
-  color: #ffffff;
   text-align: center;
+}
+.rv-slot--1 .rv-slot-card { border-top: 6px solid var(--rv-orange); }
+
+.rv-slot-emoji { display: none; }
+.rv-slot-team {
+  font-family: Orbitron, sans-serif;
+  font-weight: 800;
+  font-size: clamp(0.8rem, 1.8vw, 1.15rem);
+  text-transform: uppercase;
+  color: var(--rv-ink);
   overflow-wrap: anywhere;
 }
 .rv-slot-no {
-  font-family: ui-monospace, monospace;
   font-size: 0.7rem;
-  letter-spacing: 0.15em;
-  color: var(--rv-muted);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--rv-mute);
 }
 .rv-slot-score {
-  font-family: ui-monospace, monospace;
-  font-weight: 900;
-  font-size: clamp(1.1rem, 2.6vw, 1.75rem);
-  color: #fbbf24;
+  font-family: Orbitron, sans-serif;
+  font-weight: 800;
+  font-size: clamp(1rem, 2.2vw, 1.5rem);
+  color: var(--rv-ink);
 }
-.rv-slot-score small { font-size: 0.65rem; color: var(--rv-muted); }
+.rv-slot-score small { font-family: Roboto, sans-serif; font-size: 0.6rem; color: var(--rv-mute); }
 
 .rv-block {
-  width: 100%;
-  border-radius: 14px 14px 0 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: Georgia, serif;
+  font-family: Orbitron, sans-serif;
   font-weight: 900;
   color: #ffffff;
-  border-top: 4px solid rgba(255, 255, 255, 0.4);
+  background: var(--rv-ink);
+  border-top: 4px solid var(--rv-orange);
 }
 .rv-block--1 {
-  height: clamp(8rem, 22vh, 14rem);
-  background: linear-gradient(180deg, #f59e0b, #b45309);
-  font-size: clamp(3rem, 8vw, 5rem);
+  height: clamp(7rem, 20vh, 12rem);
+  background: var(--rv-orange);
+  border-top-color: var(--rv-ink);
+  font-size: clamp(2.5rem, 6vw, 4rem);
 }
-.rv-block--2 {
-  height: clamp(6rem, 17vh, 10rem);
-  background: linear-gradient(180deg, #94a3b8, #475569);
-  font-size: clamp(2.4rem, 6vw, 4rem);
-}
-.rv-block--3 {
-  height: clamp(5rem, 14vh, 8rem);
-  background: linear-gradient(180deg, #d97706, #78350f);
-  font-size: clamp(2rem, 5vw, 3.2rem);
-}
+.rv-block--2 { height: clamp(5.5rem, 15vh, 9rem); font-size: clamp(2rem, 4.5vw, 3rem); }
+.rv-block--3 { height: clamp(4.5rem, 12vh, 7rem); font-size: clamp(1.8rem, 4vw, 2.6rem); }
 
-/* Small screens: stack scores tighter */
 @media (max-width: 520px) {
-  .rv-scores { gap: 0.4rem; }
+  .rv-scores { margin-top: 1rem; }
   .rv-podium { gap: 0.4rem; }
 }
 
-/* Reduced motion: keep the beats, drop the flourish */
 @media (prefers-reduced-motion: reduce) {
-  .rv-curtain::after,
-  .rv-rank:not(.is-revealed) .rv-curtain,
-  .rv-slot--1 .rv-slot-card { animation: none !important; }
+  .rv-welcome, .rv-rank, .rv-podium-wrap, .rv-slot { animation: none !important; }
+  .rv-curtain, .rv-members, .rv-scores { transition: none !important; }
+}
+
+/* ------------------------------------------------------------ */
+/* v3 reveal styles                                              */
+/* ------------------------------------------------------------ */
+.rv-meta { margin: 0; font-size: 0.85rem; color: var(--rv-mute); }
+.rv-meta::before { content: ""; }
+
+@keyframes rvStamp {
+  0%   { transform: scale(1.5); opacity: 0; }
+  60%  { transform: scale(0.96); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.rv-rank.is-revealed.is-stamped .rv-name { animation: rvStamp 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+/* Countdown digits */
+.rv-fx-count {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Orbitron, sans-serif;
+  font-weight: 900;
+  font-size: clamp(3rem, 10vw, 7rem);
+  color: var(--rv-orange);
+}
+.rv-rank.is-revealed .rv-fx-count { display: none; }
+
+/* Sealed envelope panel */
+.rv-seal {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--rv-ink);
+  color: var(--rv-orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Orbitron, sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.4em;
+  transition: transform 0.7s cubic-bezier(0.7, 0, 0.2, 1);
+}
+.rv-seal.is-open { transform: translateY(-102%); }
+.rv-rank.is-revealed .rv-seal { display: none; }
+
+/* Elimination grid */
+.rv-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 0.3rem;
+  align-content: center;
+  overflow: hidden;
+}
+.rv-tile {
+  padding: 0.35rem 0.4rem;
+  border: 1px solid var(--rv-line);
+  background: #ffffff;
+  font-family: Orbitron, sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.5rem, 0.9vw, 0.7rem);
+  text-transform: uppercase;
+  color: var(--rv-ink);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.rv-tile.is-out { opacity: 0.08; transform: scale(0.9); }
+.rv-tile.is-winner {
+  background: var(--rv-orange);
+  border-color: var(--rv-orange);
+  color: #ffffff;
+  transform: scale(1.08);
+  z-index: 1;
+}
+.mode-elimination .rv-name-wrap { min-height: clamp(12rem, 30vh, 18rem); }
+.rv-rank.is-revealed .rv-grid { display: none; }
+
+/* Decrypt uses the reel styling, in the orange, with a fixed-width feel */
+.rv-decrypt { letter-spacing: 0.08em; }
+.rv-rank.is-revealed .rv-decrypt { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-rank.is-revealed.is-stamped .rv-name,
+  .rv-seal, .rv-tile { animation: none !important; transition: none !important; }
 }

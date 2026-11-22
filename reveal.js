@@ -1,5 +1,7 @@
-// EMBEDTHON '26 · Grand Results Reveal Ceremony — v2
-// Requires: teams.js (TEAMS_DATA), reveal-theme.css, and the existing /api/evaluations + /api/config endpoints.
+// EMBEDTHON '26 · Grand Results Reveal Ceremony — v3 (five reveal styles + mix)
+// Requires: teams.js (TEAMS_DATA), reveal-theme.css, and the /api/evaluations + /api/config endpoints.
+// Styles: reel · stamp · envelope · elimination · decrypt. Default "mix" picks three different styles per ceremony.
+// Presenter: keys 1–6 switch style, ?style=<name> in the URL sets it.
 
 (function () {
   'use strict';
@@ -7,15 +9,40 @@
   const POLL_MS = 4000;
   const CATEGORY_TITLES = {
     OVERALL: 'Overall Champions (All 24 Teams)',
+    EMBEDTHON: 'Track 1 · Embeddathon',
+    HARDWARE: 'Track 2 · Project Expo (Hardware)',
+    SOFTWARE: 'Track 2 · Project Expo (Software)',
+    PAPER: 'Track 3 · Technical Paper Competition',
     A: 'Section A (Teams 01–11)',
     B: 'Section B (Teams 12–24)'
   };
+
+  const EVENT_DEFAULT_STYLE = {
+    OVERALL: 'elimination',
+    EMBEDTHON: 'decrypt',
+    HARDWARE: 'stamp',
+    SOFTWARE: 'reel',
+    PAPER: 'envelope',
+    A: 'mix',
+    B: 'mix'
+  };
+
   // Reveal order: 3rd → 2nd → 1st
   const RANKS = [
-    { place: 3, index: 2, label: '3rd Place · 2nd Runner-Up', emoji: '🥉', color: '#d97706', drum: 1.8, next: 'Reveal 1st Runner-Up 🥈' },
-    { place: 2, index: 1, label: '2nd Place · 1st Runner-Up', emoji: '🥈', color: '#cbd5e1', drum: 1.8, next: 'Reveal Grand Champion 👑' },
-    { place: 1, index: 0, label: '1st Place · Grand Champion', emoji: '👑', color: '#fbbf24', drum: 2.6, next: 'Show Final Podium 🏆' }
+    { place: 3, index: 2, label: '3rd Place · 2nd Runner-Up', color: '#7a6a58', next: 'Reveal 1st Runner-Up' },
+    { place: 2, index: 1, label: '2nd Place · 1st Runner-Up', color: '#4a5566', next: 'Reveal Grand Champion' },
+    { place: 1, index: 0, label: '1st Place · Grand Champion', color: '#f0561d', next: 'Show Final Podium' }
   ];
+  const STYLES = {
+    mix: 'Mix · Different per rank',
+    decrypt: 'Decrypt · Matrix Hacker (Embeddathon)',
+    stamp: 'Countdown Stamp · 3-2-1 Slam (Hardware)',
+    reel: 'Slot Reel · Flicker & Lock (Software)',
+    envelope: 'Sealed Envelope · Wax Seal (Paper Presentation)',
+    elimination: 'Elimination · Tile Drop (Grand Finale)'
+  };
+  const KEY_ORDER = ['mix', 'reel', 'stamp', 'envelope', 'elimination', 'decrypt'];
+  const SINGLE_STYLES = ['reel', 'stamp', 'envelope', 'elimination', 'decrypt'];
   const STEP_WELCOME = 0;
   const STEP_PODIUM = 4;
 
@@ -38,15 +65,20 @@
     openModal: $('btnOpenStandingsModal'),
     closeModal: $('btnCloseStandingsModal'),
     modalFilter: $('modalSectionFilter'),
-    modalBody: $('standingsTableBody')
+    modalBody: $('standingsTableBody'),
+    styleSelect: null
   };
 
+  const urlStyle = new URLSearchParams(location.search).get('style');
   const state = {
     category: 'OVERALL',
     step: STEP_WELCOME,
-    live: [],        // latest standings from server (all teams)
-    locked: [],      // snapshot the ceremony runs on
-    pending: false,  // live differs from locked
+    style: STYLES[urlStyle] ? urlStyle : 'mix',
+    mixPlan: [],     // styles for [3rd, 2nd, 1st] when style is "mix"
+    gate: null,      // pending presenter action (e.g. opening the envelope)
+    live: [],
+    locked: [],
+    pending: false,
     hasScores: false,
     muted: false,
     timers: [],
@@ -59,9 +91,17 @@
 
   const later = (fn, ms) => { state.timers.push(setTimeout(fn, ms)); };
   const clearTimers = () => { state.timers.forEach(clearTimeout); state.timers = []; };
+  const shuffle = (arr) => {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
 
   // =============================================================
-  // Sound (procedural Web Audio — no asset files needed)
+  // Sound (procedural Web Audio, no asset files)
   // =============================================================
   const audio = {
     ctx: null,
@@ -75,7 +115,7 @@
       if (this.ctx.state === 'suspended') this.ctx.resume();
       return this.ctx;
     },
-    noiseBuffer(ctx, dur, fn) {
+    noiseSource(ctx, dur, fn) {
       const n = Math.floor(ctx.sampleRate * dur);
       const buf = ctx.createBuffer(1, n, ctx.sampleRate);
       const d = buf.getChannelData(0);
@@ -84,10 +124,43 @@
       src.buffer = buf;
       return src;
     },
+    tone(freq, dur, vol, type = 'triangle', slide = 0) {
+      const ctx = this.get(); if (!ctx) return;
+      const t = ctx.currentTime;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(freq * slide, t + dur);
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g).connect(ctx.destination);
+      o.start(t); o.stop(t + dur + 0.02);
+    },
+    tick(freq = 2400) { this.tone(freq, 0.05, 0.3, 'triangle', 0.67); },
+    click() { this.tone(900, 0.03, 0.22, 'triangle'); },
+    // Final landing sound: a bell chime
+    chime() {
+      [[880, 0.22], [1760, 0.1], [2640, 0.04]].forEach(([f, v]) => this.tone(f, 1.2, v, 'sine'));
+    },
+    // Paper rustle for the envelope
+    rustle() {
+      const ctx = this.get(); if (!ctx) return;
+      const t = ctx.currentTime, dur = 0.5;
+      const src = this.noiseSource(ctx, dur, (i) => (Math.random() * 2 - 1) * Math.exp(-i / 5000));
+      const f = ctx.createBiquadFilter();
+      f.type = 'highpass'; f.frequency.value = 1500;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.35, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      src.connect(f).connect(g).connect(ctx.destination);
+      src.start(t); src.stop(t + dur);
+    },
+    // Build-up for the slot reel
     drumroll(dur) {
       const ctx = this.get(); if (!ctx) return;
       const t = ctx.currentTime;
-      const src = this.noiseBuffer(ctx, dur, (i) => (Math.random() * 2 - 1) * (0.6 + 0.4 * Math.sin(i / 130)));
+      const src = this.noiseSource(ctx, dur, (i) => (Math.random() * 2 - 1) * (0.6 + 0.4 * Math.sin(i / 130)));
       const f = ctx.createBiquadFilter();
       f.type = 'bandpass'; f.Q.value = 2.4;
       f.frequency.setValueAtTime(600, t);
@@ -98,61 +171,6 @@
       g.gain.linearRampToValueAtTime(0.001, t + dur);
       src.connect(f).connect(g).connect(ctx.destination);
       src.start(t); src.stop(t + dur);
-    },
-    cymbal() {
-      const ctx = this.get(); if (!ctx) return;
-      const t = ctx.currentTime, dur = 2.5;
-      const src = this.noiseBuffer(ctx, dur, () => Math.random() * 2 - 1);
-      const f = ctx.createBiquadFilter();
-      f.type = 'highpass'; f.frequency.value = 4500;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.9, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      src.connect(f).connect(g).connect(ctx.destination);
-      src.start(t); src.stop(t + dur);
-    },
-    cheer(dur = 3.5) {
-      const ctx = this.get(); if (!ctx) return;
-      const t = ctx.currentTime;
-      const src = this.noiseBuffer(ctx, dur, (i) => (Math.random() * 2 - 1) * (0.8 + 0.2 * Math.sin(i / 800)));
-      const f = ctx.createBiquadFilter();
-      f.type = 'bandpass'; f.frequency.value = 1400; f.Q.value = 1.2;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.02, t);
-      g.gain.linearRampToValueAtTime(0.45, t + 0.4);
-      g.gain.setValueAtTime(0.4, t + dur - 0.8);
-      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      src.connect(f).connect(g).connect(ctx.destination);
-      src.start(t); src.stop(t + dur);
-    },
-    horn(ctx, freq, t, dur, vol) {
-      const o1 = ctx.createOscillator(), o2 = ctx.createOscillator();
-      const f = ctx.createBiquadFilter(), g = ctx.createGain();
-      o1.type = 'sawtooth'; o1.frequency.value = freq;
-      o2.type = 'triangle'; o2.frequency.value = freq * 1.003;
-      f.type = 'lowpass';
-      f.frequency.setValueAtTime(freq * 1.6, t);
-      f.frequency.linearRampToValueAtTime(freq * 3.6, t + 0.08);
-      g.gain.setValueAtTime(0.001, t);
-      g.gain.linearRampToValueAtTime(vol, t + 0.04);
-      g.gain.setValueAtTime(vol * 0.85, t + dur - 0.08);
-      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      o1.connect(f); o2.connect(f); f.connect(g); g.connect(ctx.destination);
-      [o1, o2].forEach((o) => { o.start(t); o.stop(t + dur + 0.05); });
-    },
-    fanfare(place) {
-      const ctx = this.get(); if (!ctx) return;
-      const t = ctx.currentTime;
-      // [freq, start, duration, volume]
-      const notes = place === 1
-        ? [[261.63, 0, 0.16, 0.7], [261.63, 0.16, 0.16, 0.7], [261.63, 0.32, 0.16, 0.7], [349.23, 0.48, 0.45, 0.85],
-           [440, 0.95, 0.22, 0.85], [523.25, 1.18, 2.2, 0.95], [659.25, 1.18, 2.2, 0.8], [783.99, 1.18, 2.2, 0.9]]
-        : place === 2
-          ? [[293.66, 0, 0.25, 0.5], [369.99, 0.14, 0.25, 0.55], [440, 0.28, 0.45, 0.7], [587.33, 0.42, 1.6, 0.85]]
-          : [[261.63, 0, 0.35, 0.45], [329.63, 0.16, 0.35, 0.5], [392, 0.32, 0.7, 0.65], [523.25, 0.5, 1.4, 0.8]];
-      notes.forEach(([f, s, d, v]) => this.horn(ctx, f, t + s, d, v));
-      later(() => this.cymbal(), place === 1 ? 1150 : place === 2 ? 400 : 480);
-      if (place === 1) later(() => this.cheer(4), 1200);
     }
   };
 
@@ -181,7 +199,7 @@
     ? Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10
     : 0;
 
-  // Ties: higher Phase 2 wins, then lower team number. Settle real ties on the day.
+  // Ties: higher Phase 2 wins, then lower team number. Settle real ties with organisers.
   function computeStandings(evals) {
     const rows = (typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA : []).map((team) => {
       const judges = Object.values(evals[team.number] || {}).filter(Boolean);
@@ -211,17 +229,16 @@
     }
   }
 
+  const sig = (rows) => JSON.stringify(rows.map((r) => [r.team.number, r.total]));
+
   function applyLive(rows) {
     state.live = rows;
     state.hasScores = rows.some((r) => r.judges > 0);
-
     if (state.step === STEP_WELCOME) {
-      // Nothing revealed yet: the snapshot follows live data.
       state.locked = rows;
       state.pending = false;
       render();
     } else {
-      const sig = (list) => JSON.stringify(list.map((r) => [r.team.number, r.total]));
       state.pending = sig(rows) !== sig(state.locked);
       updateSyncBadge();
     }
@@ -235,24 +252,65 @@
     el.syncBadge.classList.toggle('is-pending', state.pending);
   }
 
-  const pool = () => state.locked.filter((r) => state.category === 'OVERALL' || r.team.section === state.category);
+  const pool = () => {
+    const list = state.locked;
+    if (state.category === 'OVERALL') return list;
+    if (state.category === 'A' || state.category === 'B') {
+      return list.filter((r) => r.team.section === state.category);
+    }
+    if (state.category === 'EMBEDTHON') {
+      const match = list.filter((r) => r.team.section === 'A' || /embed|iot|micro|sensor|hardware|circuit|smart/i.test((r.team.abstract_title || '') + (r.team.abstract || '')));
+      return match.length >= 3 ? match : list;
+    }
+    if (state.category === 'HARDWARE') {
+      const match = list.filter((r) => /hardware|sensor|iot|circuit|robot|embed|arduino|esp32|grid|solar/i.test((r.team.abstract_title || '') + (r.team.abstract || '')) || r.team.section === 'A');
+      return match.length >= 3 ? match : list;
+    }
+    if (state.category === 'SOFTWARE') {
+      const match = list.filter((r) => /software|ai|ml|cloud|web|app|vision|detection|predict/i.test((r.team.abstract_title || '') + (r.team.abstract || '')) || r.team.section === 'B');
+      return match.length >= 3 ? match : list;
+    }
+    if (state.category === 'PAPER') {
+      const match = list.filter((r) => /paper|analysis|study|framework|optimization|model/i.test((r.team.abstract_title || '') + (r.team.abstract || '')) || r.team.section === 'B');
+      return match.length >= 3 ? match : list;
+    }
+    return list;
+  };
 
   // =============================================================
   // Navigation
   // =============================================================
   function setStep(step) {
     clearTimers();
+    state.gate = null;
     state.step = step;
     if (step === STEP_WELCOME) {
       state.locked = state.live;
       state.pending = false;
+      state.mixPlan = shuffle(SINGLE_STYLES).slice(0, 3);
       updateSyncBadge();
     }
     render();
   }
 
-  const next = () => (state.step < STEP_PODIUM ? setStep(state.step + 1) : setStep(STEP_WELCOME));
-  const prev = () => state.step > STEP_WELCOME && setStep(state.step - 1);
+  function next() {
+    if (state.gate) {
+      const g = state.gate;
+      state.gate = null;
+      g();
+      return;
+    }
+    if (state.step < STEP_PODIUM) setStep(state.step + 1);
+    else setStep(STEP_WELCOME);
+  }
+
+  const prev = () => { if (state.step > STEP_WELCOME) setStep(state.step - 1); };
+
+  function setStyle(style) {
+    state.style = style;
+    if (el.styleSelect) el.styleSelect.value = style;
+    setStep(STEP_WELCOME);
+  }
 
   // =============================================================
   // Rendering
@@ -262,7 +320,7 @@
     el.prev.disabled = state.step === STEP_WELCOME;
     if (state.step === STEP_WELCOME) renderWelcome();
     else if (state.step === STEP_PODIUM) renderPodium();
-    else renderRank(RANKS[state.step - 1]);
+    else renderRank(state.step - 1);
   }
 
   function renderWelcome() {
@@ -280,77 +338,241 @@
         <p class="rv-status ${rehearsal ? 'is-warn' : 'is-ok'}">
           ${rehearsal ? 'Rehearsal mode · no evaluation scores saved yet' : 'Verified jury evaluations loaded · results locked for reveal'}
         </p>
-        <p class="rv-hint">Press <kbd>Space</kbd> or <kbd>→</kbd> to begin</p>
+        <p class="rv-meta">Reveal style · ${esc(STYLES[state.style])}</p>
+        <p class="rv-hint">Press <kbd>Space</kbd> or <kbd>→</kbd> to begin · keys <kbd>1</kbd>–<kbd>6</kbd> change style</p>
       </section>`;
   }
 
-  function renderRank(rank) {
-    const row = pool()[rank.index];
-    if (!row) return;
-    const isChamp = rank.place === 1;
-    el.indicator.textContent = rank.label;
-    el.nextLabel.textContent = rank.next;
+  // The style for a given rank index (0 = 3rd, 1 = 2nd, 2 = 1st)
+  function styleFor(i) {
+    if (state.style === 'mix') return state.mixPlan[i] || 'reel';
+    return state.style;
+  }
 
-    const scoreBox = (label, max, value, hero) => `
+  function cardHtml(row, rank, fx) {
+    const members = row.team.members.map((m) =>
+      `<span class="rv-chip ${m.is_lead ? 'is-lead' : ''}">${m.is_lead ? '★ ' : ''}${esc(m.name)}</span>`
+    ).join('');
+
+    const box = (label, max, value, hero) => `
       <div class="rv-score ${hero ? 'rv-score--hero' : ''}">
         <span class="rv-score-label">${label}</span>
         <span class="rv-score-value" data-count="${state.hasScores ? value : ''}">${state.hasScores ? '0.0' : '—'}</span>
         <span class="rv-score-max">/ ${max}</span>
       </div>`;
 
-    const members = row.team.members.map((m) =>
-      `<span class="rv-chip ${m.is_lead ? 'is-lead' : ''}">${m.is_lead ? '★ ' : ''}${esc(m.name)}</span>`
-    ).join('');
-
-    el.stage.innerHTML = `
+    return `
       <section class="rv-rank" style="--accent:${rank.color}">
-        <div class="rv-rank-badge">${rank.emoji} ${esc(rank.label)}</div>
+        <div class="rv-rank-badge">${esc(rank.label)}</div>
         <div class="rv-card">
+          ${fx.card}
           <div class="rv-team-no">TEAM ${esc(row.team.number)} · SECTION ${esc(row.team.section)}</div>
           <div class="rv-name-wrap">
             <h2 class="rv-name">${esc(row.team.name)}</h2>
-            <div class="rv-curtain" aria-hidden="true">? ? ?</div>
+            ${fx.name}
           </div>
           ${row.team.abstract_title ? `<p class="rv-project">“${esc(row.team.abstract_title)}”</p>` : ''}
           <div class="rv-members">${members}</div>
           <div class="rv-scores">
-            ${scoreBox('Phase 1', 30, row.p1)}
-            ${scoreBox('Phase 2', 70, row.p2)}
-            ${scoreBox('Grand Total', 100, row.total, true)}
+            ${box('Phase 1', 30, row.p1)}
+            ${box('Phase 2', 70, row.p2)}
+            ${box('Grand Total', 100, row.total, true)}
           </div>
           ${state.hasScores ? '' : '<p class="rv-note">Rehearsal data · scores not yet saved</p>'}
         </div>
       </section>`;
+  }
 
+  function renderRank(i) {
+    const rank = RANKS[i];
+    const row = pool()[rank.index];
+    if (!row) return;
+    const mode = styleFor(i);
+    const fx = FX[mode] || FX.reel;
+
+    el.indicator.textContent = rank.label;
+    el.nextLabel.textContent = mode === 'envelope' ? 'Open envelope ▶' : rank.next + ' ▶';
+
+    el.stage.innerHTML = cardHtml(row, rank, fx.markup);
     const root = el.stage.querySelector('.rv-rank');
-    audio.drumroll(rank.drum);
+    root.classList.add('mode-' + mode);
 
-    // Suspense → reveal → score count-up
-    later(() => {
-      root.classList.add('is-revealed');
-      audio.fanfare(rank.place);
-      launchConfetti(isChamp ? 'mega' : 'standard');
-    }, rank.drum * 1000);
+    const isChamp = rank.place === 1;
+    const api = { land: () => land(root, isChamp) };
+    fx.play(root, row, rank, api);
+  }
 
+  // Shared finish for every style: name appears, chime, confetti, scores count up
+  function land(root, isChamp) {
+    root.classList.add('is-revealed');
+    audio.chime();
+    launchConfetti(isChamp ? 'mega' : 'standard');
     later(() => {
       root.querySelectorAll('[data-count]').forEach((node) => {
         if (node.dataset.count !== '') countUp(node, parseFloat(node.dataset.count), 1400);
       });
-    }, rank.drum * 1000 + 900);
+    }, 250);
   }
 
+  function countUp(node, target, ms) {
+    const start = performance.now();
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / ms);
+      const eased = 1 - Math.pow(1 - p, 3);
+      node.textContent = (target * eased).toFixed(1);
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  // =============================================================
+  // The five reveal styles. Each one builds its own markup and timeline.
+  // =============================================================
+  const FX = {
+
+    // 1. Slot reel: names flash past, slow down with near misses, then land
+    reel: {
+      markup: { name: '<div class="rv-reel" aria-hidden="true"></div>', card: '' },
+      play(root, row, rank, api) {
+        const spinMs = rank.place === 1 ? 6500 : 4800;
+        const reel = root.querySelector('.rv-reel');
+        audio.drumroll(spinMs / 1000);
+        spinReel(reel, row.team.name, spinMs, () => {
+          reel.classList.add('is-landed');
+          later(api.land, 1300);   // hold on the landed name
+        });
+      }
+    },
+
+    // 2. Countdown stamp: 3, 2, 1, then the name slams in
+    stamp: {
+      markup: { name: '<div class="rv-fx-count" aria-hidden="true"></div>', card: '' },
+      play(root, row, rank, api) {
+        const counter = root.querySelector('.rv-fx-count');
+        ['3', '2', '1'].forEach((n, k) => later(() => {
+          counter.textContent = n;
+          audio.tick(1800 + k * 300);
+        }, k * 900));
+        later(() => {
+          counter.textContent = '';
+          root.classList.add('is-stamped');
+          api.land();
+        }, 2700);
+      }
+    },
+
+    // 3. Sealed envelope: the presenter opens it with Next
+    envelope: {
+      markup: { name: '', card: '<div class="rv-seal" aria-hidden="true"><span>SEALED</span></div>' },
+      play(root, row, rank, api) {
+        state.gate = () => {
+          root.querySelector('.rv-seal').classList.add('is-open');
+          audio.rustle();
+          el.nextLabel.textContent = rank.next + ' ▶';
+          later(api.land, 700);
+        };
+      }
+    },
+
+    // 4. Elimination: all teams in the category, dropped one by one until the winner is left
+    elimination: {
+      markup: { name: '<div class="rv-grid" aria-hidden="true"></div>', card: '' },
+      play(root, row, rank, api) {
+        const grid = root.querySelector('.rv-grid');
+        const teams = pool().map((r) => r.team);
+        grid.innerHTML = teams.map((t) =>
+          `<span class="rv-tile" data-no="${esc(t.number)}">${esc(t.name)}</span>`
+        ).join('');
+
+        const order = shuffle(teams.filter((t) => t.number !== row.team.number));
+        const gap = Math.max(120, 4200 / Math.max(1, order.length));
+        order.forEach((t, k) => later(() => {
+          const tile = grid.querySelector(`[data-no="${t.number}"]`);
+          if (tile) tile.classList.add('is-out');
+          audio.tick(2200 - k * 15);
+        }, 400 + k * gap));
+
+        const endAt = 400 + order.length * gap + 300;
+        later(() => {
+          const win = grid.querySelector(`[data-no="${row.team.number}"]`);
+          if (win) win.classList.add('is-winner');
+          audio.tick(2600);
+        }, endAt);
+        later(api.land, endAt + 1000);
+      }
+    },
+
+    // 5. Decrypt: random characters lock in one letter at a time
+    decrypt: {
+      markup: { name: '<div class="rv-reel rv-decrypt" aria-hidden="true"></div>', card: '' },
+      play(root, row, rank, api) {
+        const reel = root.querySelector('.rv-decrypt');
+        const target = row.team.name.toUpperCase();
+        const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#@$%&*';
+        const totalMs = 2600;
+        const start = performance.now();
+        let lastLocked = -1;
+
+        const frame = () => {
+          const p = Math.min(1, (performance.now() - start) / totalMs);
+          const locked = Math.floor(p * target.length);
+          let out = '';
+          for (let i = 0; i < target.length; i++) {
+            out += (target[i] === ' ' || i < locked)
+              ? target[i]
+              : glyphs[Math.floor(Math.random() * glyphs.length)];
+          }
+          reel.textContent = out;
+          if (locked !== lastLocked) { lastLocked = locked; audio.click(); }
+          if (p < 1) state.timers.push(setTimeout(frame, 55));
+          else { reel.textContent = target; later(api.land, 900); }
+        };
+        frame();
+      }
+    }
+  };
+
+  // Slot reel engine: fast flicker that slows steadily, decoys near the end, then stops
+  function spinReel(reelEl, finalName, totalMs, onStop) {
+    const list = pool().map((r) => r.team.name);
+    if (!list.length) list.push(finalName);
+    const winnerAt = list.indexOf(finalName);
+    const decoy = () => {
+      if (list.length < 2) return finalName;
+      let i;
+      do { i = Math.floor(Math.random() * list.length); } while (i === winnerAt);
+      return list[i];
+    };
+    const start = performance.now();
+
+    const step = () => {
+      const p = (performance.now() - start) / totalMs;
+      if (p >= 1) {
+        reelEl.textContent = finalName;
+        onStop();
+        return;
+      }
+      reelEl.textContent = p > 0.86 ? decoy() : list[Math.floor(Math.random() * list.length)];
+      audio.tick();
+      state.timers.push(setTimeout(step, 50 + 520 * Math.pow(p, 2.6)));
+    };
+    step();
+  }
+
+  // =============================================================
+  // Podium
+  // =============================================================
   function renderPodium() {
     el.indicator.textContent = 'Ceremony complete · Final podium';
-    el.nextLabel.textContent = 'Replay Ceremony 🔄';
+    el.nextLabel.textContent = 'Replay Ceremony';
 
     const [gold, silver, bronze] = [pool()[0], pool()[1], pool()[2]];
     const slot = (row, place) => {
       if (!row) return '';
-      const emoji = place === 1 ? '👑' : place === 2 ? '🥈' : '🥉';
       return `
         <div class="rv-slot rv-slot--${place}">
           <div class="rv-slot-card">
-            <span class="rv-slot-emoji">${emoji}</span>
+            <span class="rv-slot-no">${place === 1 ? 'CHAMPION' : place === 2 ? '2ND PLACE' : '3RD PLACE'}</span>
             <span class="rv-slot-team">${esc(row.team.name)}</span>
             <span class="rv-slot-no">TEAM ${esc(row.team.number)}</span>
             <span class="rv-slot-score">${state.hasScores ? row.total.toFixed(1) : '—'}<small> / 100</small></span>
@@ -369,30 +591,18 @@
     launchConfetti('mega');
   }
 
-  function countUp(node, target, ms) {
-    const start = performance.now();
-    const tick = (now) => {
-      const p = Math.min(1, (now - start) / ms);
-      const eased = 1 - Math.pow(1 - p, 3);
-      node.textContent = (target * eased).toFixed(1);
-      if (p < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }
-
   // =============================================================
-  // Standings modal (always shows the locked snapshot, so the audience can't see ahead)
+  // Standings modal (always shows the locked snapshot)
   // =============================================================
   function renderModal() {
     if (!el.modalBody) return;
     const f = el.modalFilter ? el.modalFilter.value : 'ALL';
     const rows = state.locked.filter((r) => f === 'ALL' || r.team.section === f);
-    const medals = ['🥇', '🥈', '🥉'];
     const show = (v) => (state.hasScores ? v.toFixed(1) : '—');
 
     el.modalBody.innerHTML = rows.map((r, i) => `
       <tr class="${i === 0 ? 'bg-amber-50/70 font-semibold' : ''} hover:bg-[#f6f1e6]/60 transition">
-        <td class="py-2 px-3 text-center font-bold">${medals[i] || '#' + (i + 1)}</td>
+        <td class="py-2 px-3 text-center font-bold">#${i + 1}</td>
         <td class="py-2 px-3 font-mono font-black text-[#ea580c]">T-${esc(r.team.number)}</td>
         <td class="py-2 px-3">
           <span class="font-bold text-[#0f172a] block">${esc(r.team.name)}</span>
@@ -409,7 +619,7 @@
   const closeModal = () => el.modal.classList.add('hidden');
 
   // =============================================================
-  // Controls & shortcuts
+  // Controls
   // =============================================================
   function toggleFullscreen() {
     if (document.fullscreenElement) document.exitFullscreen();
@@ -422,11 +632,23 @@
     el.audioText.textContent = state.muted ? 'MUTED' : 'SOUND ON';
   }
 
+  function buildStyleSelect() {
+    const sel = document.createElement('select');
+    sel.id = 'revealStyleSelect';
+    sel.className = 'bg-[#f6f1e6] border border-[#e3dccd] text-xs font-black text-[#0f172a] rounded-xl px-2.5 sm:px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#ea580c] cursor-pointer shadow-xs';
+    sel.title = 'Reveal animation style (keys 1–6)';
+    sel.innerHTML = KEY_ORDER.map((k) => `<option value="${k}">${esc(STYLES[k])}</option>`).join('');
+    sel.value = state.style;
+    sel.addEventListener('change', (e) => setStyle(e.target.value));
+    el.openModal.parentNode.insertBefore(sel, el.openModal);
+    el.styleSelect = sel;
+  }
+
   function bind() {
-    // Blur buttons after click so Space/Enter don't double-fire them.
+    // Blur buttons after click so Space/Enter don't double-fire them
     el.next.addEventListener('click', () => { next(); el.next.blur(); });
     el.prev.addEventListener('click', () => { prev(); el.prev.blur(); });
-    el.confetti.addEventListener('click', () => { audio.cymbal(); launchConfetti('standard'); el.confetti.blur(); });
+    el.confetti.addEventListener('click', () => { audio.tick(1800); launchConfetti('standard'); el.confetti.blur(); });
     el.audioBtn.addEventListener('click', toggleAudio);
     el.fsBtn.addEventListener('click', toggleFullscreen);
     document.addEventListener('fullscreenchange', () => {
@@ -435,7 +657,12 @@
 
     el.category.addEventListener('change', (e) => {
       state.category = e.target.value;
-      setStep(STEP_WELCOME);
+      const targetStyle = EVENT_DEFAULT_STYLE[state.category];
+      if (targetStyle) {
+        setStyle(targetStyle);
+      } else {
+        setStep(STEP_WELCOME);
+      }
     });
 
     el.openModal.addEventListener('click', openModal);
@@ -448,7 +675,8 @@
       if (!el.modal.classList.contains('hidden')) return;
 
       const k = e.key.toLowerCase();
-      if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); next(); }
+      if (/^[1-6]$/.test(e.key)) { e.preventDefault(); setStyle(KEY_ORDER[Number(e.key) - 1]); }
+      else if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); next(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
       else if (k === 'f') { e.preventDefault(); toggleFullscreen(); }
       else if (k === 'm') { e.preventDefault(); toggleAudio(); }
@@ -460,8 +688,10 @@
   // Init
   // =============================================================
   async function init() {
-    document.body.classList.add('ceremony-dark');
+    document.body.classList.add('ceremony-brand');
+    buildStyleSelect();
     bind();
+    state.mixPlan = shuffle(SINGLE_STYLES).slice(0, 3);
     applyLive(computeStandings({}));   // rehearsal view immediately, no fake scores
     await syncData();
     setInterval(syncData, POLL_MS);
