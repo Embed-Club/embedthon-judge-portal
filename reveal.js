@@ -41,7 +41,7 @@
     envelope: 'Sealed Envelope · Wax Seal (Paper Presentation)',
     elimination: 'Elimination · Tile Drop (Grand Finale)'
   };
-  const KEY_ORDER = ['mix', 'reel', 'stamp', 'envelope', 'elimination', 'decrypt'];
+  const KEY_ORDER = ['decrypt', 'stamp', 'reel', 'envelope', 'elimination', 'mix'];
   const SINGLE_STYLES = ['reel', 'stamp', 'envelope', 'elimination', 'decrypt'];
   const STEP_WELCOME = 0;
   const STEP_PODIUM = 4;
@@ -706,8 +706,24 @@
   // =============================================================
   async function init() {
     document.body.classList.add('ceremony-brand');
+
+    // 1. Sync category from DOM or URL parameter
+    const urlCategory = new URLSearchParams(location.search).get('category') || new URLSearchParams(location.search).get('track');
+    if (urlCategory && el.category) {
+      el.category.value = urlCategory.toUpperCase();
+    }
+    if (el.category && el.category.value) {
+      state.category = el.category.value;
+    }
+
+    // 2. Set default animation style mapped to the active category
+    const defaultEventStyle = EVENT_DEFAULT_STYLE[state.category] || 'decrypt';
+    state.style = STYLES[urlStyle] ? urlStyle : defaultEventStyle;
+
     buildStyleSelect();
     bind();
+    updateBannerForCategory();
+
     state.mixPlan = shuffle(SINGLE_STYLES).slice(0, 3);
     applyLive(computeStandings({}));   // rehearsal view immediately, no fake scores
     await syncData();
