@@ -20,20 +20,22 @@ module.exports = async function handler(req, res) {
     const customName = String(body.judgeName || '').trim();
 
     const gist = await fetchGist();
-    let config = { numJudges: 3, adminPin: '2026', judges: [] };
+    let config = { adminPin: '2026', internalJudges: [], externalJudges: [] };
     if (gist.files && gist.files['config.json']) {
       try {
         config = JSON.parse(gist.files['config.json'].content);
       } catch (e) {}
     }
 
+    // 1. Admin login
     if (judgeId === 'ADMIN') {
       if (pin === String(config.adminPin || '2026')) {
         return res.status(200).json({
           success: true,
           judge: {
             id: 'ADMIN',
-            name: customName || 'Coordinator',
+            name: customName || 'Chief Coordinator',
+            type: 'ADMIN',
             isAdmin: true
           }
         });
@@ -42,8 +44,17 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const judges = config.judges || [];
-    const matched = judges.find(j => j.id.toUpperCase() === judgeId);
+    // 2. Search in internal judges
+    const allInternal = config.internalJudges || [];
+    const allExternal = config.externalJudges || [];
+
+    let matched = allInternal.find(j => j.id.toUpperCase() === judgeId);
+    let judgeType = 'INTERNAL';
+
+    if (!matched) {
+      matched = allExternal.find(j => j.id.toUpperCase() === judgeId);
+      judgeType = 'EXTERNAL';
+    }
 
     if (!matched) {
       return res.status(404).json({ success: false, error: `Judge ID '${judgeId}' not found.` });
@@ -64,6 +75,8 @@ module.exports = async function handler(req, res) {
       judge: {
         id: matched.id,
         name: finalName,
+        type: judgeType,
+        role: matched.role || (judgeType === 'INTERNAL' ? 'Internal Judge (Phase 1)' : 'External Judge (Phase 2)'),
         isAdmin: false
       }
     });

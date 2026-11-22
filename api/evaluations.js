@@ -39,39 +39,50 @@ module.exports = async function handler(req, res) {
         evaluations[teamNumber] = {};
       }
 
-      const c1 = Number(body.crit1) || 0;
-      const c2 = Number(body.crit2) || 0;
-      const c3 = Number(body.crit3) || 0;
-      const c4 = Number(body.crit4) || 0;
-      const total = Number(body.total) || (c1 + c2 + c3 + c4);
+      const existing = evaluations[teamNumber][judgeId] || {};
+
+      // Phase 1: Mentoring (Max 30)
+      const p1_c1 = body.p1_crit1 !== undefined ? Number(body.p1_crit1) : (existing.p1_crit1 || 0);
+      const p1_c2 = body.p1_crit2 !== undefined ? Number(body.p1_crit2) : (existing.p1_crit2 || 0);
+      const p1_c3 = body.p1_crit3 !== undefined ? Number(body.p1_crit3) : (existing.p1_crit3 || 0);
+      const p1_total = Number((p1_c1 + p1_c2 + p1_c3).toFixed(1));
+
+      // Phase 2: Final External (Max 70)
+      const p2_c1 = body.p2_crit1 !== undefined ? Number(body.p2_crit1) : (existing.p2_crit1 || 0);
+      const p2_c2 = body.p2_crit2 !== undefined ? Number(body.p2_crit2) : (existing.p2_crit2 || 0);
+      const p2_c3 = body.p2_crit3 !== undefined ? Number(body.p2_crit3) : (existing.p2_crit3 || 0);
+      const p2_c4 = body.p2_crit4 !== undefined ? Number(body.p2_crit4) : (existing.p2_crit4 || 0);
+      const p2_total = Number((p2_c1 + p2_c2 + p2_c3 + p2_c4).toFixed(1));
+
+      const grandTotal = Number((p1_total + p2_total).toFixed(1));
 
       evaluations[teamNumber][judgeId] = {
         judgeId: judgeId,
         judgeName: judgeName,
-        crit1: c1,
-        crit2: c2,
-        crit3: c3,
-        crit4: c4,
-        phase1: Number(body.phase1) || (c1 + c2),
-        phase2: Number(body.phase2) || (c3 + c4),
-        total: total,
-        remarks: String(body.remarks || '').trim(),
+        // Phase 1 details
+        p1_crit1: p1_c1,
+        p1_crit2: p1_c2,
+        p1_crit3: p1_c3,
+        phase1: p1_total,
+        // Phase 2 details
+        p2_crit1: p2_c1,
+        p2_crit2: p2_c2,
+        p2_crit3: p2_c3,
+        p2_crit4: p2_c4,
+        phase2: p2_total,
+        // Combined
+        total: grandTotal,
+        remarks: String(body.remarks !== undefined ? body.remarks : (existing.remarks || '')).trim(),
         updatedAt: body.updatedAt || new Date().toISOString()
       };
 
       await updateGistFile('evaluations.json', JSON.stringify(evaluations, null, 2));
 
-      const teamScores = evaluations[teamNumber];
-      const validTotals = Object.values(teamScores).filter(v => v && typeof v.total === 'number' && v.total > 0).map(v => v.total);
-      const avgTotal = validTotals.length ? Number((validTotals.reduce((a, b) => a + b, 0) / validTotals.length).toFixed(2)) : 0;
-
       return res.status(200).json({
         success: true,
         teamNumber: teamNumber,
         judgeId: judgeId,
-        numJudgesScored: validTotals.length,
-        averageTotal: avgTotal,
-        teamEvaluations: teamScores
+        teamEvaluations: evaluations[teamNumber]
       });
     }
 

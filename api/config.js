@@ -1,12 +1,15 @@
 const { fetchGist, updateGistFile } = require('./_gist');
 
 const DEFAULT_CONFIG = {
-  numJudges: 3,
+  activePhase: 'PHASE_1', // 'PHASE_1', 'PHASE_2', 'BOTH'
   adminPin: '2026',
-  judges: [
-    { id: 'J1', name: 'Judge 1', pin: '1111' },
-    { id: 'J2', name: 'Judge 2', pin: '2222' },
-    { id: 'J3', name: 'Judge 3', pin: '3333' }
+  internalJudges: [
+    { id: 'INT-1', name: 'Internal Judge 1', role: 'CSE Faculty Mentor', pin: '1111' },
+    { id: 'INT-2', name: 'Internal Judge 2', role: 'CSE Faculty Mentor', pin: '2222' }
+  ],
+  externalJudges: [
+    { id: 'EXT-1', name: 'External Judge 1', role: 'Industry Expert', pin: '3333' },
+    { id: 'EXT-2', name: 'External Judge 2', role: 'IEEE Jury Member', pin: '4444' }
   ]
 };
 
@@ -31,11 +34,12 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    if (!config.internalJudges) config.internalJudges = DEFAULT_CONFIG.internalJudges;
+    if (!config.externalJudges) config.externalJudges = DEFAULT_CONFIG.externalJudges;
+    if (!config.activePhase) config.activePhase = 'PHASE_1';
+
     if (req.method === 'GET') {
-      return res.status(200).json({
-        numJudges: config.numJudges || 3,
-        judges: config.judges || []
-      });
+      return res.status(200).json(config);
     }
 
     if (req.method === 'POST') {
@@ -46,38 +50,25 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ success: false, error: 'Invalid Admin PIN (Default: 2026).' });
       }
 
-      const newNum = Math.max(1, Math.min(10, parseInt(body.numJudges, 10) || 3));
-      const existingMap = {};
-      (config.judges || []).forEach(j => { existingMap[j.id] = j; });
-
-      const updatedJudges = [];
-      const incomingJudges = body.judges || [];
-
-      for (let i = 1; i <= newNum; i++) {
-        const jid = `J${i}`;
-        const provided = incomingJudges.find(x => x.id === jid);
-        if (provided) {
-          updatedJudges.push(provided);
-        } else if (existingMap[jid]) {
-          updatedJudges.push(existingMap[jid]);
-        } else {
-          updatedJudges.push({
-            id: jid,
-            name: `Judge ${i}`,
-            pin: `${i}${i}${i}${i}`
-          });
-        }
+      if (body.activePhase && ['PHASE_1', 'PHASE_2', 'BOTH'].includes(body.activePhase)) {
+        config.activePhase = body.activePhase;
       }
 
-      config.numJudges = newNum;
-      config.judges = updatedJudges;
+      if (Array.isArray(body.internalJudges)) {
+        config.internalJudges = body.internalJudges;
+      }
+
+      if (Array.isArray(body.externalJudges)) {
+        config.externalJudges = body.externalJudges;
+      }
 
       await updateGistFile('config.json', JSON.stringify(config, null, 2));
 
       return res.status(200).json({
         success: true,
-        numJudges: config.numJudges,
-        judges: config.judges
+        activePhase: config.activePhase,
+        internalJudges: config.internalJudges,
+        externalJudges: config.externalJudges
       });
     }
 

@@ -1,12 +1,13 @@
-// EMBEDTHON '26 - Multi-Judge Dynamic Scoring Portal
-// All judges evaluate all 4 criteria rubrics (Prototype 35, Complexity 25, Innovation 20, Presentation 20)
-// Supports dynamic number of judges, unique judge login, and real-time live sync.
+// EMBEDTHON '26 - Dual-Phase Multi-Judge Dynamic Scoring Portal
+// Phase 1: Mentoring Phase (30% / 30 Marks) - Evaluated by Internal Judges
+// Phase 2: Final Expo & Defense (70% / 70 Marks) - Evaluated by External Judges
+// Real-time synchronization across phone browsers via Vercel Serverless & Cloud Persistence
 
 (function () {
   'use strict';
 
-  const STORAGE_KEY_AUTH = 'embedthon_active_judge_v3';
-  const STORAGE_KEY_CURRENT = 'embedthon_current_team_v3';
+  const STORAGE_KEY_AUTH = 'embedthon_judge_auth_v4';
+  const STORAGE_KEY_CURRENT = 'embedthon_current_team_v4';
 
   // State
   let teams = typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA : [];
@@ -14,29 +15,45 @@
   let activeSectionFilter = 'A';
   let currentView = 'scoring';
 
-  // Config & Multi-Judge evaluations master
-  let juryConfig = { numJudges: 3, judges: [] };
+  // Config & Master Evaluations
+  let juryConfig = {
+    activePhase: 'PHASE_1',
+    adminPin: '2026',
+    internalJudges: [
+      { id: 'INT-1', name: 'Internal Judge 1', role: 'CSE Faculty Mentor', pin: '1111' },
+      { id: 'INT-2', name: 'Internal Judge 2', role: 'CSE Faculty Mentor', pin: '2222' }
+    ],
+    externalJudges: [
+      { id: 'EXT-1', name: 'External Judge 1', role: 'Industry Expert', pin: '3333' },
+      { id: 'EXT-2', name: 'External Judge 2', role: 'IEEE Jury Member', pin: '4444' }
+    ]
+  };
+
   let masterEvaluations = {};
-  let currentJudge = null; // { id: 'J1', name: 'Judge 1', isAdmin: false }
+  let currentJudge = null; // { id, name, role, type: 'INTERNAL' | 'EXTERNAL' | 'ADMIN', isAdmin }
   let lastDataChecksum = '';
   let pollingInterval = null;
 
   // Selected judge in login modal
-  let selectedLoginJudgeId = 'J1';
+  let selectedLoginJudgeId = 'INT-1';
 
   // -------------------------------------------------------------
   // DOM References
   // -------------------------------------------------------------
   // Login Overlay
   const loginOverlay = document.getElementById('loginOverlay');
-  const loginJudgeSlotsContainer = document.getElementById('loginJudgeSlotsContainer');
+  const loginPhaseNotice = document.getElementById('loginPhaseNotice');
+  const loginActivePhaseTitle = document.getElementById('loginActivePhaseTitle');
+  const loginInternalSlotsContainer = document.getElementById('loginInternalSlotsContainer');
+  const loginExternalSlotsContainer = document.getElementById('loginExternalSlotsContainer');
+  const btnSelectAdminLogin = document.getElementById('btnSelectAdminLogin');
   const loginPinInput = document.getElementById('loginPinInput');
   const loginNameInput = document.getElementById('loginNameInput');
   const pinHintBadge = document.getElementById('pinHintBadge');
   const loginErrorMessage = document.getElementById('loginErrorMessage');
   const btnLoginSubmit = document.getElementById('btnLoginSubmit');
 
-  // Header
+  // Header & Subheader
   const activeJudgeBadge = document.getElementById('activeJudgeBadge');
   const btnJudgeSwitch = document.getElementById('btnJudgeSwitch');
   const btnOpenSetupModal = document.getElementById('btnOpenSetupModal');
@@ -44,7 +61,7 @@
   const navSectionBadge = document.getElementById('navSectionBadge');
   const progressPill = document.getElementById('progressPill');
 
-  // Tabs & Views
+  // Views & Tabs
   const tabTeamView = document.getElementById('tabTeamView');
   const tabRoster = document.getElementById('tabRoster');
   const tabLeaderboard = document.getElementById('tabLeaderboard');
@@ -52,11 +69,11 @@
   const viewRoster = document.getElementById('viewRoster');
   const viewLeaderboard = document.getElementById('viewLeaderboard');
 
-  // Section buttons
+  // Section Switches
   const btnSwitchSecA = document.getElementById('btnSwitchSecA');
   const btnSwitchSecB = document.getElementById('btnSwitchSecB');
 
-  // Team pills & modals
+  // Team Navigation Pills & Modal
   const teamPillsRow = document.getElementById('teamPillsRow');
   const btnOpenTeamGridModal = document.getElementById('btnOpenTeamGridModal');
   const modalTeamGrid = document.getElementById('modalTeamGrid');
@@ -64,7 +81,7 @@
   const gridSectionA = document.getElementById('gridSectionA');
   const gridSectionB = document.getElementById('gridSectionB');
 
-  // Team Detail Elements
+  // Team Details
   const teamSectionLabel = document.getElementById('teamSectionLabel');
   const evalStatusBadge = document.getElementById('evalStatusBadge');
   const teamBigNumber = document.getElementById('teamBigNumber');
@@ -74,76 +91,101 @@
   const membersContainer = document.getElementById('membersContainer');
 
   // Jury Consensus Panel
-  const consensusProgressBadge = document.getElementById('consensusProgressBadge');
-  const juryStatusRow = document.getElementById('juryStatusRow');
-  const juryAverageScoreDisplay = document.getElementById('juryAverageScoreDisplay');
-  const scoringFormHeaderJudge = document.getElementById('scoringFormHeaderJudge');
+  const phaseStatusSummaryBadge = document.getElementById('phaseStatusSummaryBadge');
+  const internalJudgesBadges = document.getElementById('internalJudgesBadges');
+  const internalAvgDisplay = document.getElementById('internalAvgDisplay');
+  const externalJudgesBadges = document.getElementById('externalJudgesBadges');
+  const externalAvgDisplay = document.getElementById('externalAvgDisplay');
+  const cumulativeScoreDisplay = document.getElementById('cumulativeScoreDisplay');
 
-  // Rubric Inputs (All Judges score all 4 rubrics)
-  const inputCrit1 = document.getElementById('inputCrit1'); // 35
-  const inputCrit2 = document.getElementById('inputCrit2'); // 25
-  const inputCrit3 = document.getElementById('inputCrit3'); // 20
-  const inputCrit4 = document.getElementById('inputCrit4'); // 20
-  const displayTotalMarks = document.getElementById('displayTotalMarks');
-  const displayPhase1 = document.getElementById('displayPhase1');
-  const displayPhase2 = document.getElementById('displayPhase2');
-  const scoreGradeBadge = document.getElementById('scoreGradeBadge');
+  // Scoring Form Header & Hero Box
+  const scoringFormTitle = document.getElementById('scoringFormTitle');
+  const scoringFormSubtitle = document.getElementById('scoringFormSubtitle');
+  const scoringRoleBadge = document.getElementById('scoringRoleBadge');
+  const heroScoreLabel = document.getElementById('heroScoreLabel');
+  const displayScoreValue = document.getElementById('displayScoreValue');
+  const displayMaxPossible = document.getElementById('displayMaxPossible');
+  const scorePhaseSubtitle = document.getElementById('scorePhaseSubtitle');
+  const scoreRatingBadge = document.getElementById('scoreRatingBadge');
+
+  // Phase 1 Inputs (Mentoring - Max 30)
+  const phase1RubricsSection = document.getElementById('phase1RubricsSection');
+  const inputP1Crit1 = document.getElementById('inputP1Crit1'); // 10
+  const inputP1Crit2 = document.getElementById('inputP1Crit2'); // 10
+  const inputP1Crit3 = document.getElementById('inputP1Crit3'); // 10
+
+  // Phase 2 Inputs (External Final - Max 70)
+  const phase2RubricsSection = document.getElementById('phase2RubricsSection');
+  const inputP2Crit1 = document.getElementById('inputP2Crit1'); // 25
+  const inputP2Crit2 = document.getElementById('inputP2Crit2'); // 20
+  const inputP2Crit3 = document.getElementById('inputP2Crit3'); // 15
+  const inputP2Crit4 = document.getElementById('inputP2Crit4'); // 10
+
+  // Remarks & Save
   const inputRemarks = document.getElementById('inputRemarks');
-
   const btnSaveEvaluation = document.getElementById('btnSaveEvaluation');
   const btnNextTeam = document.getElementById('btnNextTeam');
   const saveFeedbackNotice = document.getElementById('saveFeedbackNotice');
 
-  // Bottom Navigation
+  // Bottom Sticky Nav
   const bnavPrev = document.getElementById('bnavPrev');
   const bnavNext = document.getElementById('bnavNext');
   const bnavCenter = document.getElementById('bnavCenter');
   const bnavTeamLabel = document.getElementById('bnavTeamLabel');
   const bnavScoreLabel = document.getElementById('bnavScoreLabel');
 
-  // Roster Directory
+  // Roster View
   const searchTeamsInput = document.getElementById('searchTeamsInput');
   const rosterListGrid = document.getElementById('rosterListGrid');
   const rosterShowingCount = document.getElementById('rosterShowingCount');
   const rosterFilterButtons = document.querySelectorAll('.roster-filter-btn');
 
-  // Leaderboard
+  // Leaderboard View
   const leaderboardSectionSelect = document.getElementById('leaderboardSectionSelect');
-  const leaderboardTheadTr = document.getElementById('leaderboardTheadTr');
   const leaderboardTbody = document.getElementById('leaderboardTbody');
   const btnExportCSV = document.getElementById('btnExportCSV');
   const btnShareWhatsApp = document.getElementById('btnShareWhatsApp');
   const btnResetEvaluations = document.getElementById('btnResetEvaluations');
 
-  // Jury Setup Modal
+  // Admin Modal Elements
   const modalJurySetup = document.getElementById('modalJurySetup');
   const btnCloseSetupModal = document.getElementById('btnCloseSetupModal');
-  const numJudgesButtonGroup = document.getElementById('numJudgesButtonGroup');
-  const adminJudgeSlotsList = document.getElementById('adminJudgeSlotsList');
+  const phaseActivationButtonGroup = document.getElementById('phaseActivationButtonGroup');
+  const adminInternalJudgesList = document.getElementById('adminInternalJudgesList');
+  const btnAddInternalJudge = document.getElementById('btnAddInternalJudge');
+  const adminExternalJudgesList = document.getElementById('adminExternalJudgesList');
+  const btnAddExternalJudge = document.getElementById('btnAddExternalJudge');
   const inputAdminPinForConfig = document.getElementById('inputAdminPinForConfig');
   const btnSaveJuryConfig = document.getElementById('btnSaveJuryConfig');
+
+  // In-memory draft for Admin Config modal
+  let draftAdminConfig = null;
 
   // -------------------------------------------------------------
   // Initialization
   // -------------------------------------------------------------
   async function init() {
     loadSavedTeamIndex();
-    checkSavedAuth();
 
-    // Fetch initial config and evaluations from server
+    // 1. Fetch server config and evaluations
     await fetchServerConfig();
     await fetchServerEvaluations();
 
+    // 2. Check saved authentication
+    checkSavedAuth();
+
+    // 3. Render base components
     renderLoginJudgeSlots();
     renderTeamPills();
     renderTeamGridModal();
     loadTeamIntoForm(currentTeamIndex);
 
+    // 4. Bind events
     bindEvents();
     renderRosterList();
     renderLeaderboard();
 
-    // Start Real-Time Live Polling (every 3 seconds)
+    // 5. Start real-time sync polling
     startLiveSync();
   }
 
@@ -174,7 +216,8 @@
           masterEvaluations = evals;
           juryConfig = cfg;
 
-          // Dynamically re-render affected views without disturbing inputs
+          // Re-render views dynamically
+          updatePhaseNotice();
           updateProgressUI();
           renderJuryConsensus();
           renderTeamPills();
@@ -183,7 +226,7 @@
         }
       }
     } catch (e) {
-      // Offline fallback: keep local state
+      // Offline fallback: keep local data
     }
   }
 
@@ -191,10 +234,13 @@
     try {
       const res = await fetch('/api/config', { cache: 'no-store' });
       if (res.ok) {
-        juryConfig = await res.json();
+        const data = await res.json();
+        if (data && (data.internalJudges || data.externalJudges)) {
+          juryConfig = data;
+        }
       }
     } catch (e) {
-      console.warn('Failed to load server config, using fallback', e);
+      console.warn('Using local fallback config:', e);
     }
   }
 
@@ -206,12 +252,12 @@
         lastDataChecksum = JSON.stringify(masterEvaluations);
       }
     } catch (e) {
-      console.warn('Failed to load server evaluations', e);
+      console.warn('Using local fallback evaluations:', e);
     }
   }
 
   // -------------------------------------------------------------
-  // Authentication & Judge Selection
+  // Authentication & Judge Profiles
   // -------------------------------------------------------------
   function checkSavedAuth() {
     try {
@@ -228,39 +274,105 @@
     }
   }
 
+  function updatePhaseNotice() {
+    const phase = juryConfig.activePhase || 'PHASE_1';
+    let phaseLabel = 'Phase 1: Mentoring Active';
+    if (phase === 'PHASE_2') phaseLabel = 'Phase 2: Final Expo Active';
+    if (phase === 'BOTH') phaseLabel = 'Both Phases Active (Mentoring & Final)';
+
+    if (loginActivePhaseTitle) loginActivePhaseTitle.textContent = phaseLabel;
+    if (phaseStatusSummaryBadge) phaseStatusSummaryBadge.textContent = phaseLabel;
+  }
+
   function updateActiveJudgeUI() {
+    updatePhaseNotice();
+
     if (!currentJudge) {
       activeJudgeBadge.textContent = 'Login';
       subHeaderJudgeRole.textContent = 'JUDGE EVALUATION';
-      scoringFormHeaderJudge.textContent = 'Score Entry';
       return;
     }
 
-    activeJudgeBadge.textContent = currentJudge.name ? `${currentJudge.id} · ${currentJudge.name}` : currentJudge.id;
-    subHeaderJudgeRole.textContent = `LOGGED IN AS ${currentJudge.name.toUpperCase()} (${currentJudge.id})`;
-    scoringFormHeaderJudge.textContent = `Your Score as ${currentJudge.name} (${currentJudge.id})`;
+    const typeTag = currentJudge.isAdmin
+      ? 'ADMIN'
+      : currentJudge.type === 'INTERNAL'
+      ? 'INTERNAL MENTOR (PHASE 1)'
+      : 'EXTERNAL JURY (PHASE 2)';
 
+    activeJudgeBadge.textContent = `${currentJudge.id} · ${currentJudge.name}`;
+    subHeaderJudgeRole.textContent = `${currentJudge.name.toUpperCase()} · ${typeTag}`;
+
+    adaptFormToJudgeRole();
     loadCurrentJudgeScoresForTeam();
     renderJuryConsensus();
+    updateProgressUI();
+  }
+
+  function adaptFormToJudgeRole() {
+    if (!currentJudge) return;
+
+    if (currentJudge.isAdmin) {
+      scoringRoleBadge.textContent = 'Coordinator / Admin';
+      scoringFormTitle.textContent = 'Dual-Phase Evaluation Entry';
+      scoringFormSubtitle.textContent = 'Evaluating Phase 1 (30%) & Phase 2 (70%)';
+      heroScoreLabel.textContent = 'Grand Total Score';
+      displayMaxPossible.textContent = '/ 100';
+      scorePhaseSubtitle.textContent = 'Full Rubric Evaluation (100%)';
+      phase1RubricsSection.classList.remove('hidden');
+      phase2RubricsSection.classList.remove('hidden');
+      enableInputs(phase1RubricsSection, true);
+      enableInputs(phase2RubricsSection, true);
+    } else if (currentJudge.type === 'INTERNAL') {
+      scoringRoleBadge.textContent = '🏛️ Internal Mentor';
+      scoringFormTitle.textContent = 'Phase 1 Mentoring Score';
+      scoringFormSubtitle.textContent = 'Weightage: 30% · Criteria 1–3 (Max 30 Marks)';
+      heroScoreLabel.textContent = 'Your Mentoring Score';
+      displayMaxPossible.textContent = '/ 30';
+      scorePhaseSubtitle.textContent = 'Phase 1 Mentoring (30%)';
+      phase1RubricsSection.classList.remove('hidden');
+      phase2RubricsSection.classList.add('hidden');
+      enableInputs(phase1RubricsSection, true);
+    } else if (currentJudge.type === 'EXTERNAL') {
+      scoringRoleBadge.textContent = '🌟 External Jury';
+      scoringFormTitle.textContent = 'Phase 2 Final Evaluation Score';
+      scoringFormSubtitle.textContent = 'Weightage: 70% · Criteria 1–4 (Max 70 Marks)';
+      heroScoreLabel.textContent = 'Your Evaluation Score';
+      displayMaxPossible.textContent = '/ 70';
+      scorePhaseSubtitle.textContent = 'Phase 2 Final Evaluation (70%)';
+      phase1RubricsSection.classList.add('hidden');
+      phase2RubricsSection.classList.remove('hidden');
+      enableInputs(phase2RubricsSection, true);
+    }
+  }
+
+  function enableInputs(container, enabled) {
+    if (!container) return;
+    const inputs = container.querySelectorAll('input, button');
+    inputs.forEach((el) => {
+      el.disabled = !enabled;
+    });
   }
 
   function renderLoginJudgeSlots() {
-    loginJudgeSlotsContainer.innerHTML = '';
-    const judges = juryConfig.judges || [];
+    updatePhaseNotice();
 
-    judges.forEach((j) => {
-      const isSelected = j.id === selectedLoginJudgeId;
+    // Render Internal Judges
+    loginInternalSlotsContainer.innerHTML = '';
+    const internalList = juryConfig.internalJudges || [];
+    internalList.forEach((j) => {
+      const isSelected = selectedLoginJudgeId === j.id;
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `p-2.5 rounded-xl border text-left transition flex flex-col justify-between active:scale-95 ${
+      btn.className = `p-2 rounded-xl border text-left transition flex flex-col justify-between active:scale-95 ${
         isSelected
           ? 'bg-[#ea580c] text-white border-[#ea580c] shadow-xs'
           : 'bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6]'
       }`;
 
       btn.innerHTML = `
-        <span class="text-xs font-black">${j.id}</span>
-        <span class="text-[11px] font-bold truncate">${j.name}</span>
+        <span class="text-xs font-black tracking-wide">${j.id}</span>
+        <span class="text-[10px] font-bold truncate">${j.name}</span>
+        <span class="text-[8px] opacity-75 truncate">${j.role || 'Internal'}</span>
       `;
 
       btn.addEventListener('click', () => {
@@ -271,44 +383,60 @@
         renderLoginJudgeSlots();
       });
 
-      loginJudgeSlotsContainer.appendChild(btn);
+      loginInternalSlotsContainer.appendChild(btn);
     });
 
-    // Also add Admin / Coordinator slot
-    const isAdminSelected = selectedLoginJudgeId === 'ADMIN';
-    const adminBtn = document.createElement('button');
-    adminBtn.type = 'button';
-    adminBtn.className = `p-2.5 rounded-xl border text-left transition flex flex-col justify-between col-span-2 active:scale-95 ${
-      isAdminSelected
-        ? 'bg-[#0f172a] text-white border-[#0f172a] shadow-xs'
-        : 'bg-[#f6f1e6] text-[#475569] border-[#e3dccd]'
-    }`;
+    // Render External Judges
+    loginExternalSlotsContainer.innerHTML = '';
+    const externalList = juryConfig.externalJudges || [];
+    externalList.forEach((j) => {
+      const isSelected = selectedLoginJudgeId === j.id;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `p-2 rounded-xl border text-left transition flex flex-col justify-between active:scale-95 ${
+        isSelected
+          ? 'bg-[#ea580c] text-white border-[#ea580c] shadow-xs'
+          : 'bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6]'
+      }`;
 
-    adminBtn.innerHTML = `
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-black">⚙️ Coordinator / Admin</span>
-        <span class="text-[10px] text-slate-400">Manage jury</span>
-      </div>
-    `;
+      btn.innerHTML = `
+        <span class="text-xs font-black tracking-wide">${j.id}</span>
+        <span class="text-[10px] font-bold truncate">${j.name}</span>
+        <span class="text-[8px] opacity-75 truncate">${j.role || 'External'}</span>
+      `;
 
-    adminBtn.addEventListener('click', () => {
-      selectedLoginJudgeId = 'ADMIN';
-      loginPinInput.value = '';
-      loginNameInput.value = 'Coordinator';
-      pinHintBadge.textContent = 'PIN: 2026';
-      renderLoginJudgeSlots();
+      btn.addEventListener('click', () => {
+        selectedLoginJudgeId = j.id;
+        loginPinInput.value = '';
+        loginNameInput.value = j.name;
+        pinHintBadge.textContent = `PIN: ${j.pin}`;
+        renderLoginJudgeSlots();
+      });
+
+      loginExternalSlotsContainer.appendChild(btn);
     });
 
-    loginJudgeSlotsContainer.appendChild(adminBtn);
+    // Admin option styling
+    const isAdmin = selectedLoginJudgeId === 'ADMIN';
+    if (btnSelectAdminLogin) {
+      if (isAdmin) {
+        btnSelectAdminLogin.className =
+          'w-full p-2 rounded-xl border text-left transition flex items-center justify-between bg-[#0f172a] text-white border-[#0f172a] shadow-xs';
+      } else {
+        btnSelectAdminLogin.className =
+          'w-full p-2 rounded-xl border text-left transition flex items-center justify-between bg-[#f6f1e6] text-[#475569] border-[#e3dccd] hover:bg-[#efe8da]';
+      }
+    }
 
-    // Initial pin hint
-    const active = judges.find((x) => x.id === selectedLoginJudgeId);
-    if (active) {
-      pinHintBadge.textContent = `PIN: ${active.pin}`;
-      loginNameInput.value = active.name;
+    // Update active hint
+    const allJudges = [...internalList, ...externalList];
+    const match = allJudges.find((x) => x.id === selectedLoginJudgeId);
+    if (match) {
+      pinHintBadge.textContent = `PIN: ${match.pin}`;
+      loginNameInput.value = match.name;
     } else if (selectedLoginJudgeId === 'ADMIN') {
       pinHintBadge.textContent = 'PIN: 2026';
-      loginNameInput.value = 'Coordinator';
+      loginNameInput.value = 'Chief Coordinator';
     }
   }
 
@@ -344,7 +472,6 @@
 
       updateActiveJudgeUI();
       loginOverlay.classList.add('hidden');
-      updateProgressUI();
       loadTeamIntoForm(currentTeamIndex);
       renderLeaderboard();
     } catch (e) {
@@ -373,16 +500,25 @@
   function updateProgressUI() {
     const totalTeams = teams.length;
     let myScoredCount = 0;
-    const judgeId = currentJudge ? currentJudge.id : 'J1';
+    const judgeId = currentJudge ? currentJudge.id : 'INT-1';
 
     teams.forEach((t) => {
       const teamEvals = masterEvaluations[t.number] || {};
-      if (teamEvals[judgeId] && teamEvals[judgeId].total > 0) {
-        myScoredCount++;
+      const scoreObj = teamEvals[judgeId];
+      if (scoreObj) {
+        if (currentJudge && currentJudge.type === 'INTERNAL' && scoreObj.phase1 > 0) {
+          myScoredCount++;
+        } else if (currentJudge && currentJudge.type === 'EXTERNAL' && scoreObj.phase2 > 0) {
+          myScoredCount++;
+        } else if (scoreObj.total > 0) {
+          myScoredCount++;
+        }
       }
     });
 
-    progressPill.textContent = `${myScoredCount} / ${totalTeams} Scored (${judgeId})`;
+    if (progressPill) {
+      progressPill.textContent = `${myScoredCount} / ${totalTeams} Scored (${judgeId})`;
+    }
   }
 
   // -------------------------------------------------------------
@@ -403,34 +539,37 @@
     const team = teams[index];
     activeSectionFilter = team.section;
 
-    navSectionBadge.textContent = `SECTION ${team.section}`;
-    teamSectionLabel.textContent = `SECTION ${team.section}`;
+    if (navSectionBadge) navSectionBadge.textContent = `SECTION ${team.section}`;
+    if (teamSectionLabel) teamSectionLabel.textContent = `SECTION ${team.section}`;
 
-    if (team.section === 'A') {
-      btnSwitchSecA.className = 'px-2.5 py-1 text-xs font-black rounded bg-[#ea580c] text-white transition shadow-xs';
-      btnSwitchSecB.className = 'px-2.5 py-1 text-xs font-semibold rounded text-[#475569] hover:text-[#0f172a] transition';
-    } else {
-      btnSwitchSecB.className = 'px-2.5 py-1 text-xs font-black rounded bg-[#ea580c] text-white transition shadow-xs';
-      btnSwitchSecA.className = 'px-2.5 py-1 text-xs font-semibold rounded text-[#475569] hover:text-[#0f172a] transition';
+    if (btnSwitchSecA && btnSwitchSecB) {
+      if (team.section === 'A') {
+        btnSwitchSecA.className = 'px-2.5 py-1 text-xs font-black rounded bg-[#ea580c] text-white transition shadow-xs';
+        btnSwitchSecB.className = 'px-2.5 py-1 text-xs font-semibold rounded text-[#475569] hover:text-[#0f172a] transition';
+      } else {
+        btnSwitchSecB.className = 'px-2.5 py-1 text-xs font-black rounded bg-[#ea580c] text-white transition shadow-xs';
+        btnSwitchSecA.className = 'px-2.5 py-1 text-xs font-semibold rounded text-[#475569] hover:text-[#0f172a] transition';
+      }
     }
 
-    teamBigNumber.textContent = team.number;
-    teamBigName.textContent = team.name;
-    teamSubtitle.textContent = `${team.member_count} members · Section ${team.section} · Allotment for EmbedThon '26`;
-    memberCountBadge.textContent = `${team.member_count} REGISTERED`;
+    if (teamBigNumber) teamBigNumber.textContent = team.number;
+    if (teamBigName) teamBigName.textContent = team.name;
+    if (teamSubtitle) teamSubtitle.textContent = `${team.member_count} members · Section ${team.section} · Official Allotment`;
+    if (memberCountBadge) memberCountBadge.textContent = `${team.member_count} REGISTERED`;
 
-    bnavTeamLabel.textContent = `Save Team #${team.number}`;
+    if (bnavTeamLabel) bnavTeamLabel.textContent = `Save Team #${team.number}`;
 
     renderTeamMembers(team.members);
     loadCurrentJudgeScoresForTeam();
     renderJuryConsensus();
     renderTeamPills();
 
-    saveFeedbackNotice.classList.add('hidden');
+    if (saveFeedbackNotice) saveFeedbackNotice.classList.add('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function renderTeamMembers(members) {
+    if (!membersContainer) return;
     membersContainer.innerHTML = '';
     members.forEach((m, idx) => {
       const isLead = idx === 0 || m.is_lead;
@@ -447,161 +586,182 @@
           <div class="truncate">
             <div class="flex items-center gap-1 truncate">
               <span class="text-xs font-bold text-[#1e293b] truncate">${m.name}</span>
-              ${isLead ? '<span class="text-[9px] font-black px-1.5 py-0.1 rounded bg-[#ea580c] text-white uppercase">Lead</span>' : ''}
+              ${isLead ? '<span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-[#ea580c] text-white uppercase">Lead</span>' : ''}
             </div>
-            <div class="text-[10px] text-[#64748b] font-mono">${m.usn || '—'}</div>
+            <div class="text-[10px] text-[#64748b] flex items-center gap-1.5 truncate">
+              <span class="font-mono font-medium">${m.usn}</span>
+              <span>·</span>
+              <span>${m.sem_sec}</span>
+            </div>
           </div>
         </div>
-
-        <div class="flex items-center gap-1 flex-shrink-0">
-          ${m.phone ? `
-            <a href="${m.tel_link || 'tel:' + m.phone}" class="p-1.5 rounded-lg bg-[#f6f1e6] text-[#334155] border border-[#cbd5e1] active:scale-95" title="Call">
-              <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-            </a>
-            ${m.wa_link ? `
-            <a href="${m.wa_link}" target="_blank" rel="noopener noreferrer" class="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 active:scale-95" title="WhatsApp">
-              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
-            </a>` : ''}
-          ` : ''}
+        <div class="text-right text-[10px] text-[#64748b] font-medium hidden sm:block">
+          PA College of Engg.
         </div>
       `;
+
       membersContainer.appendChild(card);
     });
   }
 
-  // -------------------------------------------------------------
-  // Load Scores for Current Judge & Display Consensus
-  // -------------------------------------------------------------
   function loadCurrentJudgeScoresForTeam() {
     const team = teams[currentTeamIndex];
     if (!team) return;
 
-    const judgeId = currentJudge ? currentJudge.id : 'J1';
+    const judgeId = currentJudge ? currentJudge.id : 'INT-1';
     const teamEvals = masterEvaluations[team.number] || {};
-    const myEval = teamEvals[judgeId] || {};
+    const evalData = teamEvals[judgeId] || {};
 
-    inputCrit1.value = myEval.crit1 !== undefined ? myEval.crit1 : '';
-    inputCrit2.value = myEval.crit2 !== undefined ? myEval.crit2 : '';
-    inputCrit3.value = myEval.crit3 !== undefined ? myEval.crit3 : '';
-    inputCrit4.value = myEval.crit4 !== undefined ? myEval.crit4 : '';
-    inputRemarks.value = myEval.remarks || '';
+    // Populate Phase 1
+    if (inputP1Crit1) inputP1Crit1.value = evalData.p1_crit1 !== undefined ? evalData.p1_crit1 : '';
+    if (inputP1Crit2) inputP1Crit2.value = evalData.p1_crit2 !== undefined ? evalData.p1_crit2 : '';
+    if (inputP1Crit3) inputP1Crit3.value = evalData.p1_crit3 !== undefined ? evalData.p1_crit3 : '';
 
-    recalcRubricTotal();
+    // Populate Phase 2
+    if (inputP2Crit1) inputP2Crit1.value = evalData.p2_crit1 !== undefined ? evalData.p2_crit1 : '';
+    if (inputP2Crit2) inputP2Crit2.value = evalData.p2_crit2 !== undefined ? evalData.p2_crit2 : '';
+    if (inputP2Crit3) inputP2Crit3.value = evalData.p2_crit3 !== undefined ? evalData.p2_crit3 : '';
+    if (inputP2Crit4) inputP2Crit4.value = evalData.p2_crit4 !== undefined ? evalData.p2_crit4 : '';
 
-    if (myEval.total !== undefined && myEval.total > 0) {
-      evalStatusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
-      evalStatusBadge.textContent = `✓ You Scored: ${myEval.total} pts`;
-      bnavScoreLabel.textContent = `${myEval.total} / 100 Marks (Tap to re-save)`;
+    if (inputRemarks) inputRemarks.value = evalData.remarks || '';
+
+    recalculateScores();
+  }
+
+  function recalculateScores() {
+    const p1_c1 = Math.min(10, Math.max(0, parseFloat(inputP1Crit1?.value) || 0));
+    const p1_c2 = Math.min(10, Math.max(0, parseFloat(inputP1Crit2?.value) || 0));
+    const p1_c3 = Math.min(10, Math.max(0, parseFloat(inputP1Crit3?.value) || 0));
+    const p1_total = Number((p1_c1 + p1_c2 + p1_c3).toFixed(1));
+
+    const p2_c1 = Math.min(25, Math.max(0, parseFloat(inputP2Crit1?.value) || 0));
+    const p2_c2 = Math.min(20, Math.max(0, parseFloat(inputP2Crit2?.value) || 0));
+    const p2_c3 = Math.min(15, Math.max(0, parseFloat(inputP2Crit3?.value) || 0));
+    const p2_c4 = Math.min(10, Math.max(0, parseFloat(inputP2Crit4?.value) || 0));
+    const p2_total = Number((p2_c1 + p2_c2 + p2_c3 + p2_c4).toFixed(1));
+
+    let activeScore = 0;
+    let maxPossible = 30;
+
+    if (currentJudge && currentJudge.type === 'INTERNAL') {
+      activeScore = p1_total;
+      maxPossible = 30;
+    } else if (currentJudge && currentJudge.type === 'EXTERNAL') {
+      activeScore = p2_total;
+      maxPossible = 70;
     } else {
-      evalStatusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200';
-      evalStatusBadge.textContent = 'Pending Your Score';
-      bnavScoreLabel.textContent = '0 / 100 Marks (Tap to save)';
+      // Admin
+      activeScore = Number((p1_total + p2_total).toFixed(1));
+      maxPossible = 100;
+    }
+
+    if (displayScoreValue) displayScoreValue.textContent = activeScore;
+    if (bnavScoreLabel) bnavScoreLabel.textContent = `Score: ${activeScore} / ${maxPossible}`;
+
+    // Rating badge calculation
+    const pct = (activeScore / maxPossible) * 100;
+    if (scoreRatingBadge) {
+      if (activeScore === 0) {
+        scoreRatingBadge.textContent = 'Not Scored';
+        scoreRatingBadge.className = 'inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 text-[#64748b]';
+      } else if (pct >= 85) {
+        scoreRatingBadge.textContent = 'Outstanding';
+        scoreRatingBadge.className = 'inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+      } else if (pct >= 70) {
+        scoreRatingBadge.textContent = 'Good';
+        scoreRatingBadge.className = 'inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800';
+      } else if (pct >= 50) {
+        scoreRatingBadge.textContent = 'Satisfactory';
+        scoreRatingBadge.className = 'inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+      } else {
+        scoreRatingBadge.textContent = 'Needs Work';
+        scoreRatingBadge.className = 'inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-800';
+      }
     }
   }
 
+  // -------------------------------------------------------------
+  // Jury Consensus Panel
+  // -------------------------------------------------------------
   function renderJuryConsensus() {
     const team = teams[currentTeamIndex];
     if (!team) return;
 
     const teamEvals = masterEvaluations[team.number] || {};
-    const judges = juryConfig.judges || [];
-    const numConfigured = juryConfig.numJudges || judges.length || 3;
 
-    juryStatusRow.innerHTML = '';
-    let scoredCount = 0;
-    const scores = [];
+    const internalList = juryConfig.internalJudges || [];
+    const externalList = juryConfig.externalJudges || [];
 
-    judges.forEach((j) => {
-      const ev = teamEvals[j.id];
-      const isScored = ev && ev.total !== undefined && ev.total > 0;
-      const isMe = currentJudge && currentJudge.id === j.id;
+    // Render Internal Judges
+    if (internalJudgesBadges) {
+      internalJudgesBadges.innerHTML = '';
+      const p1Scores = [];
 
-      if (isScored) {
-        scoredCount++;
-        scores.push(ev.total);
+      internalList.forEach((j) => {
+        const ev = teamEvals[j.id];
+        const hasScored = ev && typeof ev.phase1 === 'number' && ev.phase1 > 0;
+        if (hasScored) p1Scores.push(ev.phase1);
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between text-[10px] py-0.5';
+        row.innerHTML = `
+          <span class="font-bold truncate text-[#1e293b]">${j.name}:</span>
+          <span class="font-mono font-black ${hasScored ? 'text-emerald-700' : 'text-[#94a3b8]'}">
+            ${hasScored ? `${ev.phase1} pts` : 'Pending'}
+          </span>
+        `;
+        internalJudgesBadges.appendChild(row);
+      });
+
+      const p1Avg = p1Scores.length ? (p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1) : '—';
+      if (internalAvgDisplay) {
+        internalAvgDisplay.textContent = p1Avg !== '—' ? `${p1Avg} / 30` : '— / 30';
       }
+    }
 
-      const badge = document.createElement('div');
-      badge.className = `p-2 rounded-lg border text-center transition ${
-        isScored
-          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-          : 'bg-[#fdfbf7] border-[#e3dccd] text-[#64748b]'
-      }`;
+    // Render External Judges
+    if (externalJudgesBadges) {
+      externalJudgesBadges.innerHTML = '';
+      const p2Scores = [];
 
-      badge.innerHTML = `
-        <div class="text-[10px] font-bold truncate flex items-center justify-center gap-1">
-          <span>${j.name}</span>
-          ${isMe ? '<span class="text-[8px] bg-[#ea580c] text-white px-1 rounded">YOU</span>' : ''}
-        </div>
-        <div class="text-xs font-black mt-0.5 font-mono">
-          ${isScored ? `${ev.total} pts ✓` : 'Pending ⏳'}
-        </div>
-      `;
+      externalList.forEach((j) => {
+        const ev = teamEvals[j.id];
+        const hasScored = ev && typeof ev.phase2 === 'number' && ev.phase2 > 0;
+        if (hasScored) p2Scores.push(ev.phase2);
 
-      juryStatusRow.appendChild(badge);
-    });
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between text-[10px] py-0.5';
+        row.innerHTML = `
+          <span class="font-bold truncate text-[#1e293b]">${j.name}:</span>
+          <span class="font-mono font-black ${hasScored ? 'text-emerald-700' : 'text-[#94a3b8]'}">
+            ${hasScored ? `${ev.phase2} pts` : 'Pending'}
+          </span>
+        `;
+        externalJudgesBadges.appendChild(row);
+      });
 
-    consensusProgressBadge.textContent = `${scoredCount} / ${numConfigured} Judged`;
+      const p2Avg = p2Scores.length ? (p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1) : '—';
+      if (externalAvgDisplay) {
+        externalAvgDisplay.textContent = p2Avg !== '—' ? `${p2Avg} / 70` : '— / 70';
+      }
+    }
 
-    if (scores.length > 0) {
-      const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
-      juryAverageScoreDisplay.textContent = `${avg} / 100 (${scores.length} ${scores.length === 1 ? 'judge' : 'judges'})`;
-    } else {
-      juryAverageScoreDisplay.textContent = '— / 100 (Awaiting scores)';
+    // Calculate Grand Cumulative Score
+    if (cumulativeScoreDisplay) {
+      const p1AvgNum = parseFloat(internalAvgDisplay ? internalAvgDisplay.textContent : '0') || 0;
+      const p2AvgNum = parseFloat(externalAvgDisplay ? externalAvgDisplay.textContent : '0') || 0;
+      const totalCombined = (p1AvgNum + p2AvgNum).toFixed(1);
+
+      if (p1AvgNum > 0 || p2AvgNum > 0) {
+        cumulativeScoreDisplay.textContent = `${totalCombined} / 100`;
+      } else {
+        cumulativeScoreDisplay.textContent = '— / 100';
+      }
     }
   }
 
   // -------------------------------------------------------------
-  // Rubric Recalculations
-  // -------------------------------------------------------------
-  function recalcRubricTotal() {
-    let c1 = parseFloat(inputCrit1.value);
-    let c2 = parseFloat(inputCrit2.value);
-    let c3 = parseFloat(inputCrit3.value);
-    let c4 = parseFloat(inputCrit4.value);
-
-    if (c1 > 35) { c1 = 35; inputCrit1.value = 35; }
-    if (c2 > 25) { c2 = 25; inputCrit2.value = 25; }
-    if (c3 > 20) { c3 = 20; inputCrit3.value = 20; }
-    if (c4 > 20) { c4 = 20; inputCrit4.value = 20; }
-
-    const numC1 = isNaN(c1) ? 0 : c1;
-    const numC2 = isNaN(c2) ? 0 : c2;
-    const numC3 = isNaN(c3) ? 0 : c3;
-    const numC4 = isNaN(c4) ? 0 : c4;
-
-    const phase1Total = numC1 + numC2;
-    const phase2Total = numC3 + numC4;
-    const grandTotal = Math.min(100, Math.max(0, phase1Total + phase2Total));
-
-    displayTotalMarks.textContent = grandTotal % 1 === 0 ? grandTotal : grandTotal.toFixed(1);
-    displayPhase1.textContent = phase1Total % 1 === 0 ? phase1Total : phase1Total.toFixed(1);
-    displayPhase2.textContent = phase2Total % 1 === 0 ? phase2Total : phase2Total.toFixed(1);
-
-    bnavScoreLabel.textContent = `${grandTotal} / 100 Marks`;
-
-    if (grandTotal >= 85) {
-      scoreGradeBadge.className = 'inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
-      scoreGradeBadge.textContent = 'Outstanding';
-    } else if (grandTotal >= 70) {
-      scoreGradeBadge.className = 'inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800';
-      scoreGradeBadge.textContent = 'Excellent';
-    } else if (grandTotal >= 50) {
-      scoreGradeBadge.className = 'inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
-      scoreGradeBadge.textContent = 'Good';
-    } else if (grandTotal > 0) {
-      scoreGradeBadge.className = 'inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-700';
-      scoreGradeBadge.textContent = 'Average';
-    } else {
-      scoreGradeBadge.className = 'inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-orange-100 text-[#ea580c]';
-      scoreGradeBadge.textContent = 'Not Scored';
-    }
-
-    return { grandTotal, phase1Total, phase2Total, c1: numC1, c2: numC2, c3: numC3, c4: numC4 };
-  }
-
-  // -------------------------------------------------------------
-  // Save Evaluation & Push to Server
+  // Save Evaluation
   // -------------------------------------------------------------
   async function saveCurrentEvaluation() {
     if (!currentJudge) {
@@ -612,416 +772,106 @@
     const team = teams[currentTeamIndex];
     if (!team) return;
 
-    const { grandTotal, phase1Total, phase2Total, c1, c2, c3, c4 } = recalcRubricTotal();
+    const p1_c1 = Math.min(10, Math.max(0, parseFloat(inputP1Crit1?.value) || 0));
+    const p1_c2 = Math.min(10, Math.max(0, parseFloat(inputP1Crit2?.value) || 0));
+    const p1_c3 = Math.min(10, Math.max(0, parseFloat(inputP1Crit3?.value) || 0));
 
-    const today = new Date();
-    const formattedDate = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${today.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const p2_c1 = Math.min(25, Math.max(0, parseFloat(inputP2Crit1?.value) || 0));
+    const p2_c2 = Math.min(20, Math.max(0, parseFloat(inputP2Crit2?.value) || 0));
+    const p2_c3 = Math.min(15, Math.max(0, parseFloat(inputP2Crit3?.value) || 0));
+    const p2_c4 = Math.min(10, Math.max(0, parseFloat(inputP2Crit4?.value) || 0));
 
     const payload = {
       teamNumber: team.number,
       judgeId: currentJudge.id,
       judgeName: currentJudge.name,
-      crit1: c1,
-      crit2: c2,
-      crit3: c3,
-      crit4: c4,
-      phase1: phase1Total,
-      phase2: phase2Total,
-      total: grandTotal,
-      remarks: inputRemarks.value.trim(),
-      updatedAt: formattedDate
+      p1_crit1: p1_c1,
+      p1_crit2: p1_c2,
+      p1_crit3: p1_c3,
+      p2_crit1: p2_c1,
+      p2_crit2: p2_c2,
+      p2_crit3: p2_c3,
+      p2_crit4: p2_c4,
+      remarks: inputRemarks ? inputRemarks.value.trim() : '',
+      updatedAt: new Date().toISOString()
     };
 
-    // Update locally immediately
-    if (!masterEvaluations[team.number]) masterEvaluations[team.number] = {};
-    masterEvaluations[team.number][currentJudge.id] = payload;
+    // Update local cache optimistically
+    if (!masterEvaluations[team.number]) {
+      masterEvaluations[team.number] = {};
+    }
 
-    updateProgressUI();
+    masterEvaluations[team.number][currentJudge.id] = {
+      ...payload,
+      phase1: Number((p1_c1 + p1_c2 + p1_c3).toFixed(1)),
+      phase2: Number((p2_c1 + p2_c2 + p2_c3 + p2_c4).toFixed(1)),
+      total: Number((p1_c1 + p1_c2 + p1_c3 + p2_c1 + p2_c2 + p2_c3 + p2_c4).toFixed(1))
+    };
+
     renderJuryConsensus();
     renderTeamPills();
-    renderRosterList();
-    renderLeaderboard();
+    updateProgressUI();
 
-    // Send to backend
+    // Show feedback banner
+    if (saveFeedbackNotice) {
+      saveFeedbackNotice.textContent = `✓ Score for Team #${team.number} saved and synced!`;
+      saveFeedbackNotice.classList.remove('hidden');
+      setTimeout(() => {
+        saveFeedbackNotice.classList.add('hidden');
+      }, 2500);
+    }
+
+    // Send to server
     try {
-      const res = await fetch('/api/evaluations', {
+      await fetch('/api/evaluations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.teamEvaluations) {
-          masterEvaluations[team.number] = data.teamEvaluations;
-          renderJuryConsensus();
-        }
-      }
     } catch (e) {
-      console.warn('Saved offline in memory, server sync pending', e);
-    }
-
-    saveFeedbackNotice.textContent = `✓ Saved Team #${team.number} (${currentJudge.name}: ${grandTotal} pts)`;
-    saveFeedbackNotice.classList.remove('hidden');
-
-    elEvalStatusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
-    elEvalStatusBadge.textContent = `✓ You Scored: ${grandTotal} pts`;
-
-    setTimeout(() => {
-      saveFeedbackNotice.classList.add('hidden');
-    }, 3000);
-  }
-
-  // -------------------------------------------------------------
-  // Events
-  // -------------------------------------------------------------
-  function bindEvents() {
-    // Login form
-    btnLoginSubmit.addEventListener('click', handleLogin);
-    btnJudgeSwitch.addEventListener('click', handleLogout);
-
-    // Rubric inputs
-    [inputCrit1, inputCrit2, inputCrit3, inputCrit4].forEach((inp) => {
-      inp.addEventListener('input', recalcRubricTotal);
-    });
-
-    // Preset pills
-    document.querySelectorAll('.quick-rubric-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const targetId = btn.dataset.target;
-        const val = parseFloat(btn.dataset.val) || 0;
-        const inp = document.getElementById(targetId);
-        if (inp) {
-          inp.value = val;
-          recalcRubricTotal();
-        }
-      });
-    });
-
-    // Stepper buttons
-    document.querySelectorAll('.step-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const targetId = btn.dataset.target;
-        const step = parseFloat(btn.dataset.step) || 0;
-        const inp = document.getElementById(targetId);
-        if (inp) {
-          const cur = parseFloat(inp.value) || 0;
-          const max = parseFloat(inp.max) || 100;
-          inp.value = Math.min(max, Math.max(0, cur + step));
-          recalcRubricTotal();
-        }
-      });
-    });
-
-    // Remarks chips
-    document.querySelectorAll('.remark-chip').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const text = btn.textContent.trim();
-        const cur = inputRemarks.value.trim();
-        inputRemarks.value = cur ? `${cur} | ${text}` : text;
-      });
-    });
-
-    // Save buttons
-    btnSaveEvaluation.addEventListener('click', saveCurrentEvaluation);
-    bnavCenter.addEventListener('click', saveCurrentEvaluation);
-
-    // Prev / Next
-    btnNextTeam.addEventListener('click', () => {
-      saveCurrentEvaluation();
-      if (currentTeamIndex < teams.length - 1) loadTeamIntoForm(currentTeamIndex + 1);
-      else alert('You reached the last team (#24). Check Leaderboard for full rankings!');
-    });
-
-    bnavNext.addEventListener('click', () => {
-      saveCurrentEvaluation();
-      if (currentTeamIndex < teams.length - 1) loadTeamIntoForm(currentTeamIndex + 1);
-      else loadTeamIntoForm(0);
-    });
-
-    bnavPrev.addEventListener('click', () => {
-      saveCurrentEvaluation();
-      if (currentTeamIndex > 0) loadTeamIntoForm(currentTeamIndex - 1);
-      else loadTeamIntoForm(teams.length - 1);
-    });
-
-    // Section buttons
-    btnSwitchSecA.addEventListener('click', () => {
-      activeSectionFilter = 'A';
-      const firstA = teams.findIndex((t) => t.section === 'A');
-      loadTeamIntoForm(firstA >= 0 ? firstA : 0);
-    });
-
-    btnSwitchSecB.addEventListener('click', () => {
-      activeSectionFilter = 'B';
-      const firstB = teams.findIndex((t) => t.section === 'B');
-      loadTeamIntoForm(firstB >= 0 ? firstB : 11);
-    });
-
-    // Grid Modal
-    btnOpenTeamGridModal.addEventListener('click', () => {
-      renderTeamGridModal();
-      modalTeamGrid.classList.remove('hidden');
-    });
-
-    btnCloseGridModal.addEventListener('click', () => modalTeamGrid.classList.add('hidden'));
-    modalTeamGrid.addEventListener('click', (e) => {
-      if (e.target === modalTeamGrid) modalTeamGrid.classList.add('hidden');
-    });
-
-    // Tabs
-    tabTeamView.addEventListener('click', () => switchView('scoring'));
-    tabRoster.addEventListener('click', () => switchView('roster'));
-    tabLeaderboard.addEventListener('click', () => switchView('leaderboard'));
-
-    // Search & Filter
-    searchTeamsInput.addEventListener('input', renderRosterList);
-    rosterFilterButtons.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        rosterFilterButtons.forEach((b) => {
-          b.className = 'roster-filter-btn px-2.5 py-1 rounded-md font-semibold text-[#475569] hover:bg-[#f6f1e6]';
-        });
-        btn.className = 'roster-filter-btn px-2.5 py-1 rounded-md font-bold bg-[#0f172a] text-white';
-        renderRosterList(btn.dataset.filter);
-      });
-    });
-
-    // Leaderboard controls
-    leaderboardSectionSelect.addEventListener('change', renderLeaderboard);
-    btnExportCSV.addEventListener('click', exportCSV);
-    btnShareWhatsApp.addEventListener('click', shareWhatsApp);
-    btnResetEvaluations.addEventListener('click', resetAllEvaluations);
-
-    // Jury Setup Modal
-    btnOpenSetupModal.addEventListener('click', openJurySetupModal);
-    btnCloseSetupModal.addEventListener('click', () => modalJurySetup.classList.add('hidden'));
-    modalJurySetup.addEventListener('click', (e) => {
-      if (e.target === modalJurySetup) modalJurySetup.classList.add('hidden');
-    });
-    btnSaveJuryConfig.addEventListener('click', saveJuryConfiguration);
-  }
-
-  // -------------------------------------------------------------
-  // View Switcher
-  // -------------------------------------------------------------
-  function switchView(viewName) {
-    currentView = viewName;
-    viewScoring.classList.add('hidden');
-    viewRoster.classList.add('hidden');
-    viewLeaderboard.classList.add('hidden');
-
-    tabTeamView.className = 'tab-btn px-2.5 py-2 rounded-lg text-xs font-semibold text-[#475569] hover:bg-[#f6f1e6] transition flex items-center gap-1';
-    tabRoster.className = 'tab-btn px-2.5 py-2 rounded-lg text-xs font-semibold text-[#475569] hover:bg-[#f6f1e6] transition flex items-center gap-1';
-    tabLeaderboard.className = 'tab-btn px-2.5 py-2 rounded-lg text-xs font-semibold text-[#475569] hover:bg-[#f6f1e6] transition flex items-center gap-1';
-
-    if (viewName === 'scoring') {
-      viewScoring.classList.remove('hidden');
-      tabTeamView.className = 'tab-btn px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-[#0f172a] text-white';
-    } else if (viewName === 'roster') {
-      viewRoster.classList.remove('hidden');
-      tabRoster.className = 'tab-btn px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-[#0f172a] text-white';
-      renderRosterList();
-    } else if (viewName === 'leaderboard') {
-      viewLeaderboard.classList.remove('hidden');
-      tabLeaderboard.className = 'tab-btn px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-[#0f172a] text-white';
-      renderLeaderboard();
+      console.warn('Saved score locally, will sync when online');
     }
   }
 
   // -------------------------------------------------------------
-  // Roster Directory
-  // -------------------------------------------------------------
-  let currentRosterFilter = 'all';
-
-  function renderRosterList(filterOverride) {
-    if (filterOverride) currentRosterFilter = filterOverride;
-    const q = (searchTeamsInput.value || '').toLowerCase().trim();
-    const myId = currentJudge ? currentJudge.id : 'J1';
-
-    const filtered = teams.filter((t) => {
-      if (currentRosterFilter === 'A' && t.section !== 'A') return false;
-      if (currentRosterFilter === 'B' && t.section !== 'B') return false;
-
-      const teamEvals = masterEvaluations[t.number] || {};
-      const isMyScored = teamEvals[myId] && teamEvals[myId].total > 0;
-
-      if (currentRosterFilter === 'evaluated' && !isMyScored) return false;
-      if (currentRosterFilter === 'pending' && isMyScored) return false;
-
-      if (!q) return true;
-      return t.number.includes(q) || t.name.toLowerCase().includes(q) ||
-        t.members.some((m) => m.name.toLowerCase().includes(q) || m.usn.toLowerCase().includes(q));
-    });
-
-    rosterShowingCount.textContent = `${filtered.length} teams`;
-    rosterListGrid.innerHTML = '';
-
-    filtered.forEach((t) => {
-      const idx = teams.findIndex((item) => item.number === t.number);
-      const teamEvals = masterEvaluations[t.number] || {};
-      const myEv = teamEvals[myId] || {};
-      const lead = t.members[0] || {};
-
-      // Compute average
-      const allTotals = Object.values(teamEvals).filter((v) => v && v.total > 0).map((v) => v.total);
-      const avg = allTotals.length ? (allTotals.reduce((a, b) => a + b, 0) / allTotals.length).toFixed(1) : null;
-
-      const card = document.createElement('div');
-      card.className = 'bg-white p-3 rounded-xl border border-[#e3dccd] flex items-center justify-between gap-2 shadow-xs';
-
-      card.innerHTML = `
-        <div class="flex items-center gap-2.5 min-w-0">
-          <span class="text-xl font-black text-[#ea580c] font-serif-pace">#${t.number}</span>
-          <div class="truncate">
-            <div class="flex items-center gap-1.5 truncate">
-              <span class="text-xs font-extrabold text-[#1e293b] truncate">${t.name}</span>
-              <span class="text-[9px] px-1.5 py-0.2 rounded font-bold ${t.section === 'A' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}">Sec ${t.section}</span>
-            </div>
-            <div class="text-[10px] text-[#64748b] truncate">
-              Lead: ${lead.name || '—'} · ${allTotals.length}/${juryConfig.numJudges || 3} Judged
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2 flex-shrink-0">
-          ${avg ? `<span class="text-xs font-black text-[#ea580c] bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-200">Avg: ${avg}</span>` : '<span class="text-[10px] text-[#94a3b8]">Pending</span>'}
-          <button type="button" class="btn-grade-roster px-2.5 py-1.5 rounded-lg bg-[#0f172a] text-white text-xs font-bold active:scale-95" data-idx="${idx}">
-            ${myEv.total > 0 ? 'Edit' : 'Score'}
-          </button>
-        </div>
-      `;
-
-      card.querySelector('.btn-grade-roster').addEventListener('click', () => {
-        loadTeamIntoForm(idx);
-        switchView('scoring');
-      });
-
-      rosterListGrid.appendChild(card);
-    });
-  }
-
-  // -------------------------------------------------------------
-  // Dynamic Leaderboard (Multi-Judge Columns & Live Ranks)
-  // -------------------------------------------------------------
-  function renderLeaderboard() {
-    const sec = leaderboardSectionSelect.value;
-    const judges = juryConfig.judges || [];
-    const list = teams.filter((t) => sec === 'ALL' || t.section === sec);
-
-    // Build Table Header Dynamically for All Judges
-    leaderboardTheadTr.innerHTML = `
-      <th class="py-2 px-2 text-center w-8">#</th>
-      <th class="py-2 px-2 w-10 font-serif-pace text-[#ea580c]">Team</th>
-      <th class="py-2 px-2.5">Team Name</th>
-      <th class="py-2 px-1.5 text-center w-8">Sec</th>
-      ${judges.map((j) => `<th class="py-2 px-2 text-center font-mono font-bold text-slate-700">${j.id}</th>`).join('')}
-      <th class="py-2 px-2.5 text-right font-black text-[#ea580c]">Avg Score</th>
-      <th class="py-2 px-2 text-center w-14">Action</th>
-    `;
-
-    // Calculate aggregated team rankings
-    const ranked = list.map((t) => {
-      const teamEvals = masterEvaluations[t.number] || {};
-      const judgeScores = {};
-      const validScores = [];
-
-      judges.forEach((j) => {
-        const ev = teamEvals[j.id];
-        if (ev && ev.total !== undefined && ev.total > 0) {
-          judgeScores[j.id] = ev.total;
-          validScores.push(ev.total);
-        } else {
-          judgeScores[j.id] = null;
-        }
-      });
-
-      const avg = validScores.length ? validScores.reduce((a, b) => a + b, 0) / validScores.length : -1;
-
-      return {
-        team: t,
-        judgeScores: judgeScores,
-        numScored: validScores.length,
-        avgScore: avg
-      };
-    });
-
-    ranked.sort((a, b) => b.avgScore - a.avgScore);
-    leaderboardTbody.innerHTML = '';
-
-    ranked.forEach((item, index) => {
-      const t = item.team;
-      const idx = teams.findIndex((x) => x.number === t.number);
-      const tr = document.createElement('tr');
-      tr.className = 'hover:bg-[#fdfbf7]';
-
-      let rankIcon = `${index + 1}`;
-      if (item.avgScore > 0) {
-        if (index === 0) rankIcon = '🥇';
-        else if (index === 1) rankIcon = '🥈';
-        else if (index === 2) rankIcon = '🥉';
-      }
-
-      tr.innerHTML = `
-        <td class="py-2 px-2 text-center font-bold text-[#64748b]">${rankIcon}</td>
-        <td class="py-2 px-2 font-black text-[#ea580c] font-serif-pace">#${t.number}</td>
-        <td class="py-2 px-2.5">
-          <div class="font-bold text-[#1e293b] truncate max-w-[110px]">${t.name}</div>
-        </td>
-        <td class="py-2 px-1.5 text-center">
-          <span class="text-[9px] font-bold px-1 py-0.2 rounded ${t.section === 'A' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}">${t.section}</span>
-        </td>
-        ${judges.map((j) => {
-          const s = item.judgeScores[j.id];
-          return `<td class="py-2 px-2 text-center font-mono text-[11px] ${s ? 'font-bold text-[#1e293b]' : 'text-slate-300'}">${s !== null ? s : '—'}</td>`;
-        }).join('')}
-        <td class="py-2 px-2.5 text-right font-black text-sm text-[#ea580c]">
-          ${item.avgScore > 0 ? item.avgScore.toFixed(1) : '—'}
-        </td>
-        <td class="py-2 px-2 text-center">
-          <button type="button" class="btn-lb-jump text-xs font-bold text-[#ea580c] hover:underline" data-idx="${idx}">
-            Score
-          </button>
-        </td>
-      `;
-
-      tr.querySelector('.btn-lb-jump').addEventListener('click', () => {
-        loadTeamIntoForm(idx);
-        switchView('scoring');
-      });
-
-      leaderboardTbody.appendChild(tr);
-    });
-  }
-
-  // -------------------------------------------------------------
-  // Team Pills Bar & Grid
+  // Team Navigation Pills & Grid Modal
   // -------------------------------------------------------------
   function renderTeamPills() {
+    if (!teamPillsRow) return;
     teamPillsRow.innerHTML = '';
-    const sectionTeams = teams.filter((t) => t.section === activeSectionFilter);
-    const myId = currentJudge ? currentJudge.id : 'J1';
 
-    sectionTeams.forEach((t) => {
-      const idx = teams.findIndex((item) => item.number === t.number);
-      const isCurrent = idx === currentTeamIndex;
+    const currentJudgeId = currentJudge ? currentJudge.id : 'INT-1';
+
+    teams.forEach((t, idx) => {
+      const isSelected = idx === currentTeamIndex;
       const teamEvals = masterEvaluations[t.number] || {};
-      const myScore = teamEvals[myId] ? teamEvals[myId].total : null;
+      const evalObj = teamEvals[currentJudgeId];
+
+      let isScoredByMe = false;
+      if (evalObj) {
+        if (currentJudge && currentJudge.type === 'INTERNAL') {
+          isScoredByMe = evalObj.phase1 > 0;
+        } else if (currentJudge && currentJudge.type === 'EXTERNAL') {
+          isScoredByMe = evalObj.phase2 > 0;
+        } else {
+          isScoredByMe = evalObj.total > 0;
+        }
+      }
 
       const pill = document.createElement('button');
       pill.type = 'button';
-      pill.className = `flex-shrink-0 px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border active:scale-95 ${
-        isCurrent
+      pill.className = `flex-shrink-0 px-3 py-1.5 rounded-xl border text-xs font-black font-serif-pace transition flex items-center gap-1.5 ${
+        isSelected
           ? 'bg-[#ea580c] text-white border-[#ea580c] shadow-xs'
-          : myScore
+          : isScoredByMe
           ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-          : 'bg-[#f6f1e6] text-[#475569] border-[#e3dccd]'
+          : 'bg-white text-[#1e293b] border-[#cbd5e1]'
       }`;
 
-      let badge = '';
-      if (myScore) {
-        badge = `<span class="text-[9px] bg-emerald-600 text-white rounded px-1">${myScore}</span>`;
-      }
-
-      pill.innerHTML = `<span>#${t.number}</span> <span class="max-w-[70px] truncate font-semibold text-[11px]">${t.name}</span> ${badge}`;
+      pill.innerHTML = `
+        <span>#${t.number}</span>
+        ${isScoredByMe ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>' : ''}
+      `;
 
       pill.addEventListener('click', () => {
         loadTeamIntoForm(idx);
@@ -1032,28 +882,31 @@
   }
 
   function renderTeamGridModal() {
+    if (!gridSectionA || !gridSectionB) return;
     gridSectionA.innerHTML = '';
     gridSectionB.innerHTML = '';
-    const myId = currentJudge ? currentJudge.id : 'J1';
+
+    const currentJudgeId = currentJudge ? currentJudge.id : 'INT-1';
 
     teams.forEach((t, idx) => {
+      const isSelected = idx === currentTeamIndex;
       const teamEvals = masterEvaluations[t.number] || {};
-      const myScore = teamEvals[myId] ? teamEvals[myId].total : null;
+      const evalObj = teamEvals[currentJudgeId];
+      const hasScore = evalObj && (evalObj.total > 0 || evalObj.phase1 > 0 || evalObj.phase2 > 0);
 
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `p-2 rounded-xl text-center border transition flex flex-col items-center justify-center active:scale-95 ${
-        idx === currentTeamIndex
+      btn.className = `p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
+        isSelected
           ? 'bg-[#ea580c] text-white border-[#ea580c]'
-          : myScore
+          : hasScore
           ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-          : 'bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd]'
+          : 'bg-white text-[#1e293b] border-[#e3dccd]'
       }`;
 
       btn.innerHTML = `
-        <span class="text-sm font-black font-serif-pace">#${t.number}</span>
-        <span class="text-[10px] font-bold truncate w-full">${t.name}</span>
-        ${myScore ? `<span class="text-[9px] font-black text-emerald-700">${myScore} pts</span>` : '<span class="text-[9px] text-[#94a3b8]">—</span>'}
+        <span class="text-xs font-black font-serif-pace">#${t.number}</span>
+        <span class="text-[9px] font-bold truncate max-w-full">${t.name}</span>
       `;
 
       btn.addEventListener('click', () => {
@@ -1061,193 +914,615 @@
         loadTeamIntoForm(idx);
       });
 
-      if (t.section === 'A') gridSectionA.appendChild(btn);
-      else gridSectionB.appendChild(btn);
+      if (t.section === 'A') {
+        gridSectionA.appendChild(btn);
+      } else {
+        gridSectionB.appendChild(btn);
+      }
     });
   }
 
   // -------------------------------------------------------------
-  // Jury Setup Modal & Number of Judges Selector
+  // Roster Directory View
   // -------------------------------------------------------------
-  let pendingNumJudges = 3;
+  function renderRosterList(filterQuery = '') {
+    if (!rosterListGrid) return;
+    rosterListGrid.innerHTML = '';
 
-  function openJurySetupModal() {
-    pendingNumJudges = juryConfig.numJudges || 3;
-    renderNumJudgesButtons();
-    renderAdminJudgeSlotsList();
-    inputAdminPinForConfig.value = '';
-    modalJurySetup.classList.remove('hidden');
-  }
+    const query = filterQuery.toLowerCase().trim();
+    let count = 0;
 
-  function renderNumJudgesButtons() {
-    numJudgesButtonGroup.innerHTML = '';
-    [2, 3, 4, 5].forEach((num) => {
-      const isSelected = num === pendingNumJudges;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `btn-num-judge py-2 font-black rounded-lg border text-center transition ${
-        isSelected ? 'bg-[#ea580c] text-white border-[#ea580c]' : 'bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6]'
-      }`;
-      btn.textContent = `${num} Judges`;
-      btn.addEventListener('click', () => {
-        pendingNumJudges = num;
-        renderNumJudgesButtons();
-        renderAdminJudgeSlotsList();
-      });
-      numJudgesButtonGroup.appendChild(btn);
+    teams.forEach((t, idx) => {
+      const matchSection = activeSectionFilter === 'ALL' || t.section === activeSectionFilter;
+      const matchQuery =
+        !query ||
+        t.number.includes(query) ||
+        t.name.toLowerCase().includes(query) ||
+        t.members.some((m) => m.name.toLowerCase().includes(query) || m.usn.toLowerCase().includes(query));
+
+      if (matchSection && matchQuery) {
+        count++;
+        const card = document.createElement('div');
+        card.className =
+          'p-3 bg-white rounded-xl border border-[#e3dccd] hover:border-[#ea580c] transition cursor-pointer shadow-xs flex items-center justify-between gap-3';
+
+        const teamEvals = masterEvaluations[t.number] || {};
+        const p1Scores = Object.values(teamEvals).filter((x) => x && x.phase1 > 0).map((x) => x.phase1);
+        const p2Scores = Object.values(teamEvals).filter((x) => x && x.phase2 > 0).map((x) => x.phase2);
+
+        const p1Avg = p1Scores.length ? (p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1) : '—';
+        const p2Avg = p2Scores.length ? (p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1) : '—';
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="text-sm font-black font-serif-pace text-[#ea580c] bg-[#fff8f3] px-2 py-1 rounded-lg border border-[#fed7aa]">
+              #${t.number}
+            </span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="text-xs font-black text-[#0f172a] truncate">${t.name}</span>
+                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-[#475569]">Sec ${t.section}</span>
+              </div>
+              <p class="text-[10px] text-[#64748b] truncate">
+                Lead: ${t.members[0]?.name || 'N/A'} · ${t.member_count} Members
+              </p>
+            </div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <div class="text-[10px] font-bold text-[#64748b]">P1: <span class="font-black text-[#ea580c]">${p1Avg}</span> / 30</div>
+            <div class="text-[10px] font-bold text-[#64748b]">P2: <span class="font-black text-[#ea580c]">${p2Avg}</span> / 70</div>
+          </div>
+        `;
+
+        card.addEventListener('click', () => {
+          switchView('scoring');
+          loadTeamIntoForm(idx);
+        });
+
+        rosterListGrid.appendChild(card);
+      }
     });
-  }
 
-  function renderAdminJudgeSlotsList() {
-    adminJudgeSlotsList.innerHTML = '';
-    for (let i = 1; i <= pendingNumJudges; i++) {
-      const jid = `J${i}`;
-      const existing = (juryConfig.judges || []).find((x) => x.id === jid) || {
-        id: jid,
-        name: `Judge ${i}`,
-        pin: `${i}${i}${i}${i}`
-      };
-
-      const row = document.createElement('div');
-      row.className = 'p-2 bg-[#fdfbf7] rounded-lg border border-[#e3dccd] flex items-center justify-between text-xs';
-      row.innerHTML = `
-        <span class="font-black text-[#ea580c] w-8">${jid}</span>
-        <input type="text" class="judge-slot-name px-2 py-1 bg-white border border-[#cbd5e1] rounded text-xs flex-1 mx-2" value="${existing.name}" placeholder="Judge Name">
-        <input type="text" class="judge-slot-pin px-1.5 py-1 bg-white border border-[#cbd5e1] rounded text-xs w-16 text-center font-mono" value="${existing.pin}" placeholder="PIN" maxlength="6">
-      `;
-      adminJudgeSlotsList.appendChild(row);
+    if (rosterShowingCount) {
+      rosterShowingCount.textContent = `${count} teams`;
     }
   }
 
-  async function saveJuryConfiguration() {
-    const adminPin = inputAdminPinForConfig.value.trim();
-    if (!adminPin) {
-      alert('Please enter Admin PIN (Default: 2026) to update jury setup.');
+  // -------------------------------------------------------------
+  // Standings / Leaderboard View
+  // -------------------------------------------------------------
+  function renderLeaderboard() {
+    if (!leaderboardTbody) return;
+    leaderboardTbody.innerHTML = '';
+
+    const selectedSec = leaderboardSectionSelect ? leaderboardSectionSelect.value : 'ALL';
+
+    const ranked = teams
+      .map((t) => {
+        const teamEvals = masterEvaluations[t.number] || {};
+        const p1Scores = Object.values(teamEvals).filter((x) => x && x.phase1 > 0).map((x) => x.phase1);
+        const p2Scores = Object.values(teamEvals).filter((x) => x && x.phase2 > 0).map((x) => x.phase2);
+
+        const p1Avg = p1Scores.length ? Number((p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1)) : 0;
+        const p2Avg = p2Scores.length ? Number((p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1)) : 0;
+        const grandTotal = Number((p1Avg + p2Avg).toFixed(1));
+
+        return {
+          team: t,
+          p1Avg,
+          p2Avg,
+          grandTotal,
+          numJudges: Object.keys(teamEvals).length
+        };
+      })
+      .filter((item) => selectedSec === 'ALL' || item.team.section === selectedSec)
+      .sort((a, b) => b.grandTotal - a.grandTotal);
+
+    ranked.forEach((item, rankIdx) => {
+      const tr = document.createElement('tr');
+      tr.className = rankIdx % 2 === 0 ? 'bg-white' : 'bg-[#fdfbf7]';
+
+      tr.innerHTML = `
+        <td class="py-2.5 px-2 text-center font-bold text-[#64748b] text-[11px]">${rankIdx + 1}</td>
+        <td class="py-2.5 px-2 font-black font-serif-pace text-[#ea580c]">#${item.team.number}</td>
+        <td class="py-2.5 px-2.5 font-bold text-[#0f172a] truncate max-w-[140px]">${item.team.name}</td>
+        <td class="py-2.5 px-1 text-center font-bold text-[#64748b] text-[10px]">${item.team.section}</td>
+        <td class="py-2.5 px-2 text-right font-bold text-slate-700">${item.p1Avg > 0 ? item.p1Avg : '—'}</td>
+        <td class="py-2.5 px-2 text-right font-bold text-slate-700">${item.p2Avg > 0 ? item.p2Avg : '—'}</td>
+        <td class="py-2.5 px-2.5 text-right font-black text-sm text-[#ea580c]">${item.grandTotal > 0 ? item.grandTotal : '—'}</td>
+        <td class="py-2.5 px-2 text-center">
+          <button type="button" class="btn-grade-team px-2 py-0.5 rounded text-[10px] font-black bg-[#f6f1e6] hover:bg-[#ea580c] hover:text-white transition" data-num="${item.team.number}">
+            Score
+          </button>
+        </td>
+      `;
+
+      tr.querySelector('.btn-grade-team').addEventListener('click', () => {
+        const idx = teams.findIndex((x) => x.number === item.team.number);
+        if (idx !== -1) {
+          switchView('scoring');
+          loadTeamIntoForm(idx);
+        }
+      });
+
+      leaderboardTbody.appendChild(tr);
+    });
+  }
+
+  // -------------------------------------------------------------
+  // Admin Jury & Phase Configuration Modal
+  // -------------------------------------------------------------
+  function openAdminSetupModal() {
+    if (!currentJudge || !currentJudge.isAdmin) {
+      // Must be Admin
+      selectedLoginJudgeId = 'ADMIN';
+      loginPinInput.value = '';
+      loginNameInput.value = 'Chief Coordinator';
+      renderLoginJudgeSlots();
+      loginOverlay.classList.remove('hidden');
       return;
     }
 
-    const rows = adminJudgeSlotsList.querySelectorAll('div');
-    const judgesPayload = [];
-    rows.forEach((row, idx) => {
-      const i = idx + 1;
-      const nameInput = row.querySelector('.judge-slot-name');
-      const pinInput = row.querySelector('.judge-slot-pin');
-      judgesPayload.push({
-        id: `J${i}`,
-        name: nameInput.value.trim() || `Judge ${i}`,
-        pin: pinInput.value.trim() || `${i}${i}${i}${i}`
-      });
+    // Clone juryConfig to draft
+    draftAdminConfig = JSON.parse(JSON.stringify(juryConfig));
+    renderAdminSetupUI();
+    modalJurySetup.classList.remove('hidden');
+  }
+
+  function renderAdminSetupUI() {
+    if (!draftAdminConfig) return;
+
+    // 1. Phase activation buttons
+    const phaseBtns = phaseActivationButtonGroup.querySelectorAll('.btn-phase-toggle');
+    phaseBtns.forEach((btn) => {
+      const p = btn.getAttribute('data-phase');
+      const isSelected = draftAdminConfig.activePhase === p;
+      if (isSelected) {
+        btn.className =
+          'btn-phase-toggle p-2 text-left rounded-lg border font-bold flex items-center justify-between transition bg-[#fff7ed] border-[#ea580c] text-[#ea580c]';
+      } else {
+        btn.className =
+          'btn-phase-toggle p-2 text-left rounded-lg border font-bold flex items-center justify-between transition bg-white border-[#cbd5e1] text-[#475569] hover:bg-[#f6f1e6]';
+      }
     });
+
+    // 2. Internal Judges List (Phase 1)
+    adminInternalJudgesList.innerHTML = '';
+    (draftAdminConfig.internalJudges || []).forEach((j, index) => {
+      const row = document.createElement('div');
+      row.className = 'p-2 rounded-lg border border-[#e3dccd] bg-[#fdfbf7] space-y-1';
+      row.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-black text-[#ea580c] uppercase">${j.id}</span>
+          ${
+            draftAdminConfig.internalJudges.length > 1
+              ? `<button type="button" class="btn-del-int text-[9px] text-red-600 font-bold hover:underline" data-idx="${index}">Remove</button>`
+              : ''
+          }
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <input type="text" value="${j.name}" placeholder="Judge Name" class="input-int-name px-2 py-1 text-xs border border-[#cbd5e1] rounded bg-white font-bold text-[#0f172a]" data-idx="${index}">
+          <input type="text" value="${j.pin}" placeholder="PIN (e.g. 1111)" class="input-int-pin px-2 py-1 text-xs border border-[#cbd5e1] rounded bg-white font-mono text-[#0f172a]" data-idx="${index}">
+        </div>
+        <input type="text" value="${j.role || ''}" placeholder="Designation / Role" class="input-int-role w-full px-2 py-1 text-[11px] border border-[#cbd5e1] rounded bg-white text-[#64748b]" data-idx="${index}">
+      `;
+
+      adminInternalJudgesList.appendChild(row);
+    });
+
+    // 3. External Judges List (Phase 2)
+    adminExternalJudgesList.innerHTML = '';
+    (draftAdminConfig.externalJudges || []).forEach((j, index) => {
+      const row = document.createElement('div');
+      row.className = 'p-2 rounded-lg border border-[#e3dccd] bg-[#fdfbf7] space-y-1';
+      row.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-black text-[#ea580c] uppercase">${j.id}</span>
+          ${
+            draftAdminConfig.externalJudges.length > 1
+              ? `<button type="button" class="btn-del-ext text-[9px] text-red-600 font-bold hover:underline" data-idx="${index}">Remove</button>`
+              : ''
+          }
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <input type="text" value="${j.name}" placeholder="Judge Name" class="input-ext-name px-2 py-1 text-xs border border-[#cbd5e1] rounded bg-white font-bold text-[#0f172a]" data-idx="${index}">
+          <input type="text" value="${j.pin}" placeholder="PIN (e.g. 3333)" class="input-ext-pin px-2 py-1 text-xs border border-[#cbd5e1] rounded bg-white font-mono text-[#0f172a]" data-idx="${index}">
+        </div>
+        <input type="text" value="${j.role || ''}" placeholder="Designation / Company / Jury" class="input-ext-role w-full px-2 py-1 text-[11px] border border-[#cbd5e1] rounded bg-white text-[#64748b]" data-idx="${index}">
+      `;
+
+      adminExternalJudgesList.appendChild(row);
+    });
+
+    bindAdminDynamicInputs();
+  }
+
+  function bindAdminDynamicInputs() {
+    // Phase selector buttons
+    const phaseBtns = phaseActivationButtonGroup.querySelectorAll('.btn-phase-toggle');
+    phaseBtns.forEach((btn) => {
+      btn.onclick = () => {
+        draftAdminConfig.activePhase = btn.getAttribute('data-phase');
+        renderAdminSetupUI();
+      };
+    });
+
+    // Internal inputs
+    adminInternalJudgesList.querySelectorAll('.input-int-name').forEach((el) => {
+      el.oninput = (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        draftAdminConfig.internalJudges[idx].name = e.target.value;
+      };
+    });
+    adminInternalJudgesList.querySelectorAll('.input-int-pin').forEach((el) => {
+      el.oninput = (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        draftAdminConfig.internalJudges[idx].pin = e.target.value;
+      };
+    });
+    adminInternalJudgesList.querySelectorAll('.input-int-role').forEach((el) => {
+      el.oninput = (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        draftAdminConfig.internalJudges[idx].role = e.target.value;
+      };
+    });
+    adminInternalJudgesList.querySelectorAll('.btn-del-int').forEach((el) => {
+      el.onclick = (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        draftAdminConfig.internalJudges.splice(idx, 1);
+        renderAdminSetupUI();
+      };
+    });
+
+    // External inputs
+    adminExternalJudgesList.querySelectorAll('.input-ext-name').forEach((el) => {
+      el.oninput = (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        draftAdminConfig.externalJudges[idx].name = e.target.value;
+      };
+    });
+    adminExternalJudgesList.querySelectorAll('.input-ext-pin').forEach((el) => {
+      el.oninput = (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        draftAdminConfig.externalJudges[idx].pin = e.target.value;
+      };
+    });
+    adminExternalJudgesList.querySelectorAll('.input-ext-role').forEach((el) => {
+      el.oninput = (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        draftAdminConfig.externalJudges[idx].role = e.target.value;
+      };
+    });
+    adminExternalJudgesList.querySelectorAll('.btn-del-ext').forEach((el) => {
+      el.onclick = (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        draftAdminConfig.externalJudges.splice(idx, 1);
+        renderAdminSetupUI();
+      };
+    });
+  }
+
+  async function saveAdminJuryConfig() {
+    const enteredPin = inputAdminPinForConfig.value.trim();
+    if (!enteredPin) {
+      alert('Please enter Admin PIN (Default: 2026) to apply changes.');
+      return;
+    }
 
     try {
       const res = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminPin: adminPin,
-          numJudges: pendingNumJudges,
-          judges: judgesPayload
+          adminPin: enteredPin,
+          activePhase: draftAdminConfig.activePhase,
+          internalJudges: draftAdminConfig.internalJudges,
+          externalJudges: draftAdminConfig.externalJudges
         })
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        alert(data.error || 'Failed to update configuration.');
+        alert(data.error || 'Failed to update config. Incorrect Admin PIN.');
         return;
       }
 
-      juryConfig = { numJudges: data.numJudges, judges: data.judges };
+      juryConfig.activePhase = data.activePhase;
+      juryConfig.internalJudges = data.internalJudges;
+      juryConfig.externalJudges = data.externalJudges;
+
       modalJurySetup.classList.add('hidden');
+      alert('✓ Jury setup and active phase updated successfully!');
+
       renderLoginJudgeSlots();
+      updateActiveJudgeUI();
       renderJuryConsensus();
       renderLeaderboard();
-      alert(`Jury configuration updated to ${pendingNumJudges} judges!`);
     } catch (e) {
-      alert('Error updating configuration.');
+      alert('Error updating configuration on server.');
     }
   }
 
   // -------------------------------------------------------------
-  // CSV Export & WhatsApp Share
+  // View Switching
   // -------------------------------------------------------------
-  function exportCSV() {
-    const judges = juryConfig.judges || [];
-    let header = 'Team Number,Team Name,Section,Members,Lead Name';
-    judges.forEach((j) => { header += `,${j.name} (${j.id}) Total`; });
-    header += ',Jury Average Score (100),Phase 1 Avg (60),Phase 2 Avg (40),All Remarks\n';
+  function switchView(viewName) {
+    currentView = viewName;
 
-    let csv = header;
-
-    teams.forEach((t) => {
-      const teamEvals = masterEvaluations[t.number] || {};
-      const lead = t.members[0] ? t.members[0].name : '';
-      let row = `"${t.number}","${t.name}","${t.section}","${t.member_count}","${lead}"`;
-
-      const scores = [];
-      const remarksList = [];
-
-      judges.forEach((j) => {
-        const ev = teamEvals[j.id];
-        if (ev && ev.total > 0) {
-          row += `,"${ev.total}"`;
-          scores.push(ev.total);
-          if (ev.remarks) remarksList.push(`${j.id}: ${ev.remarks}`);
-        } else {
-          row += ',"—"';
-        }
-      });
-
-      const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : '';
-      const rem = remarksList.join(' | ').replace(/"/g, '""');
-
-      row += `,"${avg}","","","${rem}"\n`;
-      csv += row;
+    // Reset tabs
+    [tabTeamView, tabRoster, tabLeaderboard].forEach((t) => {
+      t.className = 'flex-1 py-2 font-bold text-xs border-b-2 border-transparent text-[#64748b] transition';
     });
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `EmbedThon_26_Official_MultiJudge_Scores_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
+    viewScoring.classList.add('hidden');
+    viewRoster.classList.add('hidden');
+    viewLeaderboard.classList.add('hidden');
+
+    if (viewName === 'scoring') {
+      tabTeamView.className = 'flex-1 py-2 font-bold text-xs border-b-2 border-[#ea580c] text-[#ea580c] transition';
+      viewScoring.classList.remove('hidden');
+    } else if (viewName === 'roster') {
+      tabRoster.className = 'flex-1 py-2 font-bold text-xs border-b-2 border-[#ea580c] text-[#ea580c] transition';
+      viewRoster.classList.remove('hidden');
+      renderRosterList();
+    } else if (viewName === 'leaderboard') {
+      tabLeaderboard.className = 'flex-1 py-2 font-bold text-xs border-b-2 border-[#ea580c] text-[#ea580c] transition';
+      viewLeaderboard.classList.remove('hidden');
+      renderLeaderboard();
+    }
   }
 
-  function shareWhatsApp() {
-    let text = `*EMBEDTHON '26 — Official Multi-Judge Leaderboard*\n`;
-    text += `*P.A. College of Engineering · Dept. of CSE*\n\n`;
+  // -------------------------------------------------------------
+  // Event Bindings
+  // -------------------------------------------------------------
+  function bindEvents() {
+    // Login
+    btnLoginSubmit.addEventListener('click', handleLogin);
+    loginPinInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleLogin();
+    });
 
-    const judges = juryConfig.judges || [];
+    if (btnSelectAdminLogin) {
+      btnSelectAdminLogin.addEventListener('click', () => {
+        selectedLoginJudgeId = 'ADMIN';
+        loginPinInput.value = '';
+        loginNameInput.value = 'Chief Coordinator';
+        pinHintBadge.textContent = 'PIN: 2026';
+        renderLoginJudgeSlots();
+      });
+    }
+
+    // Switch Judge
+    btnJudgeSwitch.addEventListener('click', handleLogout);
+
+    // Open Admin Modal
+    btnOpenSetupModal.addEventListener('click', openAdminSetupModal);
+    btnCloseSetupModal.addEventListener('click', () => {
+      modalJurySetup.classList.add('hidden');
+    });
+
+    // Add Internal / External Judge in Admin Modal
+    btnAddInternalJudge.addEventListener('click', () => {
+      if (!draftAdminConfig) draftAdminConfig = JSON.parse(JSON.stringify(juryConfig));
+      const nextNum = (draftAdminConfig.internalJudges || []).length + 1;
+      draftAdminConfig.internalJudges.push({
+        id: `INT-${nextNum}`,
+        name: `Internal Judge ${nextNum}`,
+        role: 'Faculty Mentor',
+        pin: `${nextNum}${nextNum}${nextNum}${nextNum}`
+      });
+      renderAdminSetupUI();
+    });
+
+    btnAddExternalJudge.addEventListener('click', () => {
+      if (!draftAdminConfig) draftAdminConfig = JSON.parse(JSON.stringify(juryConfig));
+      const nextNum = (draftAdminConfig.externalJudges || []).length + 1;
+      draftAdminConfig.externalJudges.push({
+        id: `EXT-${nextNum}`,
+        name: `External Judge ${nextNum}`,
+        role: 'Industry / IEEE Jury',
+        pin: `${nextNum + 2}${nextNum + 2}${nextNum + 2}${nextNum + 2}`
+      });
+      renderAdminSetupUI();
+    });
+
+    btnSaveJuryConfig.addEventListener('click', saveAdminJuryConfig);
+
+    // Navigation Tabs
+    tabTeamView.addEventListener('click', () => switchView('scoring'));
+    tabRoster.addEventListener('click', () => switchView('roster'));
+    tabLeaderboard.addEventListener('click', () => switchView('leaderboard'));
+
+    // Section Switching
+    btnSwitchSecA.addEventListener('click', () => {
+      const idx = teams.findIndex((x) => x.section === 'A');
+      if (idx !== -1) loadTeamIntoForm(idx);
+    });
+
+    btnSwitchSecB.addEventListener('click', () => {
+      const idx = teams.findIndex((x) => x.section === 'B');
+      if (idx !== -1) loadTeamIntoForm(idx);
+    });
+
+    // Grid Modal
+    btnOpenTeamGridModal.addEventListener('click', () => {
+      renderTeamGridModal();
+      modalTeamGrid.classList.remove('hidden');
+    });
+    btnCloseGridModal.addEventListener('click', () => {
+      modalTeamGrid.classList.add('hidden');
+    });
+
+    // Rubrics Inputs (Realtime recalculation)
+    [inputP1Crit1, inputP1Crit2, inputP1Crit3, inputP2Crit1, inputP2Crit2, inputP2Crit3, inputP2Crit4].forEach(
+      (input) => {
+        if (!input) return;
+        input.addEventListener('input', recalculateScores);
+      }
+    );
+
+    // Quick Pill Buttons
+    document.querySelectorAll('.quick-pill-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        const val = btn.getAttribute('data-val');
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.value = val;
+          recalculateScores();
+        }
+      });
+    });
+
+    // Step Buttons (+ / -)
+    document.querySelectorAll('.step-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        const step = parseFloat(btn.getAttribute('data-step')) || 0;
+        const el = document.getElementById(targetId);
+        if (el) {
+          const max = parseFloat(el.getAttribute('max')) || 100;
+          const min = parseFloat(el.getAttribute('min')) || 0;
+          let current = parseFloat(el.value) || 0;
+          current = Math.min(max, Math.max(min, current + step));
+          el.value = current;
+          recalculateScores();
+        }
+      });
+    });
+
+    // Remark Quick Chips
+    document.querySelectorAll('.remark-chip').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (!inputRemarks) return;
+        const text = btn.textContent.trim();
+        if (inputRemarks.value) {
+          inputRemarks.value += ` | ${text}`;
+        } else {
+          inputRemarks.value = text;
+        }
+      });
+    });
+
+    // Save & Next
+    btnSaveEvaluation.addEventListener('click', saveCurrentEvaluation);
+    btnNextTeam.addEventListener('click', () => {
+      saveCurrentEvaluation();
+      if (currentTeamIndex < teams.length - 1) {
+        loadTeamIntoForm(currentTeamIndex + 1);
+      } else {
+        alert('You have reached the last team in the roster!');
+      }
+    });
+
+    // Bottom Navigation Bar
+    bnavPrev.addEventListener('click', () => {
+      if (currentTeamIndex > 0) {
+        loadTeamIntoForm(currentTeamIndex - 1);
+      }
+    });
+
+    bnavNext.addEventListener('click', () => {
+      if (currentTeamIndex < teams.length - 1) {
+        loadTeamIntoForm(currentTeamIndex + 1);
+      }
+    });
+
+    bnavCenter.addEventListener('click', saveCurrentEvaluation);
+
+    // Roster search
+    searchTeamsInput.addEventListener('input', (e) => {
+      renderRosterList(e.target.value);
+    });
+
+    rosterFilterButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        rosterFilterButtons.forEach((b) => {
+          b.className = 'roster-filter-btn px-2.5 py-1 rounded-md font-semibold text-[#475569] hover:bg-[#f6f1e6]';
+        });
+        btn.className = 'roster-filter-btn px-2.5 py-1 rounded-md font-bold bg-[#0f172a] text-white';
+        activeSectionFilter = btn.getAttribute('data-filter') === 'all' ? 'ALL' : btn.getAttribute('data-filter');
+        renderRosterList(searchTeamsInput.value);
+      });
+    });
+
+    // Leaderboard Section Select
+    leaderboardSectionSelect.addEventListener('change', renderLeaderboard);
+
+    // Export CSV
+    btnExportCSV.addEventListener('click', exportLeaderboardCSV);
+
+    // Share WhatsApp
+    btnShareWhatsApp.addEventListener('click', shareWhatsAppSummary);
+
+    // Reset
+    btnResetEvaluations.addEventListener('click', resetAllEvaluations);
+  }
+
+  // -------------------------------------------------------------
+  // CSV Export & WhatsApp
+  // -------------------------------------------------------------
+  function exportLeaderboardCSV() {
+    let csv = 'Rank,Team Number,Team Name,Section,Phase 1 (Mentoring 30%),Phase 2 (Final Expo 70%),Grand Total (100%)\n';
+
     const ranked = teams
       .map((t) => {
         const teamEvals = masterEvaluations[t.number] || {};
-        const scores = Object.values(teamEvals).filter((v) => v && v.total > 0).map((v) => v.total);
-        const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-        return { num: t.number, name: t.name, sec: t.section, avg: avg, count: scores.length };
+        const p1Scores = Object.values(teamEvals).filter((x) => x && x.phase1 > 0).map((x) => x.phase1);
+        const p2Scores = Object.values(teamEvals).filter((x) => x && x.phase2 > 0).map((x) => x.phase2);
+
+        const p1Avg = p1Scores.length ? Number((p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1)) : 0;
+        const p2Avg = p2Scores.length ? Number((p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1)) : 0;
+        const grandTotal = Number((p1Avg + p2Avg).toFixed(1));
+
+        return { team: t, p1Avg, p2Avg, grandTotal };
       })
-      .filter((r) => r.avg > 0)
-      .sort((a, b) => b.avg - a.avg);
+      .sort((a, b) => b.grandTotal - a.grandTotal);
 
-    if (ranked.length === 0) {
-      alert('No teams have been scored yet.');
-      return;
-    }
-
-    text += `*Current Standings (Average Across Judges):*\n`;
-    ranked.forEach((r, idx) => {
-      const icon = idx === 0 ? '🥇 ' : idx === 1 ? '🥈 ' : idx === 2 ? '🥉 ' : `${idx + 1}. `;
-      text += `${icon}Team #${r.num} *${r.name}* (Sec ${r.sec}) — *${r.avg.toFixed(1)}/100* (${r.count} ${r.count === 1 ? 'judge' : 'judges'})\n`;
+    ranked.forEach((item, idx) => {
+      csv += `${idx + 1},#${item.team.number},"${item.team.name.replace(/"/g, '""')}",${item.team.section},${item.p1Avg},${item.p2Avg},${item.grandTotal}\n`;
     });
 
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(() => {
-        alert('Leaderboard copied to clipboard! Paste into WhatsApp.');
-      });
-    } else {
-      prompt('Copy WhatsApp text:', text);
-    }
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `EMBEDTHON_26_Scores_Export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  function shareWhatsAppSummary() {
+    let msg = `*EMBEDTHON '26 · OFFICIAL EVALUATION STANDINGS*\nP.A. College of Engineering · Dept. of CSE\n\n`;
+
+    const top5 = teams
+      .map((t) => {
+        const teamEvals = masterEvaluations[t.number] || {};
+        const p1Scores = Object.values(teamEvals).filter((x) => x && x.phase1 > 0).map((x) => x.phase1);
+        const p2Scores = Object.values(teamEvals).filter((x) => x && x.phase2 > 0).map((x) => x.phase2);
+
+        const p1Avg = p1Scores.length ? Number((p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1)) : 0;
+        const p2Avg = p2Scores.length ? Number((p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1)) : 0;
+        const grandTotal = Number((p1Avg + p2Avg).toFixed(1));
+
+        return { team: t, p1Avg, p2Avg, grandTotal };
+      })
+      .sort((a, b) => b.grandTotal - a.grandTotal)
+      .slice(0, 5);
+
+    top5.forEach((item, idx) => {
+      const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+      msg += `${medal} Team #${item.team.number}: ${item.team.name} -> Total: *${item.grandTotal}/100* (P1: ${item.p1Avg}, P2: ${item.p2Avg})\n`;
+    });
+
+    msg += `\nPortal: https://embedthon-judge-portal.vercel.app/`;
+    const shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(shareUrl, '_blank');
   }
 
   async function resetAllEvaluations() {
-    const pin = prompt('Enter Admin PIN to reset all scores on server:');
+    const pin = prompt('Enter Admin PIN (Default: 2026) to erase all team evaluations:');
     if (!pin) return;
 
     try {
@@ -1256,20 +1531,25 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminPin: pin })
       });
+
       const data = await res.json();
-      if (res.ok && data.success) {
-        masterEvaluations = {};
-        updateProgressUI();
-        loadTeamIntoForm(currentTeamIndex);
-        renderLeaderboard();
-        alert('All scores have been reset.');
-      } else {
-        alert(data.error || 'Reset failed.');
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Failed to reset scores.');
+        return;
       }
+
+      masterEvaluations = {};
+      alert('✓ All team evaluations have been reset.');
+      loadTeamIntoForm(currentTeamIndex);
+      renderLeaderboard();
+      updateProgressUI();
     } catch (e) {
-      alert('Network error.');
+      alert('Error connecting to reset endpoint.');
     }
   }
 
-  window.addEventListener('DOMContentLoaded', init);
+  // -------------------------------------------------------------
+  // Start on Load
+  // -------------------------------------------------------------
+  document.addEventListener('DOMContentLoaded', init);
 })();
