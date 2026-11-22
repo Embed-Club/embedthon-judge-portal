@@ -209,6 +209,14 @@
 
     // 5. Start real-time sync polling
     startLiveSync();
+
+    // Check if launched for reveal ceremony directly
+    if (window.location.hash === '#ceremony' || localStorage.getItem('open_ceremony_on_load') === 'true') {
+      localStorage.removeItem('open_ceremony_on_load');
+      setTimeout(() => {
+        openCeremonyModal();
+      }, 400);
+    }
   }
 
   // -------------------------------------------------------------
@@ -501,6 +509,12 @@
 
       currentJudge = data.judge;
       localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(currentJudge));
+
+      // If Admin logged in, open the separate Admin Management Console!
+      if (currentJudge.isAdmin || currentJudge.id === 'ADMIN') {
+        window.location.href = 'admin.html';
+        return;
+      }
 
       updateActiveJudgeUI();
       loginOverlay.classList.add('hidden');
@@ -1327,8 +1341,10 @@
     // Switch Judge
     btnJudgeSwitch.addEventListener('click', handleLogout);
 
-    // Open Admin Modal
-    btnOpenSetupModal.addEventListener('click', openAdminSetupModal);
+    // Open Admin Management Console Page
+    btnOpenSetupModal.addEventListener('click', () => {
+      window.location.href = 'admin.html';
+    });
     btnCloseSetupModal.addEventListener('click', () => {
       modalJurySetup.classList.add('hidden');
     });

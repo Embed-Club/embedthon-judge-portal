@@ -65,13 +65,18 @@ module.exports = async function handler(req, res) {
         config.externalJudges = body.externalJudges;
       }
 
+      if (body.newAdminPin && String(body.newAdminPin).trim().length >= 4) {
+        config.adminPin = String(body.newAdminPin).trim();
+      }
+
       await updateGistFile('config.json', JSON.stringify(config, null, 2));
 
       return res.status(200).json({
         success: true,
         activePhase: config.activePhase,
         internalJudges: config.internalJudges,
-        externalJudges: config.externalJudges
+        externalJudges: config.externalJudges,
+        adminPin: config.adminPin
       });
     }
 

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>EMBEDTHON '26 · Admin & Jury Management Console</title>
+  <meta name="description" content="Central Coordinator & Jury Administration Console for EmbedThon '26.">
+  <link rel="icon" type="image/png" href="assets/pace_crest.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brandNavy: '#0f172a',
+            brandInk: '#1e293b',
+            brandSlate: '#475569',
+            brandMuted: '#64748b',
+            brandOrange: '#ea580c',
+            brandOrangeLight: '#fff7ed',
+            brandCream: '#fdfbf7',
+            brandCreamDark: '#f6f1e6',
+            brandBorder: '#e3dccd',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-[#fdfbf7] text-[#1e293b] antialiased pb-12">
+
+  <!-- ========================================================= -->
+  <!-- 1. ADMIN PIN AUTHENTICATION GATE (Shows if not verified) -->
+  <!-- ========================================================= -->
+  <div id="adminAuthGate" class="fixed inset-0 z-50 bg-[#0f172a]/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 border-2 border-[#fed7aa] shadow-2xl space-y-4 my-auto text-center">
+      <img src="assets/pace_crest.png" alt="PACE Crest" class="h-12 w-auto object-contain mx-auto mb-1">
+      <div>
+        <h2 class="text-xs font-black tracking-wider uppercase text-[#0f172a]">
+          P.A. College of Engineering
+        </h2>
+        <p class="text-[11px] font-bold text-[#ea580c] uppercase tracking-wide">
+          EMBEDTHON '26 · ADMIN CONSOLE
+        </p>
+      </div>
+
+      <div class="bg-[#f6f1e6] p-3 rounded-xl border border-[#e3dccd] text-xs space-y-1">
+        <span class="font-extrabold text-[#0f172a] block">Coordinator Authentication Required</span>
+        <p class="text-[10px] text-[#64748b]">Enter the master Admin PIN to manage jury, activate phases, and oversee scoring.</p>
+      </div>
+
+      <form id="formAdminAuth" onsubmit="return false;" class="space-y-3">
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="gateAdminPin" class="text-xs font-bold text-[#1e293b] uppercase">Master Admin PIN</label>
+            <span class="text-[10px] font-mono text-[#ea580c] font-bold">Default: 2026</span>
+          </div>
+          <input type="password" id="gateAdminPin" inputmode="numeric" maxlength="8" placeholder="2026"
+                 class="w-full text-center text-xl font-mono font-black tracking-widest px-3 py-2 bg-white border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+        </div>
+
+        <div id="gateErrorMessage" class="hidden text-xs font-bold text-red-600 bg-red-50 border border-red-200 p-2 rounded-lg"></div>
+
+        <button type="submit" id="btnGateUnlock" class="w-full py-3 px-4 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-xs uppercase tracking-wider shadow-md transition active:scale-[0.98]">
+          Unlock Admin Console 🔓
+        </button>
+
+        <a href="index.html" class="inline-block text-xs font-bold text-[#64748b] hover:text-[#0f172a] pt-2">
+          ← Return to Judge Scoring Portal
+        </a>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================================= -->
+  <!-- 2. ADMIN CONSOLE MAIN APP CONTAINER                       -->
+  <!-- ========================================================= -->
+  <div id="adminMainContainer" class="hidden min-h-screen flex flex-col">
+    
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-40 bg-[#0f172a] text-white border-b border-slate-800 shadow-md">
+      <div class="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <img src="assets/pace_crest.png" alt="PACE Crest" class="h-8 w-auto object-contain">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-black tracking-wider uppercase text-amber-400">EMBEDTHON '26</span>
+              <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">ADMIN</span>
+            </div>
+            <p class="text-[9px] text-slate-300 uppercase tracking-widest hidden sm:block">
+              CHIEF COORDINATOR & JURY ADMINISTRATION CONSOLE
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span id="liveStatusBadge" class="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Live Cloud Sync</span>
+          </span>
+
+          <a href="index.html" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1">
+            <span>👁️ Scoring View</span>
+          </a>
+
+          <button id="btnAdminLogout" type="button" class="px-2.5 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-800/40 text-rose-300 text-xs font-bold transition">
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl w-full mx-auto p-3 sm:p-5 space-y-5 flex-1">
+      
+      <!-- NOTIFICATION / TOAST -->
+      <div id="adminNoticeToast" class="hidden p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center justify-between transition">
+        <span id="toastMessage">Changes saved and synchronized!</span>
+        <button onclick="document.getElementById('adminNoticeToast').classList.add('hidden')" class="text-emerald-700 font-bold">&times;</button>
+      </div>
+
+      <!-- SECTION 1: LIVE METRICS COCKPIT -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-left">
+        <div class="p-3 bg-white rounded-xl border border-[#e3dccd] shadow-xs">
+          <span class="text-[10px] font-black uppercase text-[#64748b] block">Total Registered</span>
+          <div class="flex items-baseline gap-1 mt-0.5">
+            <span class="text-2xl font-black text-[#0f172a]">24</span>
+            <span class="text-[10px] text-[#64748b]">teams (92 pax)</span>
+          </div>
+          <div class="text-[9px] font-bold text-orange-600 mt-1">Sec A (11) · Sec B (13)</div>
+        </div>
+
+        <div class="p-3 bg-white rounded-xl border border-[#e3dccd] shadow-xs">
+          <span class="text-[10px] font-black uppercase text-[#64748b] block">Phase 1 (Mentoring 30%)</span>
+          <div class="flex items-baseline gap-1 mt-0.5">
+            <span id="metricP1Scored" class="text-2xl font-black text-[#ea580c]">0</span>
+            <span class="text-[10px] text-[#64748b]">/ 24 scored</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">
+            <div id="barP1Progress" class="bg-[#ea580c] h-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-white rounded-xl border border-[#e3dccd] shadow-xs">
+          <span class="text-[10px] font-black uppercase text-[#64748b] block">Phase 2 (Expo 70%)</span>
+          <div class="flex items-baseline gap-1 mt-0.5">
+            <span id="metricP2Scored" class="text-2xl font-black text-indigo-600">0</span>
+            <span class="text-[10px] text-[#64748b]">/ 24 scored</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">
+            <div id="barP2Progress" class="bg-indigo-600 h-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-white rounded-xl border border-[#e3dccd] shadow-xs">
+          <span class="text-[10px] font-black uppercase text-[#64748b] block">Consensus Finalized</span>
+          <div class="flex items-baseline gap-1 mt-0.5">
+            <span id="metricBothComplete" class="text-2xl font-black text-emerald-600">0</span>
+            <span class="text-[10px] text-[#64748b]">/ 24 complete</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">
+            <div id="barBothProgress" class="bg-emerald-600 h-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- SECTION 2: PHASE ACTIVATION CONTROLS -->
+      <div class="bg-white rounded-2xl border-2 border-[#fed7aa] p-4 sm:p-5 shadow-xs space-y-3.5">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 class="text-sm font-black uppercase tracking-wider text-[#0f172a] flex items-center gap-1.5">
+              <span>⚡ Phase Activation & Evaluation Mode</span>
+            </h3>
+            <p class="text-xs text-[#64748b]">Select which evaluation phase is active for all judges right now</p>
+          </div>
+          <span id="currentActivePhaseBadge" class="px-2.5 py-1 rounded-full text-xs font-black bg-orange-100 text-[#ea580c] border border-orange-200">
+            Phase 1 Active
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          
+          <!-- Phase 1 Button Card -->
+          <button type="button" id="phaseCardP1" class="phase-selector-card p-3.5 rounded-xl border-2 text-left transition relative cursor-pointer active:scale-[0.99] flex flex-col justify-between" data-phase="PHASE_1">
+            <div class="space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase text-[#ea580c]">Phase 1 Only</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-orange-100 text-[#ea580c]">30% Weight</span>
+              </div>
+              <h4 class="text-sm font-bold text-[#0f172a]">🏛️ Mentoring & Progress</h4>
+              <p class="text-[11px] text-[#64748b]">Internal CSE Faculty Mentors evaluate problem scope, milestone progress, and discipline (Max 30 Marks).</p>
+            </div>
+            <div class="pt-2 text-[10px] font-mono font-bold text-[#ea580c] flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-[#ea580c]"></span>
+              <span>Internal Judges Active</span>
+            </div>
+          </button>
+
+          <!-- Phase 2 Button Card -->
+          <button type="button" id="phaseCardP2" class="phase-selector-card p-3.5 rounded-xl border-2 text-left transition relative cursor-pointer active:scale-[0.99] flex flex-col justify-between" data-phase="PHASE_2">
+            <div class="space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase text-indigo-600">Phase 2 Only</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700">70% Weight</span>
+              </div>
+              <h4 class="text-sm font-bold text-[#0f172a]">🌟 Final Project Expo</h4>
+              <p class="text-[11px] text-[#64748b]">External Industry & IEEE Jury evaluate live working prototype, circuit complexity, novelty, and defense (Max 70 Marks).</p>
+            </div>
+            <div class="pt-2 text-[10px] font-mono font-bold text-indigo-600 flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+              <span>External Judges Active</span>
+            </div>
+          </button>
+
+          <!-- Both Active Card -->
+          <button type="button" id="phaseCardBoth" class="phase-selector-card p-3.5 rounded-xl border-2 text-left transition relative cursor-pointer active:scale-[0.99] flex flex-col justify-between" data-phase="BOTH">
+            <div class="space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase text-emerald-700">Concurrent</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">100% Total</span>
+              </div>
+              <h4 class="text-sm font-bold text-[#0f172a]">⚡ Both Phases Open</h4>
+              <p class="text-[11px] text-[#64748b]">Both Internal Mentoring and External Expo scoring are open simultaneously for live consensus scoring.</p>
+            </div>
+            <div class="pt-2 text-[10px] font-mono font-bold text-emerald-700 flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+              <span>All Judges Active</span>
+            </div>
+          </button>
+
+        </div>
+      </div>
+
+
+      <!-- SECTION 3: JUDGE ROSTER & CREDENTIALS MANAGEMENT -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        
+        <!-- Internal Judges Panel -->
+        <div class="bg-white rounded-2xl border border-[#e3dccd] p-4 sm:p-5 shadow-xs space-y-3">
+          <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
+            <div>
+              <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a] flex items-center gap-1.5">
+                <span>🏛️ Internal Judges (Phase 1 · 30%)</span>
+              </h3>
+              <p class="text-[10px] text-[#64748b]">CSE Faculty Mentors responsible for Mentoring rounds</p>
+            </div>
+            <button type="button" id="btnAdminAddInternal" class="px-2.5 py-1 rounded-lg bg-[#fff8f3] border border-[#fed7aa] text-xs font-extrabold text-[#ea580c] hover:bg-[#fed7aa]/30 transition active:scale-95">
+              + Add Judge
+            </button>
+          </div>
+
+          <div id="adminInternalRosterList" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+            <!-- Dynamic judge cards -->
+          </div>
+        </div>
+
+        <!-- External Judges Panel -->
+        <div class="bg-white rounded-2xl border border-[#e3dccd] p-4 sm:p-5 shadow-xs space-y-3">
+          <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
+            <div>
+              <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a] flex items-center gap-1.5">
+                <span>🌟 External Judges (Phase 2 · 70%)</span>
+              </h3>
+              <p class="text-[10px] text-[#64748b]">Industry Experts & IEEE Jury for Final Expo</p>
+            </div>
+            <button type="button" id="btnAdminAddExternal" class="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-xs font-extrabold text-indigo-700 hover:bg-indigo-100 transition active:scale-95">
+              + Add Judge
+            </button>
+          </div>
+
+          <div id="adminExternalRosterList" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+            <!-- Dynamic judge cards -->
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- SAVE & SYNC BUTTON BAR -->
+      <div class="bg-[#fff8f3] p-4 rounded-2xl border-2 border-[#fed7aa] shadow-xs flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <span class="text-xs font-black uppercase text-[#0f172a] block">Apply Jury & Phase Changes</span>
+          <span class="text-[10px] text-[#64748b]">Clicking will instantly push updated names, PINs, and active phase to all judges' phones.</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnSaveAllAdminChanges" class="py-2.5 px-6 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-xs uppercase tracking-wider shadow-md transition active:scale-95">
+            💾 Save & Sync All Devices
+          </button>
+        </div>
+      </div>
+
+
+      <!-- SECTION 4: LIVE EVALUATION MASTER MATRIX -->
+      <div class="bg-white rounded-2xl border border-[#e3dccd] p-4 sm:p-5 shadow-xs space-y-3.5">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a] flex items-center gap-1.5">
+              <span>📋 Live Evaluation Master Matrix (24 Teams)</span>
+            </h3>
+            <p class="text-[10px] text-[#64748b]">Live score submissions across all internal and external judges</p>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <select id="matrixSectionFilter" class="text-xs font-bold bg-[#f6f1e6] border border-[#e3dccd] rounded-lg px-2.5 py-1 text-[#1e293b]">
+              <option value="ALL">All Sections (24 Teams)</option>
+              <option value="A">Section A (01–11)</option>
+              <option value="B">Section B (12–24)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-[#e3dccd]">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-[#f6f1e6] border-b border-[#e3dccd] text-[#64748b] font-bold uppercase text-[10px]">
+                <th class="py-2.5 px-2.5 w-12 font-serif-pace text-[#ea580c]">Team</th>
+                <th class="py-2.5 px-3">Team Name</th>
+                <th class="py-2.5 px-1.5 text-center">Sec</th>
+                <th class="py-2.5 px-2 text-center">Phase 1 (/30)</th>
+                <th class="py-2.5 px-2 text-center">Phase 2 (/70)</th>
+                <th class="py-2.5 px-2.5 text-right font-black text-[#ea580c]">Total (/100)</th>
+                <th class="py-2.5 px-2 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody id="adminMatrixTbody" class="divide-y divide-[#f0ebe0]">
+              <!-- Dynamically populated 24 teams -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+
+      <!-- SECTION 5: CEREMONY, EXPORT & MASTER CONTROL HUB -->
+      <div class="bg-gradient-to-r from-slate-900 to-[#0f172a] text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-lg space-y-3.5">
+        <div>
+          <span class="text-xs font-black uppercase text-amber-400 block tracking-wider">Master Ceremony & Export Hub</span>
+          <p class="text-[10px] text-slate-300">Valedictory announcement ceremony stage, official CSV report, and emergency actions</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          
+          <!-- Launch Ceremony -->
+          <a href="index.html#ceremony" onclick="localStorage.setItem('open_ceremony_on_load', 'true')" class="p-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl text-white font-black text-xs shadow-md transition flex items-center justify-between active:scale-95">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🏆</span>
+              <div>
+                <span class="block leading-tight">Reveal Ceremony</span>
+                <span class="text-[9px] text-amber-100 font-normal">Fanfare & Confetti Stage</span>
+              </div>
+            </div>
+            <span>▶</span>
+          </a>
+
+          <!-- Export CSV -->
+          <button type="button" id="btnAdminExportCSV" class="p-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 font-bold text-xs shadow-sm transition flex items-center justify-between active:scale-95">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">📊</span>
+              <div>
+                <span class="block leading-tight text-white font-black">Export CSV Ledger</span>
+                <span class="text-[9px] text-slate-400 font-normal">Complete scores breakdown</span>
+              </div>
+            </div>
+            <span>↓</span>
+          </button>
+
+          <!-- WhatsApp Broadcast -->
+          <button type="button" id="btnAdminShareWhatsApp" class="p-3 bg-emerald-700 hover:bg-emerald-600 border border-emerald-600 rounded-xl text-white font-bold text-xs shadow-sm transition flex items-center justify-between active:scale-95">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">💬</span>
+              <div>
+                <span class="block leading-tight text-white font-black">WhatsApp Standings</span>
+                <span class="text-[9px] text-emerald-100 font-normal">Broadcast formatted text</span>
+              </div>
+            </div>
+            <span>↗</span>
+          </button>
+
+        </div>
+
+        <!-- Danger Zone: Reset Scores -->
+        <div class="pt-2 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs">
+          <span class="text-slate-400 text-[10px]">Need to wipe demo evaluations before the competition begins?</span>
+          <button type="button" id="btnAdminResetScores" class="px-3 py-1.5 rounded-lg bg-rose-950/70 border border-rose-800/50 hover:bg-rose-900 text-rose-300 font-black text-[10px] transition active:scale-95">
+            ⚠️ Reset All Team Evaluations
+          </button>
+        </div>
+
+      </div>
+
+    </main>
+
+    <footer class="mt-auto py-3 text-center text-[10px] text-[#64748b]">
+      Department of Computer Science & Engineering · P.A. College of Engineering · EMBEDTHON '26
+    </footer>
+
+  </div>
+
+  <script src="teams.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -78,11 +78,18 @@
         </div>
 
         <!-- Coordinator Option -->
-        <div>
+        <div class="space-y-1">
           <button type="button" id="btnSelectAdminLogin" class="w-full p-2 rounded-xl border border-[#e3dccd] bg-[#f6f1e6] hover:bg-[#efe8da] text-left flex items-center justify-between text-xs font-bold text-[#475569] active:scale-95 transition">
             <span>⚙️ Coordinator / Admin</span>
             <span class="text-[10px] text-slate-400">Manage phases & judges</span>
           </button>
+          <div class="flex items-center justify-between px-1 text-[10px]">
+            <span class="text-[#64748b]">Coordinator Management:</span>
+            <a href="admin.html" class="font-extrabold text-[#ea580c] hover:underline flex items-center gap-0.5">
+              <span>Open Admin Page</span>
+              <span>↗</span>
+            </a>
+          </div>
         </div>
 
         <input type="hidden" id="loginNameInput" value="">
