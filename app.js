@@ -473,10 +473,14 @@
     const match = allJudges.find((x) => x.id === selectedLoginJudgeId);
     if (match) {
       pinHintBadge.textContent = `PIN: ${match.pin}`;
-      if (loginNameInput) loginNameInput.value = match.name;
+      if (loginNameInput && document.activeElement !== loginNameInput && !loginNameInput.value) {
+        loginNameInput.value = match.name;
+      }
     } else if (selectedLoginJudgeId === 'ADMIN') {
       pinHintBadge.textContent = 'PIN: 2026';
-      if (loginNameInput) loginNameInput.value = 'Chief Coordinator';
+      if (loginNameInput && document.activeElement !== loginNameInput && !loginNameInput.value) {
+        loginNameInput.value = 'Chief Coordinator';
+      }
     }
   }
 

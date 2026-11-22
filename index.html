@@ -92,25 +92,36 @@
           </div>
         </div>
 
-        <input type="hidden" id="loginNameInput" value="">
-
         <!-- Selected Judge PIN -->
         <div>
           <div class="flex items-center justify-between mb-1">
             <label for="loginPinInput" class="text-xs font-bold text-[#1e293b] uppercase tracking-wide">
               Security PIN
             </label>
-            <span id="pinHintBadge" class="text-[10px] font-mono text-[#ea580c] font-black"></span>
+            <span id="pinHintBadge" class="text-[10px] font-mono text-[#ea580c] font-black">PIN: 1111</span>
           </div>
           <input type="password" id="loginPinInput" inputmode="numeric" maxlength="6" placeholder="Enter PIN"
                  class="w-full text-center text-lg font-mono font-black tracking-widest px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
         </div>
 
+        <!-- Your Name / Designation Override -->
+        <div>
+          <label for="loginNameInput" class="block font-bold text-[#1e293b] mb-1 uppercase tracking-wide text-xs">
+            Your Name / Designation
+          </label>
+          <input type="text" id="loginNameInput" placeholder="e.g., Dr. A. Rahman (Internal)"
+                 class="w-full px-3 py-2 text-sm text-[#0f172a] bg-white border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+        </div>
+
         <div id="loginErrorMessage" class="hidden text-[11px] font-bold text-red-600 bg-red-50 border border-red-200 p-2 rounded-lg text-center"></div>
 
         <button type="submit" id="btnLoginSubmit" class="w-full py-2.5 px-4 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-xs uppercase tracking-wider shadow-md transition active:scale-[0.98]">
-          Authenticate & Enter Portal
+          Authenticate & Start Scoring
         </button>
+
+        <p class="text-center text-[10px] text-[#64748b] leading-tight">
+          Supports multiple concurrent judges with live sync over local Wi-Fi.
+        </p>
       </form>
 
     </div>
