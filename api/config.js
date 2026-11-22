@@ -34,11 +34,14 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    if (!config.internalJudges) config.internalJudges = DEFAULT_CONFIG.internalJudges;
-    if (!config.externalJudges) config.externalJudges = DEFAULT_CONFIG.externalJudges;
+    if (!config.internalJudges || !config.internalJudges.length) config.internalJudges = DEFAULT_CONFIG.internalJudges;
+    if (!config.externalJudges || !config.externalJudges.length) config.externalJudges = DEFAULT_CONFIG.externalJudges;
     if (!config.activePhase) config.activePhase = 'PHASE_1';
 
     if (req.method === 'GET') {
+      if (!gist.files || !gist.files['config.json'] || !JSON.parse(gist.files['config.json'].content).internalJudges) {
+        await updateGistFile('config.json', JSON.stringify(config, null, 2));
+      }
       return res.status(200).json(config);
     }
 

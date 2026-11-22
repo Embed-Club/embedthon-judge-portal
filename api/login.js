@@ -1,5 +1,18 @@
 const { fetchGist, updateGistFile } = require('./_gist');
 
+const DEFAULT_CONFIG = {
+  activePhase: 'PHASE_1',
+  adminPin: '2026',
+  internalJudges: [
+    { id: 'INT-1', name: 'Internal Judge 1', role: 'CSE Faculty Mentor', pin: '1111' },
+    { id: 'INT-2', name: 'Internal Judge 2', role: 'CSE Faculty Mentor', pin: '2222' }
+  ],
+  externalJudges: [
+    { id: 'EXT-1', name: 'External Judge 1', role: 'Industry Expert', pin: '3333' },
+    { id: 'EXT-2', name: 'External Judge 2', role: 'IEEE Jury Member', pin: '4444' }
+  ]
+};
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -20,11 +33,18 @@ module.exports = async function handler(req, res) {
     const customName = String(body.judgeName || '').trim();
 
     const gist = await fetchGist();
-    let config = { adminPin: '2026', internalJudges: [], externalJudges: [] };
+    let config = { ...DEFAULT_CONFIG };
     if (gist.files && gist.files['config.json']) {
       try {
-        config = JSON.parse(gist.files['config.json'].content);
+        config = { ...config, ...JSON.parse(gist.files['config.json'].content) };
       } catch (e) {}
+    }
+
+    if (!config.internalJudges || !config.internalJudges.length) {
+      config.internalJudges = DEFAULT_CONFIG.internalJudges;
+    }
+    if (!config.externalJudges || !config.externalJudges.length) {
+      config.externalJudges = DEFAULT_CONFIG.externalJudges;
     }
 
     // 1. Admin login
