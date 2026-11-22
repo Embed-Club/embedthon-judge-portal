@@ -400,9 +400,10 @@
       btn.addEventListener('click', () => {
         selectedLoginJudgeId = j.id;
         loginPinInput.value = '';
-        loginNameInput.value = j.name;
+        if (loginNameInput) loginNameInput.value = j.name;
         pinHintBadge.textContent = `PIN: ${j.pin}`;
         renderLoginJudgeSlots();
+        if (loginPinInput) loginPinInput.focus();
       });
 
       loginInternalSlotsContainer.appendChild(btn);
@@ -430,24 +431,33 @@
       btn.addEventListener('click', () => {
         selectedLoginJudgeId = j.id;
         loginPinInput.value = '';
-        loginNameInput.value = j.name;
+        if (loginNameInput) loginNameInput.value = j.name;
         pinHintBadge.textContent = `PIN: ${j.pin}`;
         renderLoginJudgeSlots();
+        if (loginPinInput) loginPinInput.focus();
       });
 
       loginExternalSlotsContainer.appendChild(btn);
     });
 
-    // Admin option styling
+    // Admin option styling & click handler
     const isAdmin = selectedLoginJudgeId === 'ADMIN';
     if (btnSelectAdminLogin) {
       if (isAdmin) {
         btnSelectAdminLogin.className =
-          'w-full p-2 rounded-xl border text-left transition flex items-center justify-between bg-[#0f172a] text-white border-[#0f172a] shadow-xs';
+          'w-full p-2 rounded-xl border text-left transition flex items-center justify-between bg-[#0f172a] text-white border-[#0f172a] shadow-xs cursor-pointer';
       } else {
         btnSelectAdminLogin.className =
-          'w-full p-2 rounded-xl border text-left transition flex items-center justify-between bg-[#f6f1e6] text-[#475569] border-[#e3dccd] hover:bg-[#efe8da]';
+          'w-full p-2 rounded-xl border text-left transition flex items-center justify-between bg-[#f6f1e6] text-[#475569] border-[#e3dccd] hover:bg-[#efe8da] cursor-pointer';
       }
+      btnSelectAdminLogin.onclick = () => {
+        selectedLoginJudgeId = 'ADMIN';
+        loginPinInput.value = '';
+        if (loginNameInput) loginNameInput.value = 'Chief Coordinator';
+        pinHintBadge.textContent = 'PIN: 2026';
+        renderLoginJudgeSlots();
+        if (loginPinInput) loginPinInput.focus();
+      };
     }
 
     // Update active hint
@@ -455,17 +465,17 @@
     const match = allJudges.find((x) => x.id === selectedLoginJudgeId);
     if (match) {
       pinHintBadge.textContent = `PIN: ${match.pin}`;
-      loginNameInput.value = match.name;
+      if (loginNameInput) loginNameInput.value = match.name;
     } else if (selectedLoginJudgeId === 'ADMIN') {
       pinHintBadge.textContent = 'PIN: 2026';
-      loginNameInput.value = 'Chief Coordinator';
+      if (loginNameInput) loginNameInput.value = 'Chief Coordinator';
     }
   }
 
   async function handleLogin() {
     loginErrorMessage.classList.add('hidden');
     const pin = loginPinInput.value.trim();
-    const customName = loginNameInput.value.trim();
+    const customName = loginNameInput ? loginNameInput.value.trim() : '';
 
     if (!pin) {
       showLoginError('Please enter your 4-digit security PIN.');
@@ -1079,7 +1089,7 @@
       // Must be Admin
       selectedLoginJudgeId = 'ADMIN';
       loginPinInput.value = '';
-      loginNameInput.value = 'Chief Coordinator';
+      if (loginNameInput) loginNameInput.value = 'Chief Coordinator';
       renderLoginJudgeSlots();
       loginOverlay.classList.remove('hidden');
       return;
@@ -1308,7 +1318,7 @@
       btnSelectAdminLogin.addEventListener('click', () => {
         selectedLoginJudgeId = 'ADMIN';
         loginPinInput.value = '';
-        loginNameInput.value = 'Chief Coordinator';
+        if (loginNameInput) loginNameInput.value = 'Chief Coordinator';
         pinHintBadge.textContent = 'PIN: 2026';
         renderLoginJudgeSlots();
       });
