@@ -75,6 +75,91 @@
   const btnCloseAddRegModal = document.getElementById('btnCloseAddRegModal');
   const formAddReg = document.getElementById('formAddReg');
 
+  // Auth Gate Elements
+  const embersAuthGate = document.getElementById('embersAuthGate');
+  const embersMainContainer = document.getElementById('embersMainContainer');
+  const gateEmbersPin = document.getElementById('gateEmbersPin');
+  const btnGateUnlock = document.getElementById('btnGateUnlock');
+  const gateErrorMessage = document.getElementById('gateErrorMessage');
+  const formEmbersAuth = document.getElementById('formEmbersAuth');
+  const btnEmbersLogout = document.getElementById('btnEmbersLogout');
+
+  // =============================================================
+  // Coordinator Authentication
+  // =============================================================
+  function checkAuth() {
+    const savedPin = sessionStorage.getItem('embers_admin_pin') || localStorage.getItem('embedthon_admin_pin');
+    const adminAuth = localStorage.getItem('embedthon_admin_auth');
+
+    if (savedPin === '2026' || adminAuth) {
+      unlockConsole(savedPin || '2026');
+    } else {
+      if (embersAuthGate) embersAuthGate.classList.remove('hidden');
+      if (embersMainContainer) embersMainContainer.classList.add('hidden');
+      if (gateEmbersPin) setTimeout(() => gateEmbersPin.focus(), 100);
+    }
+  }
+
+  function unlockConsole(pin) {
+    sessionStorage.setItem('embers_admin_pin', pin);
+    if (embersAuthGate) embersAuthGate.classList.add('hidden');
+    if (embersMainContainer) embersMainContainer.classList.remove('hidden');
+  }
+
+  async function handleUnlock() {
+    if (!gateEmbersPin) return;
+    const pin = gateEmbersPin.value.trim();
+    if (!pin) {
+      showGateError('Please enter the master Admin PIN.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          judgeId: 'ADMIN',
+          pin: pin,
+          judgeName: 'Chief Coordinator'
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showGateError(data.error || 'Incorrect Admin PIN.');
+        return;
+      }
+
+      unlockConsole(pin);
+    } catch (e) {
+      // Local fallback
+      if (pin === '2026') {
+        unlockConsole(pin);
+      } else {
+        showGateError('Incorrect Admin PIN.');
+      }
+    }
+  }
+
+  function showGateError(msg) {
+    if (gateErrorMessage) {
+      gateErrorMessage.textContent = msg;
+      gateErrorMessage.classList.remove('hidden');
+    }
+  }
+
+  function handleLogout() {
+    sessionStorage.removeItem('embers_admin_pin');
+    localStorage.removeItem('embedthon_admin_auth');
+    if (embersAuthGate) embersAuthGate.classList.remove('hidden');
+    if (embersMainContainer) embersMainContainer.classList.add('hidden');
+    if (gateEmbersPin) {
+      gateEmbersPin.value = '';
+      gateEmbersPin.focus();
+    }
+  }
+
   // =============================================================
   // Secure API Helper
   // =============================================================
@@ -82,9 +167,11 @@
 
   async function postEmbersApi(action, data = {}) {
     try {
+      const currentPin = sessionStorage.getItem('embers_admin_pin') || '2026';
       const payload = {
         action,
         token: EMBERS_SECRET_TOKEN,
+        adminPin: currentPin,
         ...data
       };
       const res = await fetch('/api/embers', {
@@ -106,6 +193,7 @@
   // =============================================================
   async function init() {
     bindEvents();
+    checkAuth();
     await loadEmbersData();
   }
 
@@ -639,6 +727,16 @@
   // Event Bindings
   // =============================================================
   function bindEvents() {
+    // Authentication Gate & Lock
+    if (btnGateUnlock) btnGateUnlock.addEventListener('click', handleUnlock);
+    if (formEmbersAuth) formEmbersAuth.addEventListener('submit', (e) => { e.preventDefault(); handleUnlock(); });
+    if (gateEmbersPin) {
+      gateEmbersPin.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleUnlock();
+      });
+    }
+    if (btnEmbersLogout) btnEmbersLogout.addEventListener('click', handleLogout);
+
     // Tabs
     tabBtnSchedule.addEventListener('click', () => switchTab('schedule'));
     tabBtnRegistrations.addEventListener('click', () => switchTab('registrations'));
