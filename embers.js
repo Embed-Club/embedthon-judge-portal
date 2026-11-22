@@ -76,6 +76,32 @@
   const formAddReg = document.getElementById('formAddReg');
 
   // =============================================================
+  // Secure API Helper
+  // =============================================================
+  const EMBERS_SECRET_TOKEN = 'EMBERS_SYNC_2026';
+
+  async function postEmbersApi(action, data = {}) {
+    try {
+      const payload = {
+        action,
+        token: EMBERS_SECRET_TOKEN,
+        ...data
+      };
+      const res = await fetch('/api/embers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-embers-token': EMBERS_SECRET_TOKEN
+        },
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
+    } catch (e) {
+      console.warn('API error for ' + action, e);
+    }
+  }
+
+  // =============================================================
   // Initialization & Data Loading
   // =============================================================
   async function init() {
@@ -324,18 +350,7 @@
   }
 
   async function saveScheduleToServer() {
-    try {
-      await fetch('/api/embers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'save_schedule',
-          schedule: schedule
-        })
-      });
-    } catch (e) {
-      console.warn('Failed saving schedule:', e);
-    }
+    await postEmbersApi('save_schedule', { schedule: schedule });
   }
 
   // =============================================================
@@ -441,15 +456,10 @@
     renderRegistrations();
 
     // Sync to backend
-    fetch('/api/embers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'sync_responses',
-        records: newRecords,
-        sheetCsvUrl: sourceUrl
-      })
-    }).catch(e => console.warn(e));
+    postEmbersApi('sync_responses', {
+      records: newRecords,
+      sheetCsvUrl: sourceUrl
+    });
 
     alert(`Successfully synced ${newRecords.length} responses from Google Forms!`);
   }
@@ -568,11 +578,7 @@
     const reg = registrations.find(r => r.id === id);
     if (reg) {
       reg.assignedStall = value.trim();
-      fetch('/api/embers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update_registration', registration: reg })
-      }).catch(e => console.warn(e));
+      postEmbersApi('update_registration', { registration: reg });
     }
   };
 
@@ -581,11 +587,7 @@
     if (reg) {
       reg.feePaid = !reg.feePaid;
       renderRegistrations();
-      fetch('/api/embers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update_registration', registration: reg })
-      }).catch(e => console.warn(e));
+      postEmbersApi('update_registration', { registration: reg });
     }
   };
 
@@ -594,11 +596,7 @@
     registrations = registrations.filter(r => r.id !== id);
     updateMetrics();
     renderRegistrations();
-    fetch('/api/embers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete_registration', id: id })
-    }).catch(e => console.warn(e));
+    postEmbersApi('delete_registration', { id: id });
   };
 
   // =============================================================
@@ -788,11 +786,7 @@
         updateMetrics();
         renderRegistrations();
 
-        fetch('/api/embers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'add_registration', registration: newReg })
-        }).catch(e => console.warn(e));
+        postEmbersApi('add_registration', { registration: newReg });
       });
     }
   }

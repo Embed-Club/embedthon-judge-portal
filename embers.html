@@ -31,9 +31,29 @@
 <body class="min-h-screen bg-[#fdfbf7] text-[#1e293b] antialiased pb-16 flex flex-col justify-between">
 
   <!-- ========================================================= -->
-  <!-- 1. TOP OFFICIAL HEADER & BRANDING                         -->
+  <!-- 1. TOP OFFICIAL HEADER & DUAL-PORTAL SWITCHER             -->
   <!-- ========================================================= -->
   <header class="bg-white border-b-2 border-[#e3dccd] shadow-xs sticky top-0 z-40">
+    
+    <!-- TOP UNIVERSAL PORTAL SWITCHER BAR: EMBEDTHON vs EMBERS -->
+    <div class="bg-[#0b1120] text-white px-4 py-1.5 border-b border-slate-800 text-[11px]">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 truncate">
+          <span class="text-slate-400 font-medium text-[10px] hidden sm:inline">Active Portal:</span>
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-black text-[10px] tracking-wide border border-orange-400/30">
+            <span>🔥</span>
+            <span>EMBERS '26 · National Symposium Hub (Schedule, Stalls & Forms)</span>
+          </span>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <a href="index.html" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 font-extrabold text-[10px] transition shadow-xs active:scale-95">
+            <span>⚡ Switch to EMBEDTHON '26 Scoring</span>
+            <span class="text-xs">↗</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
     <div class="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
       
       <!-- Left: PACE Crest & Department Details -->
@@ -401,11 +421,59 @@
     <!-- TAB 4: GOOGLE FORMS SYNC SETUP & APPS SCRIPT            -->
     <!-- ======================================================= -->
     <section id="tabContentWebhook" class="hidden space-y-4">
+      
+      <!-- 🛡️ SECURITY & PRIVACY CARD -->
+      <div class="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 text-white rounded-2xl border-2 border-emerald-500/40 p-5 shadow-lg space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🛡️</span>
+          <div>
+            <h2 class="text-sm font-black uppercase text-emerald-400 tracking-wide">
+              Data Privacy & Google Sheet Security Architecture
+            </h2>
+            <p class="text-[11px] text-slate-300">
+              How to keep your participant PII (phone numbers, USNs, emails) 100% safe and private.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs">
+          <!-- Security Pillar 1 -->
+          <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1">
+            <span class="text-emerald-400 font-bold flex items-center gap-1.5 text-[11px]">
+              <span>🔒</span> 1. Keep Sheet "Restricted"
+            </span>
+            <p class="text-[10px] text-slate-300 leading-relaxed">
+              In Google Drive / Sheets, leave General Access as <strong>"Restricted"</strong>. <span class="text-rose-300 font-bold">NEVER</span> choose <em>"Anyone with the link can view"</em>. Your spreadsheet is never exposed to public internet crawlers or students.
+            </p>
+          </div>
+
+          <!-- Security Pillar 2 -->
+          <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1">
+            <span class="text-emerald-400 font-bold flex items-center gap-1.5 text-[11px]">
+              <span>⚡</span> 2. Zero-Knowledge Push
+            </span>
+            <p class="text-[10px] text-slate-300 leading-relaxed">
+              Apps Script executes <em>inside Google's private cloud</em> under your account. It pushes new rows outward over HTTPS. The public website never queries your Google Drive, and your Sheet URL is never in browser code.
+            </p>
+          </div>
+
+          <!-- Security Pillar 3 -->
+          <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1">
+            <span class="text-emerald-400 font-bold flex items-center gap-1.5 text-[11px]">
+              <span>🔑</span> 3. Secret Token Verification
+            </span>
+            <p class="text-[10px] text-slate-300 leading-relaxed">
+              The API endpoint verifies the header <code class="text-amber-300 font-mono">x-embers-token: EMBERS_SYNC_2026</code>. Any unauthenticated POST from third parties or bots is automatically blocked with <code class="text-rose-400">401 Unauthorized</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div class="bg-white rounded-2xl border-2 border-[#fed7aa] p-5 shadow-xs space-y-4">
         
         <div>
           <h2 class="text-sm font-black uppercase text-[#0f172a] flex items-center gap-2">
-            <span>⚡ Automatic Real-Time Sync with Google Forms</span>
+            <span>⚡ Setup Automatic Real-Time Push Webhook (1-Minute Setup)</span>
           </h2>
           <p class="text-xs text-[#64748b] mt-1">
             Whenever a participant submits your Google Form, this script will automatically push their submission directly into this EMBERS Management database without manual copy-pasting.
@@ -416,7 +484,7 @@
           <div class="flex items-start gap-2.5">
             <span class="w-6 h-6 rounded-full bg-[#ea580c] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">1</span>
             <div>
-              <p class="font-bold text-[#0f172a]">Open your Google Form or Linked Google Sheet</p>
+              <p class="font-bold text-[#0f172a]">Open your Linked Google Sheet</p>
               <p class="text-[#64748b]">Go to your Google Form: <a href="https://forms.gle/FydTB5VYcbqmsBbj6" target="_blank" class="text-[#ea580c] underline">forms.gle/FydTB5VYcbqmsBbj6 ↗</a>, open the <strong>Responses</strong> tab, and click <strong>View in Sheets</strong>.</p>
             </div>
           </div>
@@ -443,8 +511,9 @@
               Copy Script
             </button>
             <pre id="codeAppsScript"><code>function onFormSubmit(e) {
-  // EMBERS '26 Real-Time Google Form Sync Webhook
+  // EMBERS '26 Real-Time Google Form Sync Webhook (Zero-Knowledge & Private)
   var endpoint = "https://embedthon-judge-portal.vercel.app/api/embers";
+  var secretToken = "EMBERS_SYNC_2026"; // Secret Webhook Token
   
   var values = e ? e.namedValues : {};
   var record = {
@@ -468,12 +537,16 @@
 
   var payload = {
     action: "sync_responses",
+    token: secretToken,
     records: [record]
   };
 
   var options = {
     method: "post",
     contentType: "application/json",
+    headers: {
+      "x-embers-token": secretToken
+    },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   };

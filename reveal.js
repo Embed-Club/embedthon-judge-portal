@@ -655,8 +655,25 @@
       el.fsIcon.textContent = document.fullscreenElement ? '✕' : '⛶';
     });
 
+    const updateBannerForCategory = () => {
+      const bannerEvent = $('revealBannerEvent');
+      const bannerSub = $('revealBannerSub');
+      if (!bannerEvent || !bannerSub) return;
+      const isEmbedthon = ['EMBEDTHON', 'A', 'B'].includes(state.category);
+      if (isEmbedthon) {
+        bannerEvent.textContent = "EMBEDTHON '26";
+        bannerEvent.className = "font-black tracking-wider text-amber-400";
+        bannerSub.textContent = "24-Hour Internal Hackathon Valedictory";
+      } else {
+        bannerEvent.textContent = "EMBERS '26";
+        bannerEvent.className = "font-black tracking-wider text-orange-400";
+        bannerSub.textContent = "National Level Technical Symposium Valedictory";
+      }
+    };
+
     el.category.addEventListener('change', (e) => {
       state.category = e.target.value;
+      updateBannerForCategory();
       const targetStyle = EVENT_DEFAULT_STYLE[state.category];
       if (targetStyle) {
         setStyle(targetStyle);

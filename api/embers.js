@@ -31,7 +31,7 @@ const DEFAULT_EMBERS_DATA = {
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-embers-token');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -57,6 +57,15 @@ module.exports = async function handler(req, res) {
     if (req.method === 'POST') {
       const body = req.body || {};
       const action = body.action || req.query.action || 'sync';
+
+      // Security Check: Secret Webhook Token or Admin PIN Protection
+      const SECRET_TOKEN = process.env.EMBERS_WEBHOOK_TOKEN || 'EMBERS_SYNC_2026';
+      const ADMIN_PIN = process.env.ADMIN_PIN || '2026';
+      const providedAuth = req.headers['x-embers-token'] || body.token || body.adminPin;
+
+      if (providedAuth !== SECRET_TOKEN && providedAuth !== ADMIN_PIN) {
+        return res.status(401).json({ error: 'Unauthorized: Invalid x-embers-token or Admin PIN. Access Denied.' });
+      }
 
       // 1. Google Forms Webhook or Batch Sync
       if (action === 'sync_responses' || action === 'webhook') {
