@@ -1,0 +1,17 @@
+{
+  "name": "embedthon26-judge-portal",
+  "version": "1.0.0",
+  "description": "EMBEDTHON '26 Official Multi-Judge Evaluation Portal for P.A. College of Engineering",
+  "main": "index.html",
+  "scripts": {
+    "start": "python start_portal.py"
+  },
+  "keywords": [
+    "embedthon",
+    "embedclub",
+    "judging-portal",
+    "hackathon-scoring"
+  ],
+  "author": "Embed Club PACE",
+  "license": "MIT"
+}
