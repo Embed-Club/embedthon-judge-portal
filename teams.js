@@ -1205,3 +1205,74 @@ const TEAMS_DATA = [
     "member_count": 4
   }
 ];
+
+// EMBERS '26 Track 2: Project Expo Stalls (Edusat Hall · Stalls 01–30)
+const PROJECT_EXPO_TEAMS = [
+  { "number": "01", "name": "Smart Agri-Drone & Soil Scout", "stall": "Stall 01", "venue": "Edusat Hall", "section": "EXPO", "dept": "ECE / CSE", "lead": "Mohammed Shariq", "members": [{ "name": "Mohammed Shariq", "is_lead": true }, { "name": "Ayesha Kulsum" }] },
+  { "number": "02", "name": "IoT Bionic Hand Rehabilitation", "stall": "Stall 02", "venue": "Edusat Hall", "section": "EXPO", "dept": "Biomedical / EEE", "lead": "Fathima Nihala", "members": [{ "name": "Fathima Nihala", "is_lead": true }, { "name": "Safwan Ali" }] },
+  { "number": "03", "name": "Autonomous Solar Floor Cleaner", "stall": "Stall 03", "venue": "Edusat Hall", "section": "EXPO", "dept": "Mechanical / Mechatronics", "lead": "Rohan Kamath", "members": [{ "name": "Rohan Kamath", "is_lead": true }, { "name": "Ananya K." }] },
+  { "number": "04", "name": "Smart Grid Energy Theft Hunter", "stall": "Stall 04", "venue": "Edusat Hall", "section": "EXPO", "dept": "EEE", "lead": "Abdul Basith", "members": [{ "name": "Abdul Basith", "is_lead": true }, { "name": "Zaid Haris" }] },
+  { "number": "05", "name": "AI Vision Obstacle Cane for Blind", "stall": "Stall 05", "venue": "Edusat Hall", "section": "EXPO", "dept": "CSE / AIML", "lead": "Sana Parveen", "members": [{ "name": "Sana Parveen", "is_lead": true }, { "name": "Khadija Reem" }] },
+  { "number": "06", "name": "Hybrid EV Regenerative Braking Unit", "stall": "Stall 06", "venue": "Edusat Hall", "section": "EXPO", "dept": "Automobile / EEE", "lead": "Nikhil Varma", "members": [{ "name": "Nikhil Varma", "is_lead": true }, { "name": "Shubham Joshi" }] },
+  { "number": "07", "name": "Underwater Remotely Operated Sub (ROV)", "stall": "Stall 07", "venue": "Edusat Hall", "section": "EXPO", "dept": "Marine / ECE", "lead": "Faheem Ahmed", "members": [{ "name": "Faheem Ahmed", "is_lead": true }, { "name": "Bilal Tariq" }] },
+  { "number": "08", "name": "Portable Cold-Chain Vaccine Carrier", "stall": "Stall 08", "venue": "Edusat Hall", "section": "EXPO", "dept": "Biomedical / Mech", "lead": "Haleema Sadiya", "members": [{ "name": "Haleema Sadiya", "is_lead": true }, { "name": "Mariyambi" }] },
+  { "number": "09", "name": "LoRa Wildfire Early Warning Sensor Mesh", "stall": "Stall 09", "venue": "Edusat Hall", "section": "EXPO", "dept": "CSE / IoT", "lead": "Suhaib Sheikh", "members": [{ "name": "Suhaib Sheikh", "is_lead": true }, { "name": "Adnan Syed" }] },
+  { "number": "10", "name": "Automatic Railway Crack & Obstacle Detector", "stall": "Stall 10", "venue": "Edusat Hall", "section": "EXPO", "dept": "Civil / ECE", "lead": "Pooja Hegde", "members": [{ "name": "Pooja Hegde", "is_lead": true }, { "name": "Kiran Rao" }] },
+  { "number": "11", "name": "Smart Water Metering & Leakage Isolation", "stall": "Stall 11", "venue": "Edusat Hall", "section": "EXPO", "dept": "Civil / IoT", "lead": "Salman Faris", "members": [{ "name": "Salman Faris", "is_lead": true }, { "name": "Mustafa K." }] },
+  { "number": "12", "name": "Wearable ECG & Cardiac Rhythm Guardian", "stall": "Stall 12", "venue": "Edusat Hall", "section": "EXPO", "dept": "Biomedical", "lead": "Zoya Fatima", "members": [{ "name": "Zoya Fatima", "is_lead": true }, { "name": "Rida Mariyam" }] },
+  { "number": "13", "name": "Driver Drowsiness & Vital Sign Interlock", "stall": "Stall 13", "venue": "Edusat Hall", "section": "EXPO", "dept": "AIML", "lead": "Adil Rashid", "members": [{ "name": "Adil Rashid", "is_lead": true }, { "name": "Sameer Khan" }] },
+  { "number": "14", "name": "Home Hydroponic Automation System", "stall": "Stall 14", "venue": "Edusat Hall", "section": "EXPO", "dept": "Agriculture / IoT", "lead": "Nida Banu", "members": [{ "name": "Nida Banu", "is_lead": true }, { "name": "Farhan B." }] },
+  { "number": "15", "name": "Gesture-Controlled Surgical Microscope Mount", "stall": "Stall 15", "venue": "Edusat Hall", "section": "EXPO", "dept": "Robotics / Mechatronics", "lead": "Tariq Jameel", "members": [{ "name": "Tariq Jameel", "is_lead": true }, { "name": "Hamza Patel" }] },
+  { "number": "16", "name": "Pothole Scanner & Road Roughness Profiler", "stall": "Stall 16", "venue": "Edusat Hall", "section": "EXPO", "dept": "Civil / CSE", "lead": "Amith Shenoy", "members": [{ "name": "Amith Shenoy", "is_lead": true }, { "name": "Darshan K." }] },
+  { "number": "17", "name": "Self-Balancing Two-Wheeled Logistics Bot", "stall": "Stall 17", "venue": "Edusat Hall", "section": "EXPO", "dept": "Mechatronics", "lead": "Arun Kumar", "members": [{ "name": "Arun Kumar", "is_lead": true }, { "name": "Vinay D." }] },
+  { "number": "18", "name": "Air Quality Sentinel with Ozone & PM2.5", "stall": "Stall 18", "venue": "Edusat Hall", "section": "EXPO", "dept": "Environmental / ECE", "lead": "Tasneem Kausar", "members": [{ "name": "Tasneem Kausar", "is_lead": true }, { "name": "Sumayya" }] },
+  { "number": "19", "name": "Smart Streetlight Grid with Adaptive Dimming", "stall": "Stall 19", "venue": "Edusat Hall", "section": "EXPO", "dept": "EEE", "lead": "Irshad Basha", "members": [{ "name": "Irshad Basha", "is_lead": true }, { "name": "Noufal" }] },
+  { "number": "20", "name": "Brain-Wave EEG Focus Tracker for ADHD", "stall": "Stall 20", "venue": "Edusat Hall", "section": "EXPO", "dept": "Biomedical / AI", "lead": "Sara Noor", "members": [{ "name": "Sara Noor", "is_lead": true }, { "name": "Amina" }] },
+  { "number": "21", "name": "Biometric Smart Gun Trigger Safety Lock", "stall": "Stall 21", "venue": "Edusat Hall", "section": "EXPO", "dept": "ECE / Embedded", "lead": "Junaid Siddiqui", "members": [{ "name": "Junaid Siddiqui", "is_lead": true }, { "name": "Rayyan" }] },
+  { "number": "22", "name": "Autonomous Greenhouse Humidity & Fogger", "stall": "Stall 22", "venue": "Edusat Hall", "section": "EXPO", "dept": "IoT", "lead": "Afreen Jahan", "members": [{ "name": "Afreen Jahan", "is_lead": true }, { "name": "Shaista" }] },
+  { "number": "23", "name": "Plastic Sorting Optical Conveyor Mechanism", "stall": "Stall 23", "venue": "Edusat Hall", "section": "EXPO", "dept": "Mechanical / AI", "lead": "Prathik Shetty", "members": [{ "name": "Prathik Shetty", "is_lead": true }, { "name": "Gaurav" }] },
+  { "number": "24", "name": "Wind Turbine Vibration & Defect Sentinel", "stall": "Stall 24", "venue": "Edusat Hall", "section": "EXPO", "dept": "Mechanical / ECE", "lead": "Mansoor Ali", "members": [{ "name": "Mansoor Ali", "is_lead": true }, { "name": "Nawaf" }] },
+  { "number": "25", "name": "Li-Fi Underwater Optical Data Link", "stall": "Stall 25", "venue": "Edusat Hall", "section": "EXPO", "dept": "ECE", "lead": "Ashraf Raza", "members": [{ "name": "Ashraf Raza", "is_lead": true }, { "name": "Talha" }] },
+  { "number": "26", "name": "Smart Milk Adulteration & Purity Tester", "stall": "Stall 26", "venue": "Edusat Hall", "section": "EXPO", "dept": "Biotech / ECE", "lead": "Deepika Nayak", "members": [{ "name": "Deepika Nayak", "is_lead": true }, { "name": "Bhavya" }] },
+  { "number": "27", "name": "Autonomous Trash Skimmer for Lakes & Rivers", "stall": "Stall 27", "venue": "Edusat Hall", "section": "EXPO", "dept": "Marine / Robotics", "lead": "Wasim Akram", "members": [{ "name": "Wasim Akram", "is_lead": true }, { "name": "Aman" }] },
+  { "number": "28", "name": "Automated Wheelchair Stair-Climbing Rig", "stall": "Stall 28", "venue": "Edusat Hall", "section": "EXPO", "dept": "Mechanical", "lead": "Siddharth Pai", "members": [{ "name": "Siddharth Pai", "is_lead": true }, { "name": "Karthik" }] },
+  { "number": "29", "name": "Smart LPG Leakage Shutoff & Gas Auto-Book", "stall": "Stall 29", "venue": "Edusat Hall", "section": "EXPO", "dept": "IoT", "lead": "Munaza Khan", "members": [{ "name": "Munaza Khan", "is_lead": true }, { "name": "Asma" }] },
+  { "number": "30", "name": "Tactile Braille E-Book Refreshable Display", "stall": "Stall 30", "venue": "Edusat Hall", "section": "EXPO", "dept": "ECE / Biomedical", "lead": "Imran Nazir", "members": [{ "name": "Imran Nazir", "is_lead": true }, { "name": "Haris" }] }
+];
+
+// EMBERS '26 Track 3: Paper Presentation (Multipurpose Hall · Papers 01–16)
+const PAPER_TEAMS = [
+  { "number": "01", "name": "Edge TinyML: Predictive Vibration on Cortex-M4", "slot": "PP-01", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Afsal N.", "dept": "CSE", "members": [{ "name": "Afsal N.", "is_lead": true }, { "name": "Dr. Zahir" }] },
+  { "number": "02", "name": "Fault-Tolerant CAN-Bus Protocol for Quadcopters", "slot": "PP-02", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Shifa Banu", "dept": "ECE", "members": [{ "name": "Shifa Banu", "is_lead": true }] },
+  { "number": "03", "name": "Zero-Knowledge Verifiable Identity in Campus IoT", "slot": "PP-03", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Vivek Shenoy", "dept": "Cybersecurity", "members": [{ "name": "Vivek Shenoy", "is_lead": true }] },
+  { "number": "04", "name": "Energy-Harvesting Thermoelectric Transducers", "slot": "PP-04", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Rukaiya", "dept": "EEE", "members": [{ "name": "Rukaiya", "is_lead": true }] },
+  { "number": "05", "name": "Comparative Benchmark of RTOS Schedulers on RISC-V", "slot": "PP-05", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Taha Qureshi", "dept": "CSE", "members": [{ "name": "Taha Qureshi", "is_lead": true }] },
+  { "number": "06", "name": "Lightweight Post-Quantum Kyber on ESP32-S3", "slot": "PP-06", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Zubair Hashim", "dept": "ISE", "members": [{ "name": "Zubair Hashim", "is_lead": true }] },
+  { "number": "07", "name": "Hybrid Beamforming for 6G Indoor Propagation", "slot": "PP-07", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Manish Prabhu", "dept": "ECE", "members": [{ "name": "Manish Prabhu", "is_lead": true }] },
+  { "number": "08", "name": "Vision Transformer Pruning for Edge Drones", "slot": "PP-08", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Fathimath Raniya", "dept": "AIML", "members": [{ "name": "Fathimath Raniya", "is_lead": true }] },
+  { "number": "09", "name": "Decentralized Microgrid Peer-to-Peer Trading", "slot": "PP-09", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Suhail Ahmed", "dept": "EEE", "members": [{ "name": "Suhail Ahmed", "is_lead": true }] },
+  { "number": "10", "name": "Sub-Threshold CMOS Op-Amp for Pacemaker Telemetry", "slot": "PP-10", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Ankita Bhat", "dept": "VLSI / ECE", "members": [{ "name": "Ankita Bhat", "is_lead": true }] },
+  { "number": "11", "name": "Graph Neural Networks for Semiconductor Yield Flaws", "slot": "PP-11", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Hariprasad", "dept": "Data Science", "members": [{ "name": "Hariprasad", "is_lead": true }] },
+  { "number": "12", "name": "Self-Healing Firmware Architecture using Dual Flash", "slot": "PP-12", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Basheer Moideen", "dept": "Embedded", "members": [{ "name": "Basheer Moideen", "is_lead": true }] },
+  { "number": "13", "name": "Underwater Acoustic Acoustic Localization for Swarms", "slot": "PP-13", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Sowmya K.", "dept": "Robotics", "members": [{ "name": "Sowmya K.", "is_lead": true }] },
+  { "number": "14", "name": "Differential Privacy in Distributed Hospital Telemetry", "slot": "PP-14", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Irfan Ghouse", "dept": "Health Informatics", "members": [{ "name": "Irfan Ghouse", "is_lead": true }] },
+  { "number": "15", "name": "Phase-Change Memory Reliability in Extreme Thermal Cycles", "slot": "PP-15", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Varun Alva", "dept": "Materials / ECE", "members": [{ "name": "Varun Alva", "is_lead": true }] },
+  { "number": "16", "name": "Hardware Trojan Detection via Dynamic Current Profiling", "slot": "PP-16", "venue": "Multipurpose Hall", "section": "PAPER", "lead": "Nabeeha Fathima", "dept": "Hardware Security", "members": [{ "name": "Nabeeha Fathima", "is_lead": true }] }
+];
+
+function getEventTeams(eventId) {
+  const ev = String(eventId || '').toUpperCase();
+  if (ev === 'PROJECT_EXPO') return PROJECT_EXPO_TEAMS;
+  if (ev === 'PAPER') return PAPER_TEAMS;
+  return TEAMS_DATA;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    TEAMS_DATA: TEAMS_DATA,
+    PROJECT_EXPO_TEAMS: PROJECT_EXPO_TEAMS,
+    PAPER_TEAMS: PAPER_TEAMS,
+    getEventTeams: getEventTeams
+  };
+}
+

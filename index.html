@@ -97,6 +97,34 @@
           </div>
         </div>
 
+        <!-- Designated Event Track -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <label class="block text-[11px] font-extrabold text-[#1e293b] uppercase tracking-wide flex items-center gap-1">
+              <span>🎯 Destination Event Track</span>
+            </label>
+            <span id="loginAssignedBadge" class="text-[9px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-[#ea580c]">Auto-Detected</span>
+          </div>
+          <div id="loginTrackPills" class="grid grid-cols-3 gap-1.5">
+            <button type="button" data-event="EMBEDDATHON" class="login-track-btn p-2 rounded-xl border text-center transition bg-[#0f172a] text-white border-[#0f172a] shadow-xs active:scale-95">
+              <span class="text-base block leading-none">⚡</span>
+              <span class="text-[10px] font-black block mt-1 truncate">Track 1</span>
+              <span class="text-[8px] opacity-80 block truncate">Labs 1 & 2</span>
+            </button>
+            <button type="button" data-event="PROJECT_EXPO" class="login-track-btn p-2 rounded-xl border text-center transition bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6] active:scale-95">
+              <span class="text-base block leading-none">🛠️</span>
+              <span class="text-[10px] font-black block mt-1 truncate">Track 2</span>
+              <span class="text-[8px] text-[#64748b] block truncate">Edusat Hall</span>
+            </button>
+            <button type="button" data-event="PAPER" class="login-track-btn p-2 rounded-xl border text-center transition bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6] active:scale-95">
+              <span class="text-base block leading-none">📄</span>
+              <span class="text-[10px] font-black block mt-1 truncate">Track 3</span>
+              <span class="text-[8px] text-[#64748b] block truncate">Multi. Hall</span>
+            </button>
+          </div>
+          <p id="loginTrackDesc" class="text-[9px] text-[#64748b] text-center font-semibold leading-tight pt-0.5">Track 1: Embeddathon · Computer Labs 1 & 2 (24-Hour Hackathon)</p>
+        </div>
+
         <!-- Selected Judge PIN -->
         <div>
           <div class="flex items-center justify-between mb-1">
@@ -234,8 +262,8 @@
         </button>
       </div>
 
-      <!-- Quick Section Switch -->
-      <div class="flex items-center gap-1 bg-[#f6f1e6] p-0.5 rounded-lg border border-[#e3dccd]">
+      <!-- Quick Section Switch (Embeddathon only) -->
+      <div id="quickSectionSwitchWrapper" class="flex items-center gap-1 bg-[#f6f1e6] p-0.5 rounded-lg border border-[#e3dccd]">
         <button id="btnSwitchSecA" class="px-2.5 py-1 text-xs font-black rounded bg-[#ea580c] text-white transition shadow-xs">Sec A</button>
         <button id="btnSwitchSecB" class="px-2.5 py-1 text-xs font-semibold rounded text-[#475569] hover:text-[#0f172a] transition">Sec B</button>
       </div>

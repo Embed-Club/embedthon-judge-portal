@@ -49,8 +49,9 @@
   let lastDataChecksum = '';
   let pollingInterval = null;
 
-  // Selected judge in login modal
+  // Selected judge and track in login modal
   let selectedLoginJudgeId = 'INT-1';
+  let selectedLoginEventId = 'EMBEDDATHON';
 
   // -------------------------------------------------------------
   // DOM References
@@ -68,6 +69,10 @@
   const pinHintBadge = document.getElementById('pinHintBadge');
   const loginErrorMessage = document.getElementById('loginErrorMessage');
   const btnLoginSubmit = document.getElementById('btnLoginSubmit');
+  const loginAssignedBadge = document.getElementById('loginAssignedBadge');
+  const loginTrackPills = document.getElementById('loginTrackPills');
+  const loginTrackDesc = document.getElementById('loginTrackDesc');
+  const quickSectionSwitchWrapper = document.getElementById('quickSectionSwitchWrapper');
 
   // Header & Subheader
   const activeJudgeBadge = document.getElementById('activeJudgeBadge');
@@ -228,12 +233,20 @@
   // In-memory draft for Admin Config modal
   let draftAdminConfig = null;
 
+  function refreshTeamsForActiveEvent() {
+    teams = typeof getEventTeams === 'function'
+      ? getEventTeams(activeEventId)
+      : (typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA : []);
+    if (currentTeamIndex >= teams.length) currentTeamIndex = 0;
+  }
+
   // -------------------------------------------------------------
   // Initialization
   // -------------------------------------------------------------
   async function init() {
-    loadSavedTeamIndex();
     loadSavedEventId();
+    refreshTeamsForActiveEvent();
+    loadSavedTeamIndex();
 
     // 1. Fetch server config and evaluations
     await fetchServerConfig();
@@ -243,6 +256,7 @@
     checkSavedAuth();
 
     // 3. Render base components
+    refreshTeamsForActiveEvent();
     renderLoginJudgeSlots();
     renderEventSelector();
     renderTeamPills();
@@ -278,6 +292,29 @@
   }
 
   function loadSavedEventId() {
+    // 1. URL search parameters take absolute priority to ensure direct links work cleanly
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlEvent = (params.get('event') || params.get('track') || '').toUpperCase();
+      if (urlEvent) {
+        if (urlEvent === 'PAPER' || urlEvent === 'TRACK_3' || urlEvent === 'TRACK3') {
+          activeEventId = 'PAPER';
+          saveActiveEvent();
+          return;
+        }
+        if (urlEvent === 'PROJECT_EXPO' || urlEvent === 'EXPO' || urlEvent === 'TRACK_2' || urlEvent === 'TRACK2') {
+          activeEventId = 'PROJECT_EXPO';
+          saveActiveEvent();
+          return;
+        }
+        if (urlEvent === 'EMBEDDATHON' || urlEvent === 'EMBEDTHON' || urlEvent === 'TRACK_1' || urlEvent === 'TRACK1' || urlEvent === 'HACKATHON') {
+          activeEventId = 'EMBEDDATHON';
+          saveActiveEvent();
+          return;
+        }
+      }
+    } catch (e) {}
+
     try {
       const saved = localStorage.getItem(STORAGE_KEY_EVENT);
       if (saved && (EVENTS[saved] || saved === 'EMBEDDATHON')) {
@@ -356,7 +393,8 @@
   }
 
   function getEventStandings(eventId) {
-    return teams.map((team) => {
+    const evTeams = typeof getEventTeams === 'function' ? getEventTeams(eventId) : teams;
+    return evTeams.map((team) => {
       const teamEvals = getTeamEventEvals(team.number, eventId);
       const values = Object.values(teamEvals).filter(Boolean);
 
@@ -393,6 +431,9 @@
   function renderEventSelector() {
     if (!eventTabsRow) return;
 
+    const assignment = currentJudge ? getJudgeAssignment(currentJudge.id) : null;
+    const isLockedToAssignment = Boolean(currentJudge && !currentJudge.isAdmin && assignment && assignment.eventId);
+
     const order = EVENT_LIB.EVENT_ORDER && EVENT_LIB.EVENT_ORDER.length
       ? EVENT_LIB.EVENT_ORDER
       : ['PAPER', 'PROJECT_EXPO', 'EMBEDDATHON'];
@@ -402,19 +443,42 @@
       const event = EVENTS[eventId];
       if (!event) return;
       const isActive = eventId === activeEventId;
+      const isAssigned = assignment && assignment.eventId === eventId;
+      const isBlocked = isLockedToAssignment && !isAssigned;
+
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = isActive
-        ? 'px-2 py-2 rounded-xl border-2 text-left transition active:scale-95 bg-[#0f172a] text-white border-[#0f172a] shadow-sm'
+        ? 'px-2 py-2 rounded-xl border-2 text-left transition bg-[#0f172a] text-white border-[#0f172a] shadow-sm'
+        : isBlocked
+        ? 'px-2 py-2 rounded-xl border text-left transition bg-slate-50 text-slate-400 border-slate-200 opacity-40 cursor-not-allowed'
         : 'px-2 py-2 rounded-xl border text-left transition active:scale-95 bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6]';
+
       btn.innerHTML = `
-        <span class="text-base block leading-none">${event.icon}</span>
-        <span class="text-[9px] font-black block truncate mt-0.5">${event.shortLabel}</span>
+        <div class="flex items-center justify-between">
+          <span class="text-base leading-none">${event.icon}</span>
+          ${isAssigned ? '<span class="text-[7px] font-black px-1.5 py-0.2 rounded bg-emerald-500 text-white">YOUR TRACK</span>' : ''}
+        </div>
+        <span class="text-[9px] font-black block truncate mt-1">${event.shortLabel}</span>
         <span class="text-[8px] font-bold block ${isActive ? 'text-orange-200' : 'text-[#64748b]'}">${event.maxTotal} pts</span>
       `;
-      btn.addEventListener('click', () => setActiveEvent(eventId));
+
+      if (isBlocked) {
+        btn.title = `Your login is assigned to ${EVENT_LIB.getEvent(assignment.eventId).label}. Switch judge to change event.`;
+        btn.addEventListener('click', () => {
+          alert(`Your jury assignment (${currentJudge.id}) is locked to ${EVENT_LIB.getEvent(assignment.eventId).label} (${assignment.venue || ''}). Switch judge or log out to evaluate another track.`);
+        });
+      } else {
+        btn.addEventListener('click', () => setActiveEvent(eventId));
+      }
       eventTabsRow.appendChild(btn);
     });
+
+    // Update Reveal Ceremony Button URLs so they scope directly to activeEventId
+    const btnLaunchCeremony = document.getElementById('btnLaunchCeremony');
+    if (btnLaunchCeremony) {
+      btnLaunchCeremony.href = `reveal.html?category=${activeEventId}`;
+    }
 
     updateAssignmentUI();
   }
@@ -456,12 +520,15 @@
   }
 
   function setActiveEvent(eventId) {
-    if (!EVENTS[eventId] || eventId === activeEventId) return;
+    if (!EVENTS[eventId]) return;
     activeEventId = eventId;
     saveActiveEvent();
+    refreshTeamsForActiveEvent();
+    currentTeamIndex = 0;
     renderedSingleEventId = null;
     applyEventMode();
-    loadCurrentJudgeScoresForTeam();
+    renderEventSelector();
+    loadTeamIntoForm(currentTeamIndex);
     renderJuryConsensus();
     renderTeamPills();
     renderTeamGridModal();
@@ -795,6 +862,10 @@
         loginPinInput.value = '';
         if (loginNameInput) loginNameInput.value = j.name;
         pinHintBadge.textContent = `PIN: ${j.pin}`;
+        const asgn = getJudgeAssignment(j.id);
+        if (asgn && asgn.eventId && EVENTS[asgn.eventId]) {
+          selectedLoginEventId = asgn.eventId;
+        }
         renderLoginJudgeSlots();
         if (loginPinInput) loginPinInput.focus();
       });
@@ -831,6 +902,10 @@
         loginPinInput.value = '';
         if (loginNameInput) loginNameInput.value = j.name;
         pinHintBadge.textContent = `PIN: ${j.pin}`;
+        const asgn = getJudgeAssignment(j.id);
+        if (asgn && asgn.eventId && EVENTS[asgn.eventId]) {
+          selectedLoginEventId = asgn.eventId;
+        }
         renderLoginJudgeSlots();
         if (loginPinInput) loginPinInput.focus();
       });
@@ -856,6 +931,43 @@
         renderLoginJudgeSlots();
         if (loginPinInput) loginPinInput.focus();
       };
+    }
+
+    // Auto-sync or configure assigned event track in modal
+    const selectedAssignment = getJudgeAssignment(selectedLoginJudgeId);
+    if (selectedAssignment && selectedAssignment.eventId && EVENTS[selectedAssignment.eventId]) {
+      selectedLoginEventId = selectedAssignment.eventId;
+      if (loginAssignedBadge) {
+        loginAssignedBadge.textContent = `Assigned: ${EVENT_LIB.getEvent(selectedAssignment.eventId).shortLabel}`;
+        loginAssignedBadge.className = 'text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
+      }
+    } else {
+      if (loginAssignedBadge) {
+        loginAssignedBadge.textContent = 'Select Event';
+        loginAssignedBadge.className = 'text-[9px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-[#ea580c] border border-orange-200';
+      }
+    }
+
+    if (loginTrackPills) {
+      const trackBtns = loginTrackPills.querySelectorAll('.login-track-btn');
+      trackBtns.forEach((btn) => {
+        const ev = btn.getAttribute('data-event');
+        const isSelected = ev === selectedLoginEventId;
+        if (isSelected) {
+          btn.className = 'login-track-btn p-2 rounded-xl border-2 text-center transition bg-[#0f172a] text-white border-[#0f172a] shadow-xs cursor-pointer';
+        } else {
+          btn.className = 'login-track-btn p-2 rounded-xl border text-center transition bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6] cursor-pointer';
+        }
+        btn.onclick = () => {
+          selectedLoginEventId = ev;
+          renderLoginJudgeSlots();
+        };
+      });
+    }
+
+    if (loginTrackDesc) {
+      const activeEv = EVENT_LIB.getEvent(selectedLoginEventId);
+      loginTrackDesc.textContent = `${activeEv.icon} ${activeEv.label} · ${activeEv.venue} (${activeEv.maxTotal} Marks Total)`;
     }
 
     // Update active hint
@@ -910,9 +1022,23 @@
         return;
       }
 
+      // Route judge strictly to their designated event
+      const targetEventId = (currentJudge.assignment && currentJudge.assignment.eventId)
+        || selectedLoginEventId
+        || activeEventId
+        || 'EMBEDDATHON';
+
+      setActiveEvent(targetEventId);
+
+      try {
+        const targetUrl = new URL(window.location.href);
+        targetUrl.searchParams.set('event', targetEventId.toLowerCase());
+        window.history.replaceState({}, '', targetUrl.toString());
+      } catch (e) {}
+
       updateActiveJudgeUI();
       loginOverlay.classList.add('hidden');
-      loadTeamIntoForm(currentTeamIndex);
+      loadTeamIntoForm(0);
       renderLeaderboard();
     } catch (e) {
       showLoginError('Network error connecting to evaluation server.');
@@ -971,10 +1097,22 @@
     localStorage.setItem(STORAGE_KEY_CURRENT, index.toString());
 
     const team = teams[index];
-    activeSectionFilter = team.section;
+    if (!team) return;
+    activeSectionFilter = team.section || 'A';
 
-    if (navSectionBadge) navSectionBadge.textContent = `SECTION ${team.section}`;
-    if (teamSectionLabel) teamSectionLabel.textContent = `SECTION ${team.section}`;
+    if (activeEventId === 'PAPER') {
+      if (navSectionBadge) navSectionBadge.textContent = 'TRACK 3 · PAPER';
+      if (teamSectionLabel) teamSectionLabel.textContent = `PAPER ${team.number} · MULTIPURPOSE HALL`;
+      if (quickSectionSwitchWrapper) quickSectionSwitchWrapper.classList.add('hidden');
+    } else if (activeEventId === 'PROJECT_EXPO') {
+      if (navSectionBadge) navSectionBadge.textContent = 'TRACK 2 · EXPO';
+      if (teamSectionLabel) teamSectionLabel.textContent = `${team.stall || 'STALL ' + team.number} · EDUSAT HALL`;
+      if (quickSectionSwitchWrapper) quickSectionSwitchWrapper.classList.add('hidden');
+    } else {
+      if (navSectionBadge) navSectionBadge.textContent = `SECTION ${team.section}`;
+      if (teamSectionLabel) teamSectionLabel.textContent = `TEAM PROFILE · SECTION ${team.section}`;
+      if (quickSectionSwitchWrapper) quickSectionSwitchWrapper.classList.remove('hidden');
+    }
 
     if (btnSwitchSecA && btnSwitchSecB) {
       if (team.section === 'A') {
@@ -988,12 +1126,27 @@
 
     if (teamBigNumber) teamBigNumber.textContent = team.number;
     if (teamBigName) teamBigName.textContent = team.name;
-    if (teamSubtitle) teamSubtitle.textContent = `${team.member_count} members · Section ${team.section} · ${getActiveEvent().label}`;
-    if (memberCountBadge) memberCountBadge.textContent = `${team.member_count} REGISTERED`;
+    if (teamSubtitle) {
+      if (activeEventId === 'PAPER') {
+        teamSubtitle.textContent = `${team.slot || 'PP-' + team.number} · ${team.venue || 'Multipurpose Hall'} · Dept: ${team.dept || 'Engineering'}`;
+      } else if (activeEventId === 'PROJECT_EXPO') {
+        teamSubtitle.textContent = `${team.stall || 'Stall ' + team.number} · ${team.venue || 'Edusat Hall'} · Dept: ${team.dept || 'Engineering'}`;
+      } else {
+        teamSubtitle.textContent = `${team.member_count || (team.members ? team.members.length : 4)} members · Section ${team.section} · Labs 1 & 2`;
+      }
+    }
+    if (memberCountBadge) {
+      if (activeEventId === 'PAPER') memberCountBadge.textContent = team.lead ? `AUTHOR: ${team.lead}` : 'RESEARCH PAPER';
+      else if (activeEventId === 'PROJECT_EXPO') memberCountBadge.textContent = team.stall || `STALL ${team.number}`;
+      else memberCountBadge.textContent = `${team.member_count || (team.members ? team.members.length : 4)} REGISTERED`;
+    }
 
-    if (bnavTeamLabel) bnavTeamLabel.textContent = `Save Team #${team.number}`;
+    if (bnavTeamLabel) {
+      const prefix = activeEventId === 'PAPER' ? 'Paper #' : activeEventId === 'PROJECT_EXPO' ? 'Stall #' : 'Team #';
+      bnavTeamLabel.textContent = `Save ${prefix}${team.number}`;
+    }
 
-    renderTeamMembers(team.members);
+    renderTeamMembers(team.members || (team.lead ? [{ slot: '01', name: team.lead, is_lead: true }] : []));
     applyEventMode();
     loadCurrentJudgeScoresForTeam();
     renderJuryConsensus();
@@ -1006,7 +1159,7 @@
   function renderTeamMembers(members) {
     if (!membersContainer) return;
     membersContainer.innerHTML = '';
-    members.forEach((m, idx) => {
+    (members || []).forEach((m, idx) => {
       const isLead = idx === 0 || m.is_lead;
       const card = document.createElement('div');
       card.className = `p-2 rounded-xl border transition flex items-center justify-between gap-2 ${
@@ -1016,18 +1169,18 @@
       card.innerHTML = `
         <div class="flex items-center gap-2 min-w-0">
           <span class="text-xs font-black font-serif-pace ${isLead ? 'text-[#ea580c]' : 'text-[#64748b]'}">
-            ${m.slot}
+            ${m.slot || (idx + 1).toString().padStart(2, '0')}
           </span>
           <div class="truncate">
             <div class="flex items-center gap-1 truncate">
               <span class="text-xs font-bold text-[#1e293b] truncate">${m.name}</span>
               ${isLead ? '<span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-[#ea580c] text-white uppercase">Lead</span>' : ''}
             </div>
+            ${m.usn ? `
             <div class="text-[10px] text-[#64748b] flex items-center gap-1.5 truncate">
               <span class="font-mono font-medium">${m.usn}</span>
-              <span>·</span>
-              <span>${m.sem_sec}</span>
-            </div>
+              ${m.sem_sec ? `<span>·</span><span>${m.sem_sec}</span>` : ''}
+            </div>` : ''}
           </div>
         </div>
         <div class="text-right text-[10px] text-[#64748b] font-medium hidden sm:block">
@@ -1451,6 +1604,7 @@
     gridSectionB.innerHTML = '';
 
     const currentJudgeId = currentJudge ? currentJudge.id : 'INT-1';
+    const isSingle = isSingleEventMode();
 
     teams.forEach((t, idx) => {
       const isSelected = idx === currentTeamIndex;
@@ -1477,7 +1631,13 @@
         loadTeamIntoForm(idx);
       });
 
-      if (t.section === 'A') {
+      if (isSingle) {
+        if (idx < Math.ceil(teams.length / 2)) {
+          gridSectionA.appendChild(btn);
+        } else {
+          gridSectionB.appendChild(btn);
+        }
+      } else if (t.section === 'A') {
         gridSectionA.appendChild(btn);
       } else {
         gridSectionB.appendChild(btn);
@@ -1496,12 +1656,13 @@
     let count = 0;
 
     teams.forEach((t, idx) => {
-      const matchSection = activeSectionFilter === 'ALL' || t.section === activeSectionFilter;
+      const matchSection = activeEventId !== 'EMBEDDATHON' || activeSectionFilter === 'ALL' || t.section === activeSectionFilter;
       const matchQuery =
         !query ||
         t.number.includes(query) ||
         t.name.toLowerCase().includes(query) ||
-        t.members.some((m) => m.name.toLowerCase().includes(query) || m.usn.toLowerCase().includes(query));
+        (t.members && t.members.some((m) => (m.name && m.name.toLowerCase().includes(query)) || (m.usn && m.usn.toLowerCase().includes(query)))) ||
+        (t.lead && t.lead.toLowerCase().includes(query));
 
       if (matchSection && matchQuery) {
         count++;
@@ -1536,6 +1697,14 @@
           `;
         }
 
+        const secBadge = activeEventId === 'PAPER'
+          ? 'Track 3 · Paper'
+          : activeEventId === 'PROJECT_EXPO'
+          ? (t.stall || 'Track 2 · Expo')
+          : `Sec ${t.section}`;
+        const leadText = t.lead || (t.members && t.members[0] ? t.members[0].name : 'N/A');
+        const countText = t.member_count ? `${t.member_count} Members` : (t.dept || 'Engineering');
+
         card.innerHTML = `
           <div class="flex items-center gap-2.5 min-w-0">
             <span class="text-sm font-black font-serif-pace text-[#ea580c] bg-[#fff8f3] px-2 py-1 rounded-lg border border-[#fed7aa]">
@@ -1544,10 +1713,10 @@
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 truncate">
                 <span class="text-xs font-black text-[#0f172a] truncate">${t.name}</span>
-                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-[#475569]">Sec ${t.section}</span>
+                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-[#475569]">${secBadge}</span>
               </div>
               <p class="text-[10px] text-[#64748b] truncate">
-                Lead: ${t.members[0]?.name || 'N/A'} · ${t.member_count} Members
+                Lead: ${leadText} · ${countText}
               </p>
             </div>
           </div>

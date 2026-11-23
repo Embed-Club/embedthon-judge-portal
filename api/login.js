@@ -11,7 +11,12 @@ const DEFAULT_CONFIG = {
     { id: 'EXT-1', name: 'External Judge 1', role: 'Industry Expert', pin: '3333' },
     { id: 'EXT-2', name: 'External Judge 2', role: 'IEEE Jury Member', pin: '4444' }
   ],
-  judgeAssignments: {}
+  judgeAssignments: {
+    'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S3', day: 1, start: '10:30', end: '13:00', slotTitle: 'Track 1: Embeddathon Kickoff' },
+    'INT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S3', day: 1, start: '10:30', end: '13:00', slotTitle: 'Track 1: Embeddathon Kickoff' },
+    'EXT-1': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotId: 'S4', day: 1, start: '14:00', end: '17:00', slotTitle: 'Track 2: Project Expo Stalls 1–30' },
+    'EXT-2': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotId: 'S6', day: 2, start: '09:30', end: '12:30', slotTitle: 'Track 3: Technical Paper Presentations' }
+  }
 };
 
 module.exports = async function handler(req, res) {

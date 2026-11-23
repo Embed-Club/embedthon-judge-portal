@@ -502,7 +502,10 @@
     const event = EVENT_LIB.getEvent(eventId);
     const map = getRevealEventMap(evals, eventId);
 
-    const rows = (typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA : []).map((team) => {
+    const eventTeams = typeof getEventTeams === 'function'
+      ? getEventTeams(eventId)
+      : (typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA : []);
+    const rows = eventTeams.map((team) => {
       const judges = Object.values(map[team.number] || {}).filter(Boolean);
 
       if (event.mode === 'SINGLE') {
@@ -1177,15 +1180,22 @@
     const bannerEvent = $('revealBannerEvent');
     const bannerSub = $('revealBannerSub');
     if (!bannerEvent || !bannerSub) return;
-    const isEmbedthon = ['EMBEDDATHON', 'EMBEDTHON', 'A', 'B'].includes(state.category);
-    if (isEmbedthon) {
-      bannerEvent.textContent = "EMBEDTHON '26";
-      bannerEvent.style.color = '';
-      bannerSub.textContent = "24-Hour Internal Hackathon Valedictory";
+    if (state.category === 'PAPER') {
+      bannerEvent.textContent = "EMBERS '26 · TRACK 3";
+      bannerEvent.style.color = '#818cf8';
+      bannerSub.textContent = "Technical Paper Presentation Valedictory (Multipurpose Hall)";
+    } else if (state.category === 'PROJECT_EXPO' || state.category === 'HARDWARE' || state.category === 'SOFTWARE') {
+      bannerEvent.textContent = "EMBERS '26 · TRACK 2";
+      bannerEvent.style.color = '#fbbf24';
+      bannerSub.textContent = "National Project Expo & Working Model Exhibition (Edusat Hall)";
+    } else if (['EMBEDDATHON', 'EMBEDTHON', 'A', 'B'].includes(state.category)) {
+      bannerEvent.textContent = "EMBEDTHON '26 · TRACK 1";
+      bannerEvent.style.color = '#ea580c';
+      bannerSub.textContent = "24-Hour Internal Hackathon Valedictory (Labs 1 & 2)";
     } else {
       bannerEvent.textContent = "EMBERS '26";
       bannerEvent.style.color = '#ff9f43';
-      bannerSub.textContent = "National Level Technical Symposium Valedictory";
+      bannerSub.textContent = "Grand Valedictory & Prize Distribution Ceremony";
     }
   }
 
@@ -1287,7 +1297,12 @@
     if (document.fullscreenElement) document.body.classList.add('is-fullscreen');
 
     const params = new URLSearchParams(location.search);
-    const urlCategory = (params.get('category') || params.get('track') || '').toUpperCase();
+    const rawCategory = (params.get('category') || params.get('track') || params.get('event') || '').toUpperCase();
+    let urlCategory = rawCategory;
+    if (rawCategory === 'EXPO' || rawCategory === 'PROJECT_EXPO' || rawCategory === 'TRACK_2' || rawCategory === 'TRACK2') urlCategory = 'PROJECT_EXPO';
+    if (rawCategory === 'PAPER' || rawCategory === 'TRACK_3' || rawCategory === 'TRACK3') urlCategory = 'PAPER';
+    if (rawCategory === 'EMBEDDATHON' || rawCategory === 'EMBEDTHON' || rawCategory === 'TRACK_1' || rawCategory === 'TRACK1' || rawCategory === 'HACKATHON') urlCategory = 'EMBEDDATHON';
+
     if (urlCategory && el.category) {
       const exists = Array.from(el.category.options).some((o) => o.value === urlCategory);
       if (exists) el.category.value = urlCategory;

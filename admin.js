@@ -838,7 +838,8 @@
     const eventId = matrixEventFilter && EVENTS[matrixEventFilter.value] ? matrixEventFilter.value : 'EMBEDDATHON';
     const event = EVENT_LIB.getEvent(eventId);
     const filterSec = activeMatrixFilter;
-    const filteredTeams = teams.filter((t) => filterSec === 'ALL' || t.section === filterSec);
+    const eventTeams = typeof getEventTeams === 'function' ? getEventTeams(eventId) : teams;
+    const filteredTeams = eventTeams.filter((t) => filterSec === 'ALL' || t.section === filterSec || event.mode === 'SINGLE');
     const eventMap = getEventMap(eventId);
 
     if (adminMatrixThead) {
@@ -943,8 +944,9 @@
   function getAdminEventStandings(eventId) {
     const event = EVENT_LIB.getEvent(eventId);
     const eventMap = getEventMap(eventId);
+    const eventTeams = typeof getEventTeams === 'function' ? getEventTeams(eventId) : teams;
 
-    return teams
+    return eventTeams
       .map((team) => {
         const values = Object.values(eventMap[team.number] || {}).filter(Boolean);
 

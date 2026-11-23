@@ -14,6 +14,18 @@
       "destination": "/admin.html"
     },
     {
+      "source": "/paper",
+      "destination": "/paper.html"
+    },
+    {
+      "source": "/expo",
+      "destination": "/expo.html"
+    },
+    {
+      "source": "/hackathon",
+      "destination": "/hackathon.html"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     }
