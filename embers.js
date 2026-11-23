@@ -88,11 +88,11 @@
   // Coordinator Authentication
   // =============================================================
   function checkAuth() {
-    const savedPin = sessionStorage.getItem('embers_admin_pin') || localStorage.getItem('embedthon_admin_pin');
-    const adminAuth = localStorage.getItem('embedthon_admin_auth');
+    // Strictly require session PIN verification so the admin gate is always enforced
+    const savedPin = sessionStorage.getItem('embers_admin_pin');
 
-    if (savedPin === '2026' || adminAuth) {
-      unlockConsole(savedPin || '2026');
+    if (savedPin === '2026') {
+      unlockConsole(savedPin);
     } else {
       if (embersAuthGate) embersAuthGate.classList.remove('hidden');
       if (embersMainContainer) embersMainContainer.classList.add('hidden');
@@ -152,6 +152,7 @@
   function handleLogout() {
     sessionStorage.removeItem('embers_admin_pin');
     localStorage.removeItem('embedthon_admin_auth');
+    localStorage.removeItem('embers_admin_pin');
     if (embersAuthGate) embersAuthGate.classList.remove('hidden');
     if (embersMainContainer) embersMainContainer.classList.add('hidden');
     if (gateEmbersPin) {

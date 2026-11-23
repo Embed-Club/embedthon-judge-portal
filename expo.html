@@ -2,11 +2,1023 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>EMBERS '26 · Track 2: Project Expo</title>
-  <meta http-equiv="refresh" content="0; url=index.html?event=project_expo">
-  <script>window.location.replace("index.html?event=project_expo");</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>EMBERS '26 · Track 2: Project Expo Judging Portal</title>
+  <meta name="description" content="Official mobile judging portal for Paper Presentation, Project Expo and Embeddathon, with event-specific rubrics, judge deployment and live consensus scoring.">
+  <link rel="icon" type="image/png" href="assets/embers_logo.png">
+  <link rel="alternate icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brandNavy: '#0f172a',
+            brandInk: '#1e293b',
+            brandSlate: '#475569',
+            brandMuted: '#64748b',
+            brandOrange: '#ea580c',
+            brandOrangeLight: '#fff7ed',
+            brandCream: '#fdfbf7',
+            brandCreamDark: '#f6f1e6',
+            brandBorder: '#e3dccd',
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body style="background:#fdfbf7;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-  <p style="color:#ea580c;font-weight:bold;">Loading EMBERS '26 Track 2: Project Expo...</p>
+<body data-page-event="PROJECT_EXPO" class="min-h-screen pb-24 sm:pb-16 bg-[#fdfbf7] text-[#1e293b] antialiased">
+
+  <!-- ========================================================= -->
+  <!-- 1. DYNAMIC JUDGE LOGIN OVERLAY (Shows if not logged in)   -->
+  <!-- ========================================================= -->
+  <div id="loginOverlay" class="fixed inset-0 z-50 bg-[#0f172a]/85 backdrop-blur-md flex items-center justify-center p-3.5 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 border-2 border-[#fed7aa] shadow-2xl space-y-3.5 my-auto">
+      
+      <!-- Top Branding -->
+      <div class="text-center space-y-0.5">
+        <img src="assets/pace_crest.png" alt="PACE Crest" class="h-9 w-auto object-contain mx-auto mb-1">
+        <h2 class="text-xs font-black tracking-wider uppercase text-[#0f172a]">
+          P.A. College of Engineering
+        </h2>
+        <p class="text-[10px] font-bold text-[#ea580c] uppercase tracking-wide">
+          EMBERS '26 · TRACK 2: PROJECT EXPO
+        </p>
+      </div>
+
+      <!-- Active Phase Banner -->
+      <div id="loginPhaseNotice" class="bg-[#f6f1e6] p-2 rounded-xl border border-[#e3dccd] text-center">
+        <span class="text-[10px] font-black uppercase text-[#0f172a] block" id="loginActivePhaseTitle">Phase 1: Mentoring Active</span>
+        <span class="text-[9px] text-[#64748b]" id="loginActivePhaseSub">Internal Judges score Phase 1 (30%) · External score Phase 2 (70%)</span>
+      </div>
+
+      <!-- Login Form -->
+      <form id="formLogin" onsubmit="return false;" class="space-y-3">
+        
+        <!-- Internal Judges Selection -->
+        <div>
+          <label class="block text-[11px] font-extrabold text-[#1e293b] uppercase tracking-wide mb-1 flex items-center gap-1">
+            <span>🏛️ Internal Jury (Faculty)</span>
+          </label>
+          <div id="loginInternalSlotsContainer" class="grid grid-cols-2 gap-1.5">
+            <!-- Dynamically populated: INT-1, INT-2... -->
+          </div>
+        </div>
+
+        <!-- External Judges Selection -->
+        <div>
+          <label class="block text-[11px] font-extrabold text-[#1e293b] uppercase tracking-wide mb-1 flex items-center gap-1">
+            <span>🌟 External Jury (Industry / IEEE)</span>
+          </label>
+          <div id="loginExternalSlotsContainer" class="grid grid-cols-2 gap-1.5">
+            <!-- Dynamically populated: EXT-1, EXT-2... -->
+          </div>
+        </div>
+
+        <!-- Coordinator Option -->
+        <div class="space-y-1">
+          <button type="button" id="btnSelectAdminLogin" class="w-full p-2 rounded-xl border border-[#e3dccd] bg-[#f6f1e6] hover:bg-[#efe8da] text-left flex items-center justify-between text-xs font-bold text-[#475569] active:scale-95 transition">
+            <span>⚙️ Coordinator / Admin</span>
+            <span class="text-[10px] text-slate-400">Manage phases & judges</span>
+          </button>
+          <div class="flex items-center justify-between px-1 text-[10px]">
+            <a href="embers.html" target="_blank" class="font-extrabold text-[#ea580c] hover:underline flex items-center gap-0.5">
+              <span>🔥 EMBERS Hub</span>
+              <span>↗</span>
+            </a>
+            <a href="admin.html" class="font-extrabold text-[#0f172a] hover:underline flex items-center gap-0.5">
+              <span>Open Admin Page</span>
+              <span>↗</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Designated Event Track -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <label class="block text-[11px] font-extrabold text-[#1e293b] uppercase tracking-wide flex items-center gap-1">
+              <span>🎯 Destination Event Track</span>
+            </label>
+            <span id="loginAssignedBadge" class="text-[9px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-[#ea580c]">Auto-Detected</span>
+          </div>
+          <div id="loginTrackPills" class="grid grid-cols-3 gap-1.5">
+            <button type="button" data-event="EMBEDDATHON" class="login-track-btn p-2 rounded-xl border text-center transition bg-[#0f172a] text-white border-[#0f172a] shadow-xs active:scale-95">
+              <span class="text-base block leading-none">⚡</span>
+              <span class="text-[10px] font-black block mt-1 truncate">Track 1</span>
+              <span class="text-[8px] opacity-80 block truncate">Labs 1 & 2</span>
+            </button>
+            <button type="button" data-event="PROJECT_EXPO" class="login-track-btn p-2 rounded-xl border text-center transition bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6] active:scale-95">
+              <span class="text-base block leading-none">🛠️</span>
+              <span class="text-[10px] font-black block mt-1 truncate">Track 2</span>
+              <span class="text-[8px] text-[#64748b] block truncate">Edusat Hall</span>
+            </button>
+            <button type="button" data-event="PAPER" class="login-track-btn p-2 rounded-xl border text-center transition bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6] active:scale-95">
+              <span class="text-base block leading-none">📄</span>
+              <span class="text-[10px] font-black block mt-1 truncate">Track 3</span>
+              <span class="text-[8px] text-[#64748b] block truncate">Multi. Hall</span>
+            </button>
+          </div>
+          <p id="loginTrackDesc" class="text-[9px] text-[#64748b] text-center font-semibold leading-tight pt-0.5">Track 1: Embeddathon · Computer Labs 1 & 2 (24-Hour Hackathon)</p>
+        </div>
+
+        <!-- Selected Judge PIN -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="loginPinInput" class="text-xs font-bold text-[#1e293b] uppercase tracking-wide">
+              Security PIN
+            </label>
+            <span id="pinHintBadge" class="text-[10px] font-mono text-[#ea580c] font-black">PIN: 1111</span>
+          </div>
+          <input type="password" id="loginPinInput" inputmode="numeric" maxlength="6" placeholder="Enter PIN"
+                 class="w-full text-center text-lg font-mono font-black tracking-widest px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+        </div>
+
+        <!-- Your Name / Designation Override -->
+        <div>
+          <label for="loginNameInput" class="block font-bold text-[#1e293b] mb-1 uppercase tracking-wide text-xs">
+            Your Name / Designation
+          </label>
+          <input type="text" id="loginNameInput" placeholder="e.g., Dr. A. Rahman (Internal)"
+                 class="w-full px-3 py-2 text-sm text-[#0f172a] bg-white border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+        </div>
+
+        <div id="loginErrorMessage" class="hidden text-[11px] font-bold text-red-600 bg-red-50 border border-red-200 p-2 rounded-lg text-center"></div>
+
+        <button type="submit" id="btnLoginSubmit" class="w-full py-2.5 px-4 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-xs uppercase tracking-wider shadow-md transition active:scale-[0.98]">
+          Authenticate & Start Scoring
+        </button>
+
+        <p class="text-center text-[10px] text-[#64748b] leading-tight">
+          Supports multiple concurrent judges with live sync over local Wi-Fi.
+        </p>
+      </form>
+
+    </div>
+  </div>
+
+
+  <!-- ========================================================= -->
+  <!-- 2. TOP OFFICIAL HEADER & DUAL-PORTAL SWITCHER             -->
+  <!-- ========================================================= -->
+  <header class="bg-white border-b-2 border-[#e3dccd] shadow-xs sticky top-0 z-40">
+    
+    <!-- TOP UNIVERSAL PORTAL SWITCHER BAR: EMBEDTHON vs EMBERS -->
+    <div class="bg-[#0b1120] text-white border-b border-slate-800 text-[11px] px-3 py-1.5">
+      <div class="max-w-2xl mx-auto flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 truncate">
+          <span class="text-slate-400 font-medium text-[10px] hidden sm:inline">Active Portal:</span>
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-black text-[10px] tracking-wide border border-amber-400/30">
+            <span>⚡</span>
+            <span>EMBERS '26 (Scoring & Jury)</span>
+          </span>
+        </div>
+        <a href="embers.html" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-[10px] tracking-wide transition shadow-xs flex-shrink-0 active:scale-95" title="Switch to EMBERS '26 National Symposium Hub">
+          <span>🔥 Switch to EMBERS '26 Hub</span>
+          <span class="text-xs">↗</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Official PACE Letterhead -->
+    <div class="max-w-2xl mx-auto px-3 py-2 flex items-center justify-between gap-2">
+      <!-- Left: PACE Crest & Title -->
+      <div class="flex items-center gap-2 min-w-0">
+        <img src="assets/pace_crest.png" alt="PACE Crest" class="h-9 w-auto object-contain flex-shrink-0" onerror="this.style.display='none'">
+        <div class="truncate">
+          <h1 class="text-[11px] font-extrabold tracking-wider text-[#0f172a] uppercase leading-tight truncate">
+            P.A. College of Engineering
+          </h1>
+          <p class="text-[9px] text-[#64748b] leading-tight truncate">
+            Autonomous · VTU · AICTE Approved
+          </p>
+          <p class="text-[9px] font-bold text-[#ea580c] tracking-wide uppercase leading-tight truncate">
+            Dept. of Computer Science & Engineering
+          </p>
+        </div>
+      </div>
+
+      <!-- Right: Active Judge Profile & Setup -->
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <div class="flex items-center gap-1 bg-[#fdfbf7] px-2 py-1 rounded-full border border-[#e3dccd]">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="activePhasePill" class="text-[9px] font-bold text-[#ea580c]">PHASE 1</span>
+        </div>
+
+        <button id="btnJudgeSwitch" class="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#fff8f3] hover:bg-[#ffedd5] border border-[#ea580c]/40 text-[#ea580c] active:scale-95 transition" title="Switch Judge / Logout">
+          <span id="activeJudgeBadge" class="truncate max-w-[85px]">Judge</span>
+          <svg class="w-3 h-3 text-[#ea580c]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+
+        <button id="btnOpenSetupModal" class="p-1.5 rounded-lg bg-[#f6f1e6] hover:bg-[#efe8da] border border-[#e3dccd] text-[#475569] active:scale-95 transition" title="Admin & Jury Setup">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Official Navy Banner Ribbon -->
+    <div class="navy-strip py-1 px-3">
+      <div class="max-w-2xl mx-auto flex items-center justify-between text-[11px]">
+        <div class="flex items-center gap-1.5">
+          <span class="font-extrabold tracking-wider text-white">EMBERS '26</span>
+          <span class="text-slate-400">·</span>
+          <span class="text-slate-300 font-medium truncate" id="subHeaderJudgeRole">PHASE 1: MENTORING EVALUATION</span>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <span id="navSectionBadge" class="bg-[#ea580c] text-white px-2 py-0.5 rounded font-black text-[10px] uppercase tracking-wider">
+            SECTION A
+          </span>
+          <span id="progressPill" class="text-slate-300 text-[10px] font-semibold">
+            0 / 24 Done
+          </span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ========================================================= -->
+  <!-- 3. MAIN APP CONTAINER                                     -->
+  <!-- ========================================================= -->
+  <main class="max-w-2xl mx-auto px-3 py-3 space-y-3">
+
+    <!-- TOP NAVIGATION TABS -->
+    <div class="flex items-center justify-between gap-1.5 bg-white p-1.5 rounded-xl border border-[#e3dccd] shadow-xs">
+      <div class="flex items-center gap-1">
+        <button id="tabTeamView" class="tab-btn px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-[#0f172a] text-white">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          Evaluation
+        </button>
+        <button id="tabRoster" class="tab-btn px-2.5 py-2 rounded-lg text-xs font-semibold text-[#475569] hover:bg-[#f6f1e6] transition flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          Teams
+        </button>
+        <button id="tabLeaderboard" class="tab-btn px-2.5 py-2 rounded-lg text-xs font-semibold text-[#475569] hover:bg-[#f6f1e6] transition flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          Leaderboard
+        </button>
+      </div>
+
+      <!-- Quick Stall Category Filter -->
+      <div id="quickSectionSwitchWrapper" class="flex items-center gap-1 bg-[#f6f1e6] p-0.5 rounded-lg border border-[#e3dccd]">
+        <button id="btnSwitchSecA" class="px-2.5 py-1 text-xs font-black rounded bg-[#ea580c] text-white transition shadow-xs">Stalls 01–25 (3rd Yr)</button>
+        <button id="btnSwitchSecB" class="px-2.5 py-1 text-xs font-semibold rounded text-[#475569] hover:text-[#0f172a] transition">Stalls 26–36 (Final Yr)</button>
+      </div>
+    </div>
+
+
+    <!-- DEDICATED TRACK 2 BANNER -->
+    <div class="bg-white rounded-xl border border-amber-200 shadow-xs p-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <span class="text-2xl">🛠️</span>
+        <div>
+          <h2 class="text-xs font-black uppercase text-[#0f172a]">Track 2: Project Expo (Hardware & Software)</h2>
+          <p class="text-[10px] text-[#64748b]">Edusat Hall · Stalls 01–36 · PACE & Inter-College Engineering Innovations (50 Pts)</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 text-[#ea580c] border border-amber-200">
+          36 Stalls
+        </span>
+      </div>
+    </div>
+
+    <!-- Hidden dummy element for script compatibility -->
+    <div id="eventSelectorCard" class="hidden"><div id="eventTabsRow"></div><span id="judgeAssignmentBadge"></span><span id="eventVenueLabel"></span><span id="eventAssignmentSchedule"></span></div>
+
+    <!-- ======================================================= -->
+    <!-- VIEW 1: EVALUATION (PHASE 1 vs PHASE 2)                 -->
+    <!-- ======================================================= -->
+    <div id="viewScoring" class="space-y-3">
+
+      <!-- QUICK TEAM PICKER STRIP -->
+      <div class="bg-white rounded-xl border border-[#e3dccd] p-2.5 shadow-xs">
+        <div class="flex items-center justify-between mb-1.5 px-0.5">
+          <span class="text-[11px] font-black uppercase tracking-wider text-[#ea580c]">Jump to Team</span>
+          <button id="btnOpenTeamGridModal" class="text-[11px] font-bold text-[#475569] hover:text-[#ea580c] flex items-center gap-1">
+            <span>Grid View</span>
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+          </button>
+        </div>
+        <div id="teamPillsRow" class="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar"></div>
+      </div>
+
+      <!-- TEAM PROFILE HEADER CARD (Matches Official PDF Layout) -->
+      <div class="bg-white rounded-xl border border-[#e3dccd] shadow-xs overflow-hidden">
+        <div class="px-3 py-1.5 bg-[#fdfbf7] border-b border-[#e3dccd] flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#64748b]">
+          <span>TEAM PROFILE · <span id="teamSectionLabel">SECTION A</span></span>
+          <span id="evalStatusBadge" class="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+            Pending Score
+          </span>
+        </div>
+
+        <div class="p-3.5 border-b border-[#e3dccd]">
+          <div class="flex items-center gap-3">
+            <div id="teamBigNumber" class="text-4xl font-black text-[#ea580c] font-serif-pace tracking-tight leading-none">
+              01
+            </div>
+            <div class="flex-1 min-w-0">
+              <h2 id="teamBigName" class="text-xl font-extrabold text-[#1e293b] leading-tight truncate">
+                NEXORA
+              </h2>
+              <p id="teamSubtitle" class="text-[11px] text-[#64748b] truncate mt-0.5">
+                4 members · Section A · Allotment for EmbedThon '26
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Members Contacts List -->
+        <div class="p-3 bg-[#fdfbf7]">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#ea580c] flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              Roster & Contacts
+            </span>
+            <span id="memberCountBadge" class="text-[10px] font-semibold text-[#64748b]">4 REGISTERED</span>
+          </div>
+
+          <div id="membersContainer" class="space-y-1.5"></div>
+        </div>
+      </div>
+
+      <!-- EVENT-AWARE JURY CONSENSUS PANEL -->
+      <div id="juryConsensusPanel" class="bg-white rounded-xl border border-[#e3dccd] shadow-xs p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <span id="juryConsensusTitle" class="text-[11px] font-black uppercase tracking-wider text-[#0f172a]">
+            Jury Status & Consensus
+          </span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-[#ea580c] border border-orange-200" id="phaseStatusSummaryBadge">
+              Phase 1 Active
+            </span>
+          </div>
+        </div>
+
+        <!-- Embeddathon: internal vs external phase scores -->
+        <div id="dualPhaseConsensusGrid" class="grid grid-cols-2 gap-2 text-xs">
+          <!-- Phase 1: Internal Mentoring -->
+          <div class="p-2.5 rounded-xl border bg-[#fdfbf7] border-[#e3dccd] space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-extrabold text-[10px] uppercase text-[#1e293b]">Phase 1: Mentoring</span>
+              <span class="text-[10px] font-bold text-[#ea580c]">/30</span>
+            </div>
+            <div id="internalJudgesBadges" class="space-y-1">
+              <!-- e.g. INT-1 (Dr. Basheer): 26 pts -->
+            </div>
+            <div class="pt-1 border-t border-[#f0ebe0] flex justify-between font-bold text-[10px]">
+              <span class="text-[#64748b]">Internal Avg:</span>
+              <span id="internalAvgDisplay" class="text-[#ea580c] font-black">— / 30</span>
+            </div>
+          </div>
+
+          <!-- Phase 2: External Final -->
+          <div class="p-2.5 rounded-xl border bg-[#fdfbf7] border-[#e3dccd] space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-extrabold text-[10px] uppercase text-[#1e293b]">Phase 2: Final Expo</span>
+              <span class="text-[10px] font-bold text-[#ea580c]">/70</span>
+            </div>
+            <div id="externalJudgesBadges" class="space-y-1">
+              <!-- e.g. EXT-1 (Industry Jury): 64 pts -->
+            </div>
+            <div class="pt-1 border-t border-[#f0ebe0] flex justify-between font-bold text-[10px]">
+              <span class="text-[#64748b]">External Avg:</span>
+              <span id="externalAvgDisplay" class="text-[#ea580c] font-black">— / 70</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Single-rubric events: Paper & Project Expo -->
+        <div id="singleEventConsensusPanel" class="hidden space-y-2">
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="p-2.5 rounded-xl border bg-[#fdfbf7] border-[#e3dccd] space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span id="singleEventJuryLabel" class="font-extrabold text-[10px] uppercase text-[#1e293b]">Event Jury</span>
+                <span id="singleEventAvgMax" class="text-[10px] font-bold text-[#ea580c]">/50</span>
+              </div>
+              <div id="singleEventJudgeBadges" class="space-y-1"></div>
+              <div class="pt-1 border-t border-[#f0ebe0] flex justify-between font-bold text-[10px]">
+                <span class="text-[#64748b]">Jury Avg:</span>
+                <span id="singleEventAvgDisplay" class="text-[#ea580c] font-black">— / 50</span>
+              </div>
+            </div>
+
+            <div class="p-2.5 rounded-xl border bg-[#fdfbf7] border-[#e3dccd] space-y-1">
+              <span class="font-extrabold text-[10px] uppercase text-[#1e293b]">Criteria Averages</span>
+              <div id="singleEventCriteriaAverages" class="space-y-0.5 text-[10px]"></div>
+            </div>
+          </div>
+
+          <div id="singleEventConsensusBox" class="bg-[#eef2ff] p-2 rounded-xl border border-indigo-300 flex items-center justify-between">
+            <span id="singleEventConsensusLabel" class="text-xs font-black uppercase text-indigo-700">Event Jury Average:</span>
+            <span id="singleEventConsensusTotal" class="text-base font-black text-indigo-700">— / 50</span>
+          </div>
+        </div>
+
+        <!-- Grand Cumulative Total (Embeddathon only) -->
+        <div id="grandCumulativeBox" class="bg-[#fff7ed] p-2 rounded-xl border border-[#ea580c] flex items-center justify-between">
+          <span class="text-xs font-black uppercase text-[#ea580c]">Grand Cumulative Score:</span>
+          <span id="cumulativeScoreDisplay" class="text-base font-black text-[#ea580c]">
+            — / 100
+          </span>
+        </div>
+      </div>
+
+      <!-- MARKS & EVALUATION ENTRY FORM -->
+      <div class="bg-white rounded-xl border-2 border-[#ea580c]/60 shadow-sm overflow-hidden">
+        
+        <!-- Header -->
+        <div class="px-3.5 py-2.5 bg-[#fff8f3] border-b border-[#fed7aa] flex items-center justify-between">
+          <div>
+            <h3 class="text-xs font-black uppercase tracking-wider text-[#ea580c]" id="scoringFormTitle">
+              Score Entry
+            </h3>
+            <p class="text-[10px] text-[#64748b]" id="scoringFormSubtitle">
+              Enter marks according to rubric weightages
+            </p>
+          </div>
+          <div class="text-[10px] font-black uppercase text-[#64748b] bg-white px-2 py-0.5 rounded border border-[#e3dccd]" id="scoringRoleBadge">
+            Internal / External
+          </div>
+        </div>
+
+        <div class="p-3.5 space-y-3.5">
+
+          <!-- LIVE SCORE HERO BOX -->
+          <div class="bg-[#fff7ed] p-3 rounded-xl border-2 border-[#ea580c] shadow-xs flex items-center justify-between">
+            <div>
+              <span class="text-[11px] font-black text-[#ea580c] uppercase tracking-wider block" id="heroScoreLabel">
+                Your Score
+              </span>
+              <div class="flex items-baseline gap-1 mt-0.5">
+                <span id="displayScoreValue" class="text-3xl font-black text-[#ea580c] leading-none">0</span>
+                <span id="displayMaxPossible" class="text-xs font-bold text-orange-400">/ 30</span>
+              </div>
+            </div>
+            <div class="text-right space-y-0.5">
+              <div id="scorePhaseSubtitle" class="text-[11px] font-bold text-[#1e293b]">
+                Mentoring Phase (30%)
+              </div>
+              <div id="scoreRatingBadge" class="inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-orange-100 text-[#ea580c]">
+                Not Scored
+              </div>
+            </div>
+          </div>
+
+          <!-- SINGLE-RUBRIC EVENT SECTION (Paper / Project Expo) -->
+          <div id="singleEventRubricsSection" class="hidden space-y-2.5">
+            <div class="text-[11px] font-black uppercase tracking-wider text-[#ea580c] flex items-center gap-1 border-b border-[#f0ebe0] pb-1">
+              <span id="singleEventRubricTitle">Event Rubric</span>
+            </div>
+            <div id="singleEventRubricList" class="space-y-2.5"></div>
+          </div>
+
+          <!-- SECTION A: PHASE 1 RUBRICS (30 MARKS - INTERNAL JUDGES) -->
+          <div id="phase1RubricsSection" class="space-y-2.5">
+            <div class="text-[11px] font-black uppercase tracking-wider text-[#ea580c] flex items-center gap-1 border-b border-[#f0ebe0] pb-1">
+              <span>🏛️ Phase 1: Mentoring Rubrics (Max 30 Marks)</span>
+            </div>
+
+            <!-- P1-1: Problem Definition (10) -->
+            <div class="p-2.5 bg-[#fdfbf7] rounded-xl border border-[#e3dccd] space-y-1.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="text-xs font-extrabold text-[#1e293b] block">1. Problem Understanding & Solution Scope</span>
+                  <span class="text-[10px] text-[#64748b] block">Clarity of use case, engineering requirement definition.</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-[#cbd5e1] flex-shrink-0">
+                  <input type="number" id="inputP1Crit1" min="0" max="10" step="0.5" placeholder="0" class="w-10 text-center text-xs font-black text-[#ea580c] focus:outline-none">
+                  <span class="text-[10px] font-bold text-[#64748b]">/ 10</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+                <span class="text-[9px] font-bold text-[#64748b] uppercase">Quick:</span>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP1Crit1" data-val="5">5</button>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP1Crit1" data-val="7">7</button>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP1Crit1" data-val="9">9</button>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#ea580c]/50 rounded-lg text-[#ea580c]" data-target="inputP1Crit1" data-val="10">10★</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP1Crit1" data-step="-1">−</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP1Crit1" data-step="1">+</button>
+              </div>
+            </div>
+
+            <!-- P1-2: Progress & Feasibility (10) -->
+            <div class="p-2.5 bg-[#fdfbf7] rounded-xl border border-[#e3dccd] space-y-1.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="text-xs font-extrabold text-[#1e293b] block">2. Implementation Progress & Technical Feasibility</span>
+                  <span class="text-[10px] text-[#64748b] block">Circuit sanity, milestone completion, component selection.</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-[#cbd5e1] flex-shrink-0">
+                  <input type="number" id="inputP1Crit2" min="0" max="10" step="0.5" placeholder="0" class="w-10 text-center text-xs font-black text-[#ea580c] focus:outline-none">
+                  <span class="text-[10px] font-bold text-[#64748b]">/ 10</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+                <span class="text-[9px] font-bold text-[#64748b] uppercase">Quick:</span>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP1Crit2" data-val="5">5</button>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP1Crit2" data-val="7">7</button>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP1Crit2" data-val="9">9</button>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#ea580c]/50 rounded-lg text-[#ea580c]" data-target="inputP1Crit2" data-val="10">10★</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP1Crit2" data-step="-1">−</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP1Crit2" data-step="1">+</button>
+              </div>
+            </div>
+
+            <!-- P1-3: Team Engagement (10) -->
+            <div class="p-2.5 bg-[#fdfbf7] rounded-xl border border-[#e3dccd] space-y-1.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="text-xs font-extrabold text-[#1e293b] block">3. Team Engagement & Execution Discipline</span>
+                  <span class="text-[10px] text-[#64748b] block">Mentoring feedback adoption, workload split among members.</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-[#cbd5e1] flex-shrink-0">
+                  <input type="number" id="inputP1Crit3" min="0" max="10" step="0.5" placeholder="0" class="w-10 text-center text-xs font-black text-[#ea580c] focus:outline-none">
+                  <span class="text-[10px] font-bold text-[#64748b]">/ 10</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+                <span class="text-[9px] font-bold text-[#64748b] uppercase">Quick:</span>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP1Crit3" data-val="5">5</button>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP1Crit3" data-val="7">7</button>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP1Crit3" data-val="9">9</button>
+                <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#ea580c]/50 rounded-lg text-[#ea580c]" data-target="inputP1Crit3" data-val="10">10★</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP1Crit3" data-step="-1">−</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP1Crit3" data-step="1">+</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION B: PHASE 2 RUBRICS (70 MARKS - EXTERNAL JUDGES) -->
+          <div id="phase2RubricsSection" class="space-y-2.5">
+            <div class="text-[11px] font-black uppercase tracking-wider text-[#ea580c] flex items-center gap-1 border-b border-[#f0ebe0] pb-1">
+              <span>🌟 Phase 2: Final Evaluation Rubrics (Max 70 Marks)</span>
+            </div>
+
+            <!-- P2-1: Working Prototype (25) -->
+            <div class="p-2.5 bg-[#fdfbf7] rounded-xl border border-[#e3dccd] space-y-1.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="text-xs font-extrabold text-[#1e293b] block">1. Working Prototype & Live Demo Stability</span>
+                  <span class="text-[10px] text-[#64748b] block">Operational reliability, live demo test, hardware accuracy.</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-[#cbd5e1] flex-shrink-0">
+                  <input type="number" id="inputP2Crit1" min="0" max="25" step="0.5" placeholder="0" class="w-10 text-center text-xs font-black text-[#ea580c] focus:outline-none">
+                  <span class="text-[10px] font-bold text-[#64748b]">/ 25</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+                <span class="text-[9px] font-bold text-[#64748b] uppercase">Quick:</span>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit1" data-val="12">12</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit1" data-val="18">18</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit1" data-val="22">22</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#ea580c]/50 rounded-lg text-[#ea580c]" data-target="inputP2Crit1" data-val="25">25★</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP2Crit1" data-step="-1">−</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP2Crit1" data-step="1">+</button>
+              </div>
+            </div>
+
+            <!-- P2-2: Technical Complexity (20) -->
+            <div class="p-2.5 bg-[#fdfbf7] rounded-xl border border-[#e3dccd] space-y-1.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="text-xs font-extrabold text-[#1e293b] block">2. Technical Complexity & Architecture</span>
+                  <span class="text-[10px] text-[#64748b] block">Circuit design, firmware quality, integration depth.</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-[#cbd5e1] flex-shrink-0">
+                  <input type="number" id="inputP2Crit2" min="0" max="20" step="0.5" placeholder="0" class="w-10 text-center text-xs font-black text-[#ea580c] focus:outline-none">
+                  <span class="text-[10px] font-bold text-[#64748b]">/ 20</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+                <span class="text-[9px] font-bold text-[#64748b] uppercase">Quick:</span>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit2" data-val="10">10</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit2" data-val="14">14</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit2" data-val="18">18</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#ea580c]/50 rounded-lg text-[#ea580c]" data-target="inputP2Crit2" data-val="20">20★</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP2Crit2" data-step="-1">−</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP2Crit2" data-step="1">+</button>
+              </div>
+            </div>
+
+            <!-- P2-3: Innovation & Viability (15) -->
+            <div class="p-2.5 bg-[#fdfbf7] rounded-xl border border-[#e3dccd] space-y-1.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="text-xs font-extrabold text-[#1e293b] block">3. Innovation & Real-World Viability</span>
+                  <span class="text-[10px] text-[#64748b] block">Novelty, practical applicability, societal relevance.</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-[#cbd5e1] flex-shrink-0">
+                  <input type="number" id="inputP2Crit3" min="0" max="15" step="0.5" placeholder="0" class="w-10 text-center text-xs font-black text-[#ea580c] focus:outline-none">
+                  <span class="text-[10px] font-bold text-[#64748b]">/ 15</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+                <span class="text-[9px] font-bold text-[#64748b] uppercase">Quick:</span>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit3" data-val="8">8</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit3" data-val="11">11</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit3" data-val="13">13</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#ea580c]/50 rounded-lg text-[#ea580c]" data-target="inputP2Crit3" data-val="15">15★</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP2Crit3" data-step="-1">−</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP2Crit3" data-step="1">+</button>
+              </div>
+            </div>
+
+            <!-- P2-4: Presentation & Defense (10) -->
+            <div class="p-2.5 bg-[#fdfbf7] rounded-xl border border-[#e3dccd] space-y-1.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="text-xs font-extrabold text-[#1e293b] block">4. Presentation Quality & Jury Defense</span>
+                  <span class="text-[10px] text-[#64748b] block">Chart/slide quality, precision during jury Q&A.</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-[#cbd5e1] flex-shrink-0">
+                  <input type="number" id="inputP2Crit4" min="0" max="10" step="0.5" placeholder="0" class="w-10 text-center text-xs font-black text-[#ea580c] focus:outline-none">
+                  <span class="text-[10px] font-bold text-[#64748b]">/ 10</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+                <span class="text-[9px] font-bold text-[#64748b] uppercase">Quick:</span>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit4" data-val="5">5</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit4" data-val="7">7</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputP2Crit4" data-val="9">9</button>
+                <button type="button" class="quick-pill-btn px-2 py-1 text-xs font-bold bg-white border border-[#ea580c]/50 rounded-lg text-[#ea580c]" data-target="inputP2Crit4" data-val="10">10★</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP2Crit4" data-step="-1">−</button>
+                <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputP2Crit4" data-step="1">+</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- REMARKS -->
+          <div class="space-y-1.5 pt-1">
+            <label for="inputRemarks" class="block text-xs font-bold text-[#1e293b] uppercase tracking-wide">
+              Remarks & Constructive Notes
+            </label>
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+              <button type="button" class="remark-chip px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#f6f1e6] border border-[#e3dccd] text-[#334155] whitespace-nowrap">🌟 Great Demo</button>
+              <button type="button" class="remark-chip px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#f6f1e6] border border-[#e3dccd] text-[#334155] whitespace-nowrap">⚡ Solid Prototype</button>
+              <button type="button" class="remark-chip px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#f6f1e6] border border-[#e3dccd] text-[#334155] whitespace-nowrap">💡 High Novelty</button>
+              <button type="button" class="remark-chip px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#f6f1e6] border border-[#e3dccd] text-[#334155] whitespace-nowrap">🎯 Strong Defense</button>
+            </div>
+            <textarea id="inputRemarks" rows="2" placeholder="Write specific feedback for this team..."
+                      class="w-full px-3 py-2 text-xs text-[#0f172a] bg-white border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none"></textarea>
+          </div>
+
+          <!-- SAVE & NEXT -->
+          <div class="pt-1 flex items-center gap-2">
+            <button type="button" id="btnSaveEvaluation" class="flex-1 py-3 px-4 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] active:scale-[0.98] text-white font-black text-sm shadow-md transition flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+              <span>Save & Sync Score</span>
+            </button>
+            <button type="button" id="btnNextTeam" class="py-3 px-4 rounded-xl bg-[#0f172a] hover:bg-slate-800 active:scale-[0.98] text-white font-bold text-sm shadow-xs transition flex items-center justify-center gap-1">
+              <span>Next</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+
+          <div id="saveFeedbackNotice" class="hidden text-center text-xs font-black text-emerald-800 bg-emerald-50 border border-emerald-300 py-2 rounded-xl transition">
+            ✓ Score saved and synced to all devices!
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ======================================================= -->
+    <!-- VIEW 2: ROSTER DIRECTORY / ALL TEAMS LIST               -->
+    <!-- ======================================================= -->
+    <div id="viewRoster" class="hidden space-y-3">
+      <div class="bg-white p-2.5 rounded-xl border border-[#e3dccd] shadow-xs space-y-2">
+        <div class="relative">
+          <svg class="w-4 h-4 absolute left-3 top-2.5 text-[#94a3b8]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" id="searchTeamsInput" placeholder="Search team, number, member..."
+                 class="w-full pl-9 pr-3 py-1.5 text-xs bg-[#fdfbf7] border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ea580c]">
+        </div>
+
+        <div class="flex items-center justify-between flex-wrap gap-1 text-[11px]">
+          <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            <button class="roster-filter-btn px-2.5 py-1 rounded-md font-bold bg-[#0f172a] text-white" data-filter="all">All (24)</button>
+            <button class="roster-filter-btn px-2.5 py-1 rounded-md font-semibold text-[#475569] hover:bg-[#f6f1e6]" data-filter="A">Sec A</button>
+            <button class="roster-filter-btn px-2.5 py-1 rounded-md font-semibold text-[#475569] hover:bg-[#f6f1e6]" data-filter="B">Sec B</button>
+          </div>
+          <span id="rosterShowingCount" class="text-[10px] text-[#64748b]">24 teams</span>
+        </div>
+      </div>
+
+      <div id="rosterListGrid" class="space-y-2"></div>
+    </div>
+
+
+    <!-- ======================================================= -->
+    <!-- VIEW 3: LIVE MULTI-JUDGE LEADERBOARD                    -->
+    <!-- ======================================================= -->
+    <div id="viewLeaderboard" class="hidden space-y-3">
+      <div class="bg-white p-3 rounded-xl border border-[#e3dccd] shadow-xs flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h2 class="text-sm font-black text-[#0f172a] flex items-center gap-1.5">
+            <span id="leaderboardTitle">🏆 Event Standings</span>
+          </h2>
+          <p id="leaderboardSubtitle" class="text-[10px] text-[#64748b]">Select an event to view its live ranking</p>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <a href="reveal.html" target="_blank" id="btnLaunchCeremony" class="px-3 py-1.5 text-xs font-black bg-gradient-to-r from-amber-500 via-orange-500 to-[#ea580c] text-white rounded-lg shadow-sm hover:from-amber-600 hover:to-orange-600 transition flex items-center gap-1.5 active:scale-95">
+            <span class="animate-bounce">🏆</span>
+            <span>Reveal Ceremony ↗</span>
+          </a>
+          <select id="leaderboardEventSelect" class="text-xs font-bold bg-[#fff7ed] border border-[#fed7aa] rounded-lg px-2 py-1 text-[#ea580c]">
+            <option value="PAPER">📄 Paper Presentation</option>
+            <option value="PROJECT_EXPO">🛠️ Project Expo</option>
+            <option value="EMBEDDATHON">⚡ Embeddathon</option>
+          </select>
+          <select id="leaderboardSectionSelect" class="text-xs font-bold bg-[#f6f1e6] border border-[#e3dccd] rounded-lg px-2 py-1 text-[#1e293b]">
+            <option value="ALL">All (24)</option>
+            <option value="A">Sec A</option>
+            <option value="B">Sec B</option>
+          </select>
+          <button id="btnExportCSV" class="px-2.5 py-1 text-xs font-bold bg-[#0f172a] text-white rounded-lg hover:bg-slate-800 transition">CSV</button>
+          <button id="btnShareWhatsApp" class="px-2.5 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">Share</button>
+        </div>
+      </div>
+
+      <!-- CEREMONY ANNOUNCEMENT BANNER -->
+      <div class="bg-gradient-to-r from-amber-500 via-orange-500 to-[#ea580c] p-3 rounded-xl shadow-md text-white flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="text-2xl animate-bounce flex-shrink-0">🏆</span>
+          <div class="min-w-0">
+            <h3 class="text-xs font-black uppercase tracking-wider truncate">Results Announcement Ceremony</h3>
+            <p class="text-[10px] text-amber-100 truncate">Dedicated stage & projector mode with fanfare audio & confetti</p>
+          </div>
+        </div>
+        <a href="reveal.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-white text-[#ea580c] font-black text-xs hover:bg-amber-50 active:scale-95 transition shadow-xs flex items-center gap-1 flex-shrink-0">
+          <span>Open Stage ↗</span>
+        </a>
+      </div>
+
+      <!-- Ranked Matrix Table -->
+      <div class="bg-white rounded-xl border border-[#e3dccd] shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead id="leaderboardThead">
+              <tr class="bg-[#f6f1e6] border-b border-[#e3dccd] text-[#64748b] font-bold uppercase text-[10px]">
+                <th class="py-2 px-2 text-center w-8">#</th>
+                <th class="py-2 px-2 w-10 font-serif-pace text-[#ea580c]">Team</th>
+                <th class="py-2 px-2.5">Team Name</th>
+                <th class="py-2 px-1 text-center">Sec</th>
+                <th class="py-2 px-2 text-right font-bold text-slate-700">P1 (30)</th>
+                <th class="py-2 px-2 text-right font-bold text-slate-700">P2 (70)</th>
+                <th class="py-2 px-2.5 text-right font-black text-[#ea580c]">Total</th>
+                <th class="py-2 px-2 text-center w-12">Action</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardTbody" class="divide-y divide-[#f0ebe0]"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-[#fdfbf7] p-2.5 rounded-xl border border-[#e3dccd] flex items-center justify-between text-[11px] text-[#64748b]">
+        <span>Live synchronized across all phone browsers</span>
+        <button id="btnResetEvaluations" class="font-bold text-red-600 hover:underline">Reset Scores (Admin)</button>
+      </div>
+    </div>
+
+  </main>
+
+
+  <!-- ========================================================= -->
+  <!-- 4. MOBILE FIXED BOTTOM ACTION BAR                         -->
+  <!-- ========================================================= -->
+  <nav class="bottom-nav-bar md:hidden">
+    <div class="max-w-2xl mx-auto px-3 py-2 flex items-center justify-between gap-2">
+      <button id="bnavPrev" class="px-3 py-2 rounded-xl bg-[#f6f1e6] border border-[#e3dccd] text-[#1e293b] font-bold text-xs flex items-center gap-1 active:bg-[#e3dccd]">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        <span>Prev</span>
+      </button>
+
+      <button id="bnavCenter" class="flex-1 py-2 px-2 text-center rounded-xl bg-[#ea580c] text-white active:scale-95 transition shadow-sm">
+        <div id="bnavTeamLabel" class="text-xs font-black truncate">Save Score</div>
+        <div id="bnavScoreLabel" class="text-[10px] text-orange-100">0 Marks</div>
+      </button>
+
+      <button id="bnavNext" class="px-3 py-2 rounded-xl bg-[#0f172a] text-white font-bold text-xs flex items-center gap-1 active:bg-slate-800">
+        <span>Next</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </nav>
+
+
+  <!-- ========================================================= -->
+  <!-- 5. ADMIN MODAL: PHASE ACTIVATION & NAMING JUDGES          -->
+  <!-- ========================================================= -->
+  <div id="modalJurySetup" class="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm hidden flex items-center justify-center p-3.5 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-4 sm:p-5 border border-[#e3dccd] shadow-2xl space-y-3.5 my-auto max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
+        <div>
+          <h3 class="font-black text-[#0f172a] text-xs uppercase tracking-wide">Admin Control Panel</h3>
+          <p class="text-[10px] text-[#64748b]">Phase activation & custom judge naming</p>
+        </div>
+        <button id="btnCloseSetupModal" class="text-[#64748b] hover:text-[#0f172a] text-lg font-bold">&times;</button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        
+        <!-- 1. PHASE ACTIVATION SELECTOR -->
+        <div class="bg-[#fff8f3] p-2.5 rounded-xl border border-[#fed7aa] space-y-1.5">
+          <label class="block font-black text-[#ea580c] uppercase tracking-wide text-[10px]">
+            ⚡ Active Competition Phase
+          </label>
+          <div class="grid grid-cols-1 gap-1.5" id="phaseActivationButtonGroup">
+            <button type="button" class="btn-phase-toggle p-2 text-left rounded-lg border font-bold flex items-center justify-between transition" data-phase="PHASE_1">
+              <span>Phase 1: Mentoring Only (30%)</span>
+              <span class="text-[9px] font-mono font-black text-[#ea580c]">INTERNAL</span>
+            </button>
+            <button type="button" class="btn-phase-toggle p-2 text-left rounded-lg border font-bold flex items-center justify-between transition" data-phase="PHASE_2">
+              <span>Phase 2: Final Evaluation (70%)</span>
+              <span class="text-[9px] font-mono font-black text-[#ea580c]">EXTERNAL</span>
+            </button>
+            <button type="button" class="btn-phase-toggle p-2 text-left rounded-lg border font-bold flex items-center justify-between transition" data-phase="BOTH">
+              <span>Both Phases Active (100% Total)</span>
+              <span class="text-[9px] font-mono font-black text-[#ea580c]">COMBINED</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. INTERNAL JUDGES (PHASE 1) NAMING & PIN -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="font-extrabold text-[#1e293b] uppercase text-[10px] flex items-center gap-1">
+              <span>🏛️ Internal Judges (Phase 1)</span>
+            </label>
+            <div class="flex items-center gap-1">
+              <button type="button" id="btnAddInternalJudge" class="px-2 py-0.5 rounded bg-[#f6f1e6] border text-[10px] font-bold text-[#ea580c] hover:bg-[#efe8da]">+ Add</button>
+            </div>
+          </div>
+          <div id="adminInternalJudgesList" class="space-y-1.5"></div>
+        </div>
+
+        <!-- 3. EXTERNAL JUDGES (PHASE 2) NAMING & PIN -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="font-extrabold text-[#1e293b] uppercase text-[10px] flex items-center gap-1">
+              <span>🌟 External Judges (Phase 2)</span>
+            </label>
+            <div class="flex items-center gap-1">
+              <button type="button" id="btnAddExternalJudge" class="px-2 py-0.5 rounded bg-[#f6f1e6] border text-[10px] font-bold text-[#ea580c] hover:bg-[#efe8da]">+ Add</button>
+            </div>
+          </div>
+          <div id="adminExternalJudgesList" class="space-y-1.5"></div>
+        </div>
+
+        <!-- Admin PIN -->
+        <div>
+          <label class="block font-bold text-[#1e293b] mb-1 uppercase text-[10px]">
+            Admin PIN to Save (Default: 2026)
+          </label>
+          <input type="password" id="inputAdminPinForConfig" placeholder="2026"
+                 class="w-full px-3 py-1.5 text-xs text-[#0f172a] bg-white border border-[#cbd5e1] rounded-lg focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+        </div>
+
+      </div>
+
+      <div class="pt-1">
+        <button id="btnSaveJuryConfig" class="w-full py-2.5 px-4 bg-[#ea580c] text-white font-extrabold text-xs rounded-xl hover:bg-[#c2410c] transition active:scale-[0.98]">
+          Apply & Sync All Phones
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================= -->
+  <!-- 6. MODAL: QUICK ALL TEAMS GRID                            -->
+  <!-- ========================================================= -->
+  <div id="modalTeamGrid" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center sm:p-4">
+    <div class="bg-white rounded-t-2xl sm:rounded-2xl max-w-md w-full max-h-[80vh] p-4 border border-[#e3dccd] shadow-2xl flex flex-col space-y-3">
+      <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2 flex-shrink-0">
+        <h3 class="font-extrabold text-[#0f172a] text-xs uppercase tracking-wide">Select Team to Grade</h3>
+        <button id="btnCloseGridModal" class="text-[#64748b] hover:text-[#0f172a] text-lg font-bold">&times;</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto space-y-3 pr-1">
+        <div>
+          <h4 class="text-xs font-bold text-[#ea580c] uppercase tracking-wider mb-1.5">Section A (01–11)</h4>
+          <div id="gridSectionA" class="grid grid-cols-4 gap-2"></div>
+        </div>
+        <div class="pt-2">
+          <h4 class="text-xs font-bold text-[#ea580c] uppercase tracking-wider mb-1.5">Section B (12–24)</h4>
+          <div id="gridSectionB" class="grid grid-cols-4 gap-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- 7. FULLSCREEN RESULTS REVEAL CEREMONY & STAGE            -->
+  <!-- ========================================================= -->
+  <div id="revealCeremonyOverlay" class="fixed inset-0 z-50 bg-[#fdfbf7] text-[#1e293b] hidden flex flex-col justify-between overflow-hidden select-none">
+    
+    <!-- Ambient Stage Lighting Effect in Warm Amber & Orange -->
+    <div class="pointer-events-none absolute -top-40 -left-40 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl"></div>
+    <div class="pointer-events-none absolute -bottom-40 -right-40 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl"></div>
+    <div class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-orange-500/5 rounded-full blur-3xl"></div>
+
+    <!-- Canvas for confetti & particles -->
+    <canvas id="ceremonyCanvas" class="pointer-events-none absolute inset-0 z-10 w-full h-full"></canvas>
+
+    <!-- Top Official Letterhead Header for Ceremony -->
+    <header class="relative z-20 bg-white border-b-2 border-[#e3dccd] shadow-xs">
+      <div class="max-w-4xl mx-auto px-3.5 py-2 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <img src="assets/pace_crest.png" alt="PACE Crest" class="h-9 w-auto object-contain flex-shrink-0" onerror="this.style.display='none'">
+          <div class="truncate">
+            <h1 class="text-xs font-black tracking-wider text-[#0f172a] uppercase leading-tight truncate">
+              P.A. College of Engineering
+            </h1>
+            <p class="text-[9px] text-[#64748b] leading-tight truncate">
+              Autonomous · VTU Belagavi · Approved by AICTE, New Delhi
+            </p>
+            <p class="text-[9px] font-bold text-[#ea580c] tracking-wide uppercase leading-tight truncate">
+              Department of Computer Science & Engineering
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <!-- Audio Synthesizer Toggle -->
+          <button id="btnCeremonyAudioToggle" type="button" class="px-2.5 py-1.5 rounded-xl bg-[#fff8f3] border border-[#fed7aa] text-xs font-bold flex items-center gap-1.5 hover:bg-[#ffedd5] text-[#ea580c] transition active:scale-95 shadow-xs">
+            <span id="audioIcon">🔊</span>
+            <span id="audioStatusText" class="text-[10px] hidden sm:inline font-mono">SOUND ON</span>
+          </button>
+
+          <!-- Category Selector -->
+          <select id="ceremonyCategorySelect" class="bg-[#f6f1e6] border border-[#e3dccd] text-xs font-bold text-[#0f172a] rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#ea580c] cursor-pointer">
+            <option value="OVERALL">🏆 Overall Champions</option>
+            <option value="PAPER">📄 Paper Presentation</option>
+            <option value="PROJECT_EXPO">🛠️ Project Expo</option>
+            <option value="EMBEDDATHON">⚡ Embeddathon</option>
+            <option value="A">Section A (01–11)</option>
+            <option value="B">Section B (12–24)</option>
+          </select>
+
+          <!-- Exit Button -->
+          <button id="btnCloseCeremony" type="button" title="Close & Return" class="w-8 h-8 rounded-xl bg-[#f6f1e6] hover:bg-[#efe8da] border border-[#e3dccd] text-[#0f172a] flex items-center justify-center font-black text-lg transition active:scale-95">
+            &times;
+          </button>
+        </div>
+      </div>
+
+      <!-- Official Navy Ribbon -->
+      <div class="navy-strip py-1 px-3.5 bg-[#0f172a] text-white">
+        <div class="max-w-4xl mx-auto flex items-center justify-between text-[11px]">
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold tracking-wider text-amber-400">EMBERS '26</span>
+            <span class="text-slate-400">·</span>
+            <span class="text-slate-200 font-medium truncate uppercase tracking-wide">GRAND RESULTS REVEAL CEREMONY</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-[10px] font-bold text-amber-300">
+            <span>IEEE CEDA & EMBED CLUB</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Center Presentation Stage Arena -->
+    <div class="relative z-20 flex-1 flex flex-col items-center justify-center p-3 sm:p-5 text-center overflow-y-auto" id="ceremonyStageArena">
+      <!-- Dynamic View (Rendered by JS) -->
+    </div>
+
+    <!-- Bottom Ceremony Navigation Bar -->
+    <div class="relative z-20 p-3 sm:p-4 bg-white border-t border-[#e3dccd] shadow-lg flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <button id="btnCeremonyPrevStep" type="button" class="px-3 py-2 rounded-xl bg-[#f6f1e6] hover:bg-[#efe8da] border border-[#e3dccd] text-[#1e293b] text-xs font-bold disabled:opacity-30 disabled:pointer-events-none transition active:scale-95">
+          ◀ Back
+        </button>
+        <button id="btnCeremonyConfetti" type="button" class="px-3.5 py-2 rounded-xl bg-[#fff8f3] border border-[#fed7aa] text-[#ea580c] text-xs font-black hover:bg-[#ffedd5] active:scale-95 transition flex items-center gap-1 shadow-xs">
+          <span>🎉 Confetti</span>
+        </button>
+      </div>
+
+      <div class="text-xs font-bold text-[#0f172a] text-center truncate max-w-[150px] sm:max-w-none flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-[#ea580c] animate-pulse"></span>
+        <span id="ceremonyStepIndicator">Stage Ready</span>
+      </div>
+
+      <div>
+        <button id="btnCeremonyNextStep" type="button" class="px-5 sm:px-7 py-2.5 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition flex items-center gap-1.5">
+          <span id="btnCeremonyNextLabel">Start Reveal ▶</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="rubrics.js"></script>
+  <script src="teams.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

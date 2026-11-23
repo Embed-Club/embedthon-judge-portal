@@ -292,7 +292,32 @@
   }
 
   function loadSavedEventId() {
-    // 1. URL search parameters take absolute priority to ensure direct links work cleanly
+    // 1. Detect dedicated page from pathname or dataset
+    const pageAttr = document.body && document.body.dataset && document.body.dataset.pageEvent;
+    if (pageAttr && (EVENTS[pageAttr] || pageAttr === 'EMBEDDATHON')) {
+      activeEventId = pageAttr;
+      saveActiveEvent();
+      return;
+    }
+
+    const path = (window.location.pathname || '').toLowerCase();
+    if (path.endsWith('expo.html')) {
+      activeEventId = 'PROJECT_EXPO';
+      saveActiveEvent();
+      return;
+    }
+    if (path.endsWith('paper.html')) {
+      activeEventId = 'PAPER';
+      saveActiveEvent();
+      return;
+    }
+    if (path.endsWith('hackathon.html')) {
+      activeEventId = 'EMBEDDATHON';
+      saveActiveEvent();
+      return;
+    }
+
+    // 2. URL search parameters
     try {
       const params = new URLSearchParams(window.location.search);
       const urlEvent = (params.get('event') || params.get('track') || '').toUpperCase();
@@ -469,7 +494,15 @@
           alert(`Your jury assignment (${currentJudge.id}) is locked to ${EVENT_LIB.getEvent(assignment.eventId).label} (${assignment.venue || ''}). Switch judge or log out to evaluate another track.`);
         });
       } else {
-        btn.addEventListener('click', () => setActiveEvent(eventId));
+        btn.addEventListener('click', () => {
+          if (eventId === 'PROJECT_EXPO') {
+            window.location.href = 'expo.html';
+          } else if (eventId === 'PAPER') {
+            window.location.href = 'paper.html';
+          } else {
+            window.location.href = 'hackathon.html';
+          }
+        });
       }
       eventTabsRow.appendChild(btn);
     });
@@ -617,12 +650,33 @@
       if (saved) {
         currentJudge = JSON.parse(saved);
         updateActiveJudgeUI();
-        loginOverlay.classList.add('hidden');
+        if (loginOverlay) loginOverlay.classList.add('hidden');
+
+        // Check if on hub index page
+        const path = (window.location.pathname || '').toLowerCase();
+        const isHub = path.endsWith('index.html') || path === '/' || path.endsWith('/');
+        if (isHub && currentJudge) {
+          if (currentJudge.isAdmin || currentJudge.id === 'ADMIN') {
+            window.location.href = 'admin.html';
+            return;
+          }
+          const asgn = (currentJudge.assignment && currentJudge.assignment.eventId) || activeEventId || 'EMBEDDATHON';
+          if (asgn === 'PROJECT_EXPO') {
+            window.location.href = 'expo.html';
+            return;
+          } else if (asgn === 'PAPER') {
+            window.location.href = 'paper.html';
+            return;
+          } else if (asgn === 'EMBEDDATHON') {
+            window.location.href = 'hackathon.html';
+            return;
+          }
+        }
       } else {
-        loginOverlay.classList.remove('hidden');
+        if (loginOverlay) loginOverlay.classList.remove('hidden');
       }
     } catch (e) {
-      loginOverlay.classList.remove('hidden');
+      if (loginOverlay) loginOverlay.classList.remove('hidden');
     }
   }
 
@@ -1030,11 +1084,24 @@
 
       setActiveEvent(targetEventId);
 
-      try {
-        const targetUrl = new URL(window.location.href);
-        targetUrl.searchParams.set('event', targetEventId.toLowerCase());
-        window.history.replaceState({}, '', targetUrl.toString());
-      } catch (e) {}
+      // Route judge strictly to their designated page!
+      const currentPath = (window.location.pathname || '').toLowerCase();
+      if (targetEventId === 'PROJECT_EXPO') {
+        if (!currentPath.endsWith('expo.html')) {
+          window.location.href = 'expo.html';
+          return;
+        }
+      } else if (targetEventId === 'PAPER') {
+        if (!currentPath.endsWith('paper.html')) {
+          window.location.href = 'paper.html';
+          return;
+        }
+      } else {
+        if (!currentPath.endsWith('hackathon.html')) {
+          window.location.href = 'hackathon.html';
+          return;
+        }
+      }
 
       updateActiveJudgeUI();
       loginOverlay.classList.add('hidden');
@@ -1054,9 +1121,7 @@
     if (confirm('Switch to a different judge login?')) {
       localStorage.removeItem(STORAGE_KEY_AUTH);
       currentJudge = null;
-      renderLoginJudgeSlots();
-      loginPinInput.value = '';
-      loginOverlay.classList.remove('hidden');
+      window.location.href = 'index.html';
     }
   }
 
