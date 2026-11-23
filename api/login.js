@@ -10,7 +10,8 @@ const DEFAULT_CONFIG = {
   externalJudges: [
     { id: 'EXT-1', name: 'External Judge 1', role: 'Industry Expert', pin: '3333' },
     { id: 'EXT-2', name: 'External Judge 2', role: 'IEEE Jury Member', pin: '4444' }
-  ]
+  ],
+  judgeAssignments: {}
 };
 
 module.exports = async function handler(req, res) {
@@ -45,6 +46,9 @@ module.exports = async function handler(req, res) {
     }
     if (!config.externalJudges || !config.externalJudges.length) {
       config.externalJudges = DEFAULT_CONFIG.externalJudges;
+    }
+    if (!config.judgeAssignments || typeof config.judgeAssignments !== 'object') {
+      config.judgeAssignments = {};
     }
 
     // 1. Admin login
@@ -97,7 +101,8 @@ module.exports = async function handler(req, res) {
         name: finalName,
         type: judgeType,
         role: matched.role || (judgeType === 'INTERNAL' ? 'Internal Judge (Phase 1)' : 'External Judge (Phase 2)'),
-        isAdmin: false
+        isAdmin: false,
+        assignment: config.judgeAssignments[matched.id] || null
       }
     });
   } catch (error) {

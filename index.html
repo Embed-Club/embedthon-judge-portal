@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>EMBEDTHON '26 · Dual-Phase Multi-Judge Scoring Portal</title>
-  <meta name="description" content="Official mobile judging portal for EmbedThon '26 with Phase 1 (Internal Mentoring 30%) and Phase 2 (External Evaluation 70%).">
+  <title>EMBEDTHON '26 · Multi-Event Judging Portal</title>
+  <meta name="description" content="Official mobile judging portal for Paper Presentation, Project Expo and Embeddathon, with event-specific rubrics, judge deployment and live consensus scoring.">
   <link rel="icon" type="image/png" href="assets/embers_logo.png">
   <link rel="alternate icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -46,14 +46,14 @@
           P.A. College of Engineering
         </h2>
         <p class="text-[10px] font-bold text-[#ea580c] uppercase tracking-wide">
-          EMBEDTHON '26 · OFFICIAL JUDGING PORTAL
+          EMBEDTHON '26 · MULTI-EVENT JUDGING PORTAL
         </p>
       </div>
 
       <!-- Active Phase Banner -->
       <div id="loginPhaseNotice" class="bg-[#f6f1e6] p-2 rounded-xl border border-[#e3dccd] text-center">
         <span class="text-[10px] font-black uppercase text-[#0f172a] block" id="loginActivePhaseTitle">Phase 1: Mentoring Active</span>
-        <span class="text-[9px] text-[#64748b]">Internal Judges score Phase 1 (30%) · External score Phase 2 (70%)</span>
+        <span class="text-[9px] text-[#64748b]" id="loginActivePhaseSub">Internal Judges score Phase 1 (30%) · External score Phase 2 (70%)</span>
       </div>
 
       <!-- Login Form -->
@@ -62,7 +62,7 @@
         <!-- Internal Judges Selection -->
         <div>
           <label class="block text-[11px] font-extrabold text-[#1e293b] uppercase tracking-wide mb-1 flex items-center gap-1">
-            <span>🏛️ Internal Judges (Phase 1 · 30%)</span>
+            <span>🏛️ Internal Jury (Faculty)</span>
           </label>
           <div id="loginInternalSlotsContainer" class="grid grid-cols-2 gap-1.5">
             <!-- Dynamically populated: INT-1, INT-2... -->
@@ -72,7 +72,7 @@
         <!-- External Judges Selection -->
         <div>
           <label class="block text-[11px] font-extrabold text-[#1e293b] uppercase tracking-wide mb-1 flex items-center gap-1">
-            <span>🌟 External Judges (Phase 2 · 70%)</span>
+            <span>🌟 External Jury (Industry / IEEE)</span>
           </label>
           <div id="loginExternalSlotsContainer" class="grid grid-cols-2 gap-1.5">
             <!-- Dynamically populated: EXT-1, EXT-2... -->
@@ -242,6 +242,19 @@
     </div>
 
 
+    <!-- EVENT / TRACK SELECTOR (Paper · Project Expo · Embeddathon) -->
+    <div id="eventSelectorCard" class="bg-white rounded-xl border border-[#e3dccd] shadow-xs p-2.5 space-y-2">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-[11px] font-black uppercase tracking-wider text-[#0f172a]">Evaluation Event</span>
+        <span id="judgeAssignmentBadge" class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-[#475569] border border-slate-200">Not assigned</span>
+      </div>
+      <div id="eventTabsRow" class="grid grid-cols-3 gap-1.5"></div>
+      <div class="flex items-center justify-between gap-2 text-[10px] text-[#64748b]">
+        <span id="eventVenueLabel" class="font-bold text-[#1e293b] truncate">📍 Venue</span>
+        <span id="eventAssignmentSchedule" class="truncate text-right">—</span>
+      </div>
+    </div>
+
     <!-- ======================================================= -->
     <!-- VIEW 1: EVALUATION (PHASE 1 vs PHASE 2)                 -->
     <!-- ======================================================= -->
@@ -298,10 +311,10 @@
         </div>
       </div>
 
-      <!-- DUAL-PHASE JURY CONSENSUS PANEL -->
-      <div class="bg-white rounded-xl border border-[#e3dccd] shadow-xs p-3 space-y-2">
+      <!-- EVENT-AWARE JURY CONSENSUS PANEL -->
+      <div id="juryConsensusPanel" class="bg-white rounded-xl border border-[#e3dccd] shadow-xs p-3 space-y-2">
         <div class="flex items-center justify-between">
-          <span class="text-[11px] font-black uppercase tracking-wider text-[#0f172a]">
+          <span id="juryConsensusTitle" class="text-[11px] font-black uppercase tracking-wider text-[#0f172a]">
             Jury Status & Consensus
           </span>
           <div class="flex items-center gap-1.5">
@@ -311,8 +324,8 @@
           </div>
         </div>
 
-        <!-- Internal vs External Judges Scores Row -->
-        <div class="grid grid-cols-2 gap-2 text-xs">
+        <!-- Embeddathon: internal vs external phase scores -->
+        <div id="dualPhaseConsensusGrid" class="grid grid-cols-2 gap-2 text-xs">
           <!-- Phase 1: Internal Mentoring -->
           <div class="p-2.5 rounded-xl border bg-[#fdfbf7] border-[#e3dccd] space-y-1.5">
             <div class="flex items-center justify-between">
@@ -344,8 +357,35 @@
           </div>
         </div>
 
-        <!-- Grand Cumulative Total -->
-        <div class="bg-[#fff7ed] p-2 rounded-xl border border-[#ea580c] flex items-center justify-between">
+        <!-- Single-rubric events: Paper & Project Expo -->
+        <div id="singleEventConsensusPanel" class="hidden space-y-2">
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="p-2.5 rounded-xl border bg-[#fdfbf7] border-[#e3dccd] space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span id="singleEventJuryLabel" class="font-extrabold text-[10px] uppercase text-[#1e293b]">Event Jury</span>
+                <span id="singleEventAvgMax" class="text-[10px] font-bold text-[#ea580c]">/50</span>
+              </div>
+              <div id="singleEventJudgeBadges" class="space-y-1"></div>
+              <div class="pt-1 border-t border-[#f0ebe0] flex justify-between font-bold text-[10px]">
+                <span class="text-[#64748b]">Jury Avg:</span>
+                <span id="singleEventAvgDisplay" class="text-[#ea580c] font-black">— / 50</span>
+              </div>
+            </div>
+
+            <div class="p-2.5 rounded-xl border bg-[#fdfbf7] border-[#e3dccd] space-y-1">
+              <span class="font-extrabold text-[10px] uppercase text-[#1e293b]">Criteria Averages</span>
+              <div id="singleEventCriteriaAverages" class="space-y-0.5 text-[10px]"></div>
+            </div>
+          </div>
+
+          <div id="singleEventConsensusBox" class="bg-[#eef2ff] p-2 rounded-xl border border-indigo-300 flex items-center justify-between">
+            <span id="singleEventConsensusLabel" class="text-xs font-black uppercase text-indigo-700">Event Jury Average:</span>
+            <span id="singleEventConsensusTotal" class="text-base font-black text-indigo-700">— / 50</span>
+          </div>
+        </div>
+
+        <!-- Grand Cumulative Total (Embeddathon only) -->
+        <div id="grandCumulativeBox" class="bg-[#fff7ed] p-2 rounded-xl border border-[#ea580c] flex items-center justify-between">
           <span class="text-xs font-black uppercase text-[#ea580c]">Grand Cumulative Score:</span>
           <span id="cumulativeScoreDisplay" class="text-base font-black text-[#ea580c]">
             — / 100
@@ -392,6 +432,14 @@
                 Not Scored
               </div>
             </div>
+          </div>
+
+          <!-- SINGLE-RUBRIC EVENT SECTION (Paper / Project Expo) -->
+          <div id="singleEventRubricsSection" class="hidden space-y-2.5">
+            <div class="text-[11px] font-black uppercase tracking-wider text-[#ea580c] flex items-center gap-1 border-b border-[#f0ebe0] pb-1">
+              <span id="singleEventRubricTitle">Event Rubric</span>
+            </div>
+            <div id="singleEventRubricList" class="space-y-2.5"></div>
           </div>
 
           <!-- SECTION A: PHASE 1 RUBRICS (30 MARKS - INTERNAL JUDGES) -->
@@ -638,9 +686,9 @@
       <div class="bg-white p-3 rounded-xl border border-[#e3dccd] shadow-xs flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h2 class="text-sm font-black text-[#0f172a] flex items-center gap-1.5">
-            <span>🏆 EmbedThon '26 Standings</span>
+            <span id="leaderboardTitle">🏆 Event Standings</span>
           </h2>
-          <p class="text-[10px] text-[#64748b]">Phase 1 (30%) + Phase 2 (70%) = Total (100%)</p>
+          <p id="leaderboardSubtitle" class="text-[10px] text-[#64748b]">Select an event to view its live ranking</p>
         </div>
 
         <div class="flex items-center gap-1.5 flex-wrap">
@@ -648,6 +696,11 @@
             <span class="animate-bounce">🏆</span>
             <span>Reveal Ceremony ↗</span>
           </a>
+          <select id="leaderboardEventSelect" class="text-xs font-bold bg-[#fff7ed] border border-[#fed7aa] rounded-lg px-2 py-1 text-[#ea580c]">
+            <option value="PAPER">📄 Paper Presentation</option>
+            <option value="PROJECT_EXPO">🛠️ Project Expo</option>
+            <option value="EMBEDDATHON">⚡ Embeddathon</option>
+          </select>
           <select id="leaderboardSectionSelect" class="text-xs font-bold bg-[#f6f1e6] border border-[#e3dccd] rounded-lg px-2 py-1 text-[#1e293b]">
             <option value="ALL">All (24)</option>
             <option value="A">Sec A</option>
@@ -676,7 +729,7 @@
       <div class="bg-white rounded-xl border border-[#e3dccd] shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse text-xs">
-            <thead>
+            <thead id="leaderboardThead">
               <tr class="bg-[#f6f1e6] border-b border-[#e3dccd] text-[#64748b] font-bold uppercase text-[10px]">
                 <th class="py-2 px-2 text-center w-8">#</th>
                 <th class="py-2 px-2 w-10 font-serif-pace text-[#ea580c]">Team</th>
@@ -872,6 +925,9 @@
           <!-- Category Selector -->
           <select id="ceremonyCategorySelect" class="bg-[#f6f1e6] border border-[#e3dccd] text-xs font-bold text-[#0f172a] rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#ea580c] cursor-pointer">
             <option value="OVERALL">🏆 Overall Champions</option>
+            <option value="PAPER">📄 Paper Presentation</option>
+            <option value="PROJECT_EXPO">🛠️ Project Expo</option>
+            <option value="EMBEDDATHON">⚡ Embeddathon</option>
             <option value="A">Section A (01–11)</option>
             <option value="B">Section B (12–24)</option>
           </select>
@@ -927,6 +983,7 @@
     </div>
   </div>
 
+  <script src="rubrics.js"></script>
   <script src="teams.js"></script>
   <script src="app.js"></script>
 </body>

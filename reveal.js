@@ -9,12 +9,20 @@
   'use strict';
 
   const POLL_MS = 4000;
+  const EVENT_LIB = window.EMBEDTHON_RUBRICS || {
+    EVENTS: {},
+    getEvent: function () {
+      return { id: 'EMBEDDATHON', label: 'Embeddathon', maxTotal: 100, mode: 'DUAL_PHASE' };
+    }
+  };
   const CATEGORY_TITLES = {
     OVERALL: 'Overall Champions (All 24 Teams)',
-    EMBEDTHON: 'Track 1 · Embeddathon',
-    HARDWARE: 'Track 2 · Project Expo (Hardware)',
-    SOFTWARE: 'Track 2 · Project Expo (Software)',
-    PAPER: 'Track 3 · Technical Paper Competition',
+    EMBEDDATHON: '⚡ Embeddathon',
+    EMBEDTHON: '⚡ Embeddathon',
+    PROJECT_EXPO: '🛠️ Project Expo',
+    HARDWARE: '🛠️ Project Expo',
+    SOFTWARE: '🛠️ Project Expo',
+    PAPER: '📄 Paper Presentation',
     A: 'Section A (Teams 01–11)',
     B: 'Section B (Teams 12–24)'
   };
@@ -100,6 +108,8 @@
     gate: null,      // pending presenter action: skip the drumroll and reveal now
     live: [],
     locked: [],
+    eventRows: {},
+    maxTotal: 100,
     pending: false,
     hasScores: false,
     muted: false,
@@ -122,20 +132,114 @@
   const clearTimers = () => { state.timers.forEach(clearTimeout); state.timers = []; };
 
   // =============================================================
-  // Sound (procedural Web Audio, no asset files)
+  // Sound — Mixkit + project-supplied samples with procedural fallbacks.
+  // Credits: assets/sfx/CREDITS.md
   // =============================================================
+  const SFX_URLS = {
+    whooshFast: 'assets/sfx/whoosh-fast-1489.mp3',
+    whooshDeep: 'assets/sfx/whoosh-deep.mp3',
+    drumroll566: 'assets/sfx/drumroll-566.mp3',
+    impact577: 'assets/sfx/impact-577.mp3',
+    fanfareRunnerUp: 'assets/sfx/fanfare-horns.mp3',
+    podiumBrass: 'assets/sfx/podium-brass.mp3',
+    winnerBell: 'assets/sfx/winner-bell.mp3',
+    applause: 'assets/sfx/applause-crowd.mp3',
+    fakeRiser: 'assets/sfx/fake-build-riser.mp3',
+    psychFart: 'assets/sfx/psych-fart.mp3',
+    slotPayout: 'assets/sfx/slot-payout.mp3',
+    slotTick: 'assets/sfx/slot-tick.mp3'
+  };
+
   const audio = {
     ctx: null,
+    bus: null,
     noise: null,
-    get() {
-      if (state.muted) return null;
+    drumrollNode: null,
+    slotNode: null,
+    samples: Object.create(null),
+    loading: Object.create(null),
+    ready: false,
+    ensureCtx() {
       if (!this.ctx) {
         const C = window.AudioContext || window.webkitAudioContext;
         if (!C) return null;
-        this.ctx = new C();
+        try { this.ctx = new C(); } catch (e) { console.warn('Web Audio unavailable:', e); return null; }
       }
-      if (this.ctx.state === 'suspended') this.ctx.resume();
+      if (!this.bus) {
+        this.bus = this.ctx.createGain();
+        this.bus.gain.value = state.muted ? 0 : 1;
+        const compressor = this.ctx.createDynamicsCompressor();
+        compressor.threshold.value = -16;
+        compressor.knee.value = 20;
+        compressor.ratio.value = 6;
+        compressor.attack.value = 0.003;
+        compressor.release.value = 0.3;
+        this.bus.connect(compressor).connect(this.ctx.destination);
+      }
       return this.ctx;
+    },
+    get() {
+      if (state.muted) return null;
+      const ctx = this.ensureCtx();
+      if (!ctx) return null;
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    },
+    setMuted(muted) {
+      if (!this.ctx || !this.bus) return;
+      const t = this.ctx.currentTime;
+      this.bus.gain.cancelScheduledValues(t);
+      this.bus.gain.setTargetAtTime(muted ? 0 : 1, t, 0.02);
+    },
+    async preload() {
+      const ctx = this.ensureCtx();
+      if (!ctx) return;
+      await Promise.all(Object.entries(SFX_URLS).map(async ([key, url]) => {
+        if (this.samples[key] || this.loading[key]) return;
+        this.loading[key] = true;
+        try {
+          const res = await fetch(url, { cache: 'force-cache' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.arrayBuffer();
+          this.samples[key] = await ctx.decodeAudioData(data);
+        } catch (e) {
+          console.warn(`Sound effect unavailable (${url}):`, e.message || e);
+        } finally {
+          this.loading[key] = false;
+        }
+      }));
+      this.ready = true;
+    },
+    playSample(name, volume = 0.7, opts = {}) {
+      const ctx = this.get();
+      if (!ctx) return null;
+      const buffer = this.samples[name];
+      if (!buffer) return null;
+
+      const { rate = 1, offset = 0, duration = 0, fadeOut = 0.08, loop = false } = opts;
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.playbackRate.value = rate;
+      src.loop = loop;
+
+      const gain = ctx.createGain();
+      const t = ctx.currentTime;
+      const maxOut = duration ? Math.min(duration, buffer.duration / rate) : buffer.duration / rate;
+      gain.gain.setValueAtTime(Math.max(0.0001, volume), t);
+      if (fadeOut && maxOut > fadeOut) {
+        gain.gain.setValueAtTime(Math.max(0.0001, volume), t + maxOut - fadeOut);
+        gain.gain.linearRampToValueAtTime(0.0001, t + maxOut);
+      }
+      src.connect(gain).connect(this.bus || ctx.destination);
+
+      const bufferSeconds = loop
+        ? undefined
+        : Math.min(buffer.duration - offset, (duration || buffer.duration / rate) * rate);
+      src.start(t, Math.max(0, offset), bufferSeconds);
+      if (!loop) {
+        try { src.stop(t + maxOut + 0.03); } catch (e) { /* already stopped */ }
+      }
+      return { src, gain, duration: maxOut };
     },
     noiseSource(ctx, dur, fn) {
       const n = Math.floor(ctx.sampleRate * dur);
@@ -156,36 +260,137 @@
       if (slide) o.frequency.exponentialRampToValueAtTime(freq * slide, t + dur);
       g.gain.setValueAtTime(vol, t);
       g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      o.connect(g).connect(ctx.destination);
+      o.connect(g).connect(this.bus || ctx.destination);
       o.start(t); o.stop(t + dur + 0.02);
     },
-    tick(freq = 2200, delay = 0) { this.tone(freq, 0.05, 0.2, 'triangle', 0.67, delay); },
-    click() { this.tone(900, 0.03, 0.2, 'triangle'); },
+    tick(freq = 2200, delay = 0) {
+      const rate = Math.max(0.75, Math.min(1.6, freq / 2200));
+      const play = () => this.playSample('slotTick', 0.32, { rate, duration: 0.085, fadeOut: 0.03 });
+      if (this.samples.slotTick) {
+        if (delay) setTimeout(play, delay * 1000); else play();
+      } else {
+        this.tone(freq, 0.05, 0.2, 'triangle', 0.67, delay);
+      }
+    },
+    click() {
+      if (!this.playSample('slotTick', 0.45, { rate: 0.82, duration: 0.075, fadeOut: 0.02 })) {
+        this.tone(900, 0.03, 0.2, 'triangle');
+      }
+    },
     chime() {
       [[880, 0.2], [1320, 0.12], [1760, 0.07], [2640, 0.03]].forEach(([f, v], i) => {
         this.tone(f, 1.1, v, 'sine', 0, i * 0.04);
       });
     },
-    // Landing hit: low thump + sparkle
     hit() {
-      this.tone(120, 0.45, 0.5, 'sine', 0.5);
-      this.tone(62, 0.6, 0.35, 'sine', 0.7);
-      this.chime();
+      // 577 is a 14s tension roll; its 5.2s drum slam is the landing hit.
+      if (this.playSample('impact577', 0.95, { offset: 5.15, duration: 1.2, fadeOut: 0.25 })) {
+        this.playSample('whooshFast', 0.4, { rate: 1.04, duration: 1.05, fadeOut: 0.25 });
+      } else {
+        this.tone(120, 0.45, 0.5, 'sine', 0.5);
+        this.tone(62, 0.6, 0.35, 'sine', 0.7);
+        this.chime();
+      }
     },
-    // Comedic "womp womp" for the champion fake-out
-    womp() {
-      [[392, 0.18], [370, 0.18], [349, 0.34]].forEach(([f, dur], i) => {
-        this.tone(f, dur, 0.15, 'sawtooth', 0, i * 0.17);
-      });
+    fakeBuild() {
+      if (!this.playSample('fakeRiser', 0.8, { duration: 1.42, fadeOut: 0.05 })) {
+        const ctx = this.get(); if (!ctx) return;
+        const dur = 1.2, t = ctx.currentTime;
+        const src = this.noiseSource(ctx, dur, (i) => (Math.random() * 2 - 1) * Math.min(1, i / (ctx.sampleRate * 0.8)));
+        const f = ctx.createBiquadFilter();
+        f.type = 'highpass';
+        f.frequency.setValueAtTime(300, t);
+        f.frequency.exponentialRampToValueAtTime(5000, t + dur);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.05, t);
+        g.gain.exponentialRampToValueAtTime(0.45, t + dur);
+        src.connect(f).connect(g).connect(this.bus || ctx.destination);
+        src.start(t); src.stop(t + dur);
+      }
     },
-    // Original victory fanfare (does not use any Kahoot music)
-    fanfare() {
-      [[523.25, 0.42], [659.25, 0.42], [783.99, 0.5], [1046.5, 0.7], [1318.5, 0.85]]
-        .forEach(([f, dur], i) => this.tone(f, dur, 0.18, 'triangle', 0, i * 0.13));
-      [1046.5, 1318.5, 1568].forEach((f, i) => this.tone(f, 1.5, 0.1, 'sine', 0, 0.62 + i * 0.02));
+    psychFart() {
+      if (!this.playSample('psychFart', 0.82, { duration: 1.2, fadeOut: 0.25 })) {
+        [[392, 0.18], [370, 0.18], [349, 0.34]].forEach(([f, dur], i) => {
+          this.tone(f, dur, 0.15, 'sawtooth', 0, i * 0.17);
+        });
+      }
     },
-    // Suspense drumroll
+    winnerBell() {
+      if (!this.playSample('winnerBell', 0.8, { duration: 2.0, fadeOut: 0.4 })) this.chime();
+      this.playSample('whooshFast', 0.28, { rate: 1.2, duration: 0.7, fadeOut: 0.2 });
+    },
+    runnerUpFanfare() {
+      if (!this.playSample('fanfareRunnerUp', 0.7, { fadeOut: 0.2 })) {
+        [[523.25, 0.42], [659.25, 0.42], [783.99, 0.5], [1046.5, 0.7], [1318.5, 0.85]]
+          .forEach(([f, dur], i) => this.tone(f, dur, 0.18, 'triangle', 0, i * 0.13));
+      }
+    },
+    podiumFanfare() {
+      if (!this.playSample('podiumBrass', 0.82, { duration: 8.5, fadeOut: 1.5 })) {
+        [[523.25, 0.42], [659.25, 0.42], [783.99, 0.5], [1046.5, 0.7], [1318.5, 0.85]]
+          .forEach(([f, dur], i) => this.tone(f, dur, 0.18, 'triangle', 0, i * 0.13));
+        [1046.5, 1318.5, 1568].forEach((f, i) => this.tone(f, 1.5, 0.1, 'sine', 0, 0.62 + i * 0.02));
+      }
+      this.applause();
+    },
+    applause(volume = 0.27) {
+      this.playSample('applause', volume, { offset: 0.15, duration: 6.5, fadeOut: 1.5 });
+    },
+    slotSpin(dur = 3.1) {
+      this.stopSlotSpin();
+      const handle = this.playSample('slotPayout', 0.85, { duration: dur, fadeOut: 0.15 });
+      if (handle) this.slotNode = handle;
+    },
+    stopSlotSpin() {
+      if (!this.slotNode) return;
+      const { src, gain } = this.slotNode;
+      const ctx = this.ctx;
+      if (ctx) {
+        const t = ctx.currentTime;
+        try {
+          gain.gain.cancelScheduledValues(t);
+          gain.gain.setTargetAtTime(0.0001, t, 0.03);
+        } catch (e) { /* gain already finished */ }
+        try { src.stop(t + 0.15); } catch (e) { /* already stopped */ }
+      }
+      this.slotNode = null;
+    },
+    whoosh(deep = false) {
+      if (!this.playSample(deep ? 'whooshDeep' : 'whooshFast', deep ? 0.52 : 0.46, {
+        rate: deep ? 0.96 : 1.04,
+        duration: deep ? 2.4 : 1.1,
+        fadeOut: 0.3
+      })) {
+        const ctx = this.get(); if (!ctx) return;
+        const dur = 0.55;
+        const t = ctx.currentTime;
+        const src = this.noiseSource(ctx, dur, (i) => (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.2)));
+        const f = ctx.createBiquadFilter();
+        f.type = 'bandpass'; f.Q.value = 1.3;
+        f.frequency.setValueAtTime(deep ? 300 : 650, t);
+        f.frequency.exponentialRampToValueAtTime(deep ? 1400 : 2600, t + dur);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.28, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        src.connect(f).connect(g).connect(this.bus || ctx.destination);
+        src.start(t); src.stop(t + dur);
+      }
+    },
     drumroll(dur) {
+      this.stopDrumroll();
+      // 566 has its big hit around 3.0s; start late enough to land on the reveal.
+      const offset = Math.max(0, 3.0 - dur);
+      const handle = this.playSample('drumroll566', 0.65, {
+        offset,
+        duration: dur,
+        fadeOut: 0.12
+      });
+      if (handle) {
+        this.drumrollNode = handle;
+        return;
+      }
+
+      // Procedural fallback if the sample is unavailable.
       const ctx = this.get(); if (!ctx) return;
       const t = ctx.currentTime;
       const src = this.noiseSource(ctx, dur, (i) => (Math.random() * 2 - 1) * (0.6 + 0.4 * Math.sin(i / 130)));
@@ -197,15 +402,29 @@
       g.gain.setValueAtTime(0.05, t);
       g.gain.exponentialRampToValueAtTime(0.8, t + Math.max(0.1, dur - 0.05));
       g.gain.linearRampToValueAtTime(0.001, t + dur);
-      src.connect(f).connect(g).connect(ctx.destination);
+      src.connect(f).connect(g).connect(this.bus || ctx.destination);
       src.start(t); src.stop(t + dur);
       this.noise = src;
       src.onended = () => { if (this.noise === src) this.noise = null; };
     },
     stopDrumroll() {
-      if (!this.noise) return;
-      try { this.noise.stop(); } catch (e) { /* already stopped */ }
-      this.noise = null;
+      if (this.drumrollNode) {
+        const { src, gain } = this.drumrollNode;
+        const ctx = this.ctx;
+        if (ctx) {
+          const t = ctx.currentTime;
+          try {
+            gain.gain.cancelScheduledValues(t);
+            gain.gain.setTargetAtTime(0.0001, t, 0.04);
+          } catch (e) { /* gain already finished */ }
+          try { src.stop(t + 0.17); } catch (e) { /* already stopped */ }
+        }
+        this.drumrollNode = null;
+      }
+      if (this.noise) {
+        try { this.noise.stop(); } catch (e) { /* already stopped */ }
+        this.noise = null;
+      }
     }
   };
 
@@ -258,14 +477,78 @@
     : 0;
 
   // Ties: higher Phase 2 wins, then lower team number. Settle real ties with organisers.
-  function computeStandings(evals) {
+  function getRevealEventMap(evals, eventId) {
+    const all = evals || {};
+    let map = all[eventId] && typeof all[eventId] === 'object' ? all[eventId] : null;
+
+    if (!map && all._byEvent && all._byEvent[eventId]) {
+      map = all._byEvent[eventId];
+    }
+
+    if (eventId === 'EMBEDDATHON') {
+      const legacy = {};
+      Object.keys(all).forEach((key) => {
+        if (/^\d{1,2}$/.test(key) && all[key] && typeof all[key] === 'object') {
+          legacy[key.padStart(2, '0')] = all[key];
+        }
+      });
+      map = { ...legacy, ...(map || {}) };
+    }
+
+    return map || {};
+  }
+
+  function computeEventStandings(evals, eventId) {
+    const event = EVENT_LIB.getEvent(eventId);
+    const map = getRevealEventMap(evals, eventId);
+
     const rows = (typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA : []).map((team) => {
-      const judges = Object.values(evals[team.number] || {}).filter(Boolean);
-      const p1 = avg(judges.map((j) => j.phase1).filter((v) => v > 0));
-      const p2 = avg(judges.map((j) => j.phase2).filter((v) => v > 0));
+      const judges = Object.values(map[team.number] || {}).filter(Boolean);
+
+      if (event.mode === 'SINGLE') {
+        const totals = judges.map((j) => Number(j.total)).filter((v) => v > 0);
+        return {
+          team,
+          p1: 0,
+          p2: 0,
+          total: avg(totals),
+          judges: totals.length
+        };
+      }
+
+      const p1 = avg(judges.map((j) => Number(j.phase1)).filter((v) => v > 0));
+      const p2 = avg(judges.map((j) => Number(j.phase2)).filter((v) => v > 0));
       return { team, p1, p2, total: Math.round((p1 + p2) * 10) / 10, judges: judges.length };
     });
+
     rows.sort((a, b) => b.total - a.total || b.p2 - a.p2 || a.team.number.localeCompare(b.team.number));
+    return rows;
+  }
+
+  function computeStandings(evals) {
+    return {
+      EMBEDDATHON: computeEventStandings(evals, 'EMBEDDATHON'),
+      PROJECT_EXPO: computeEventStandings(evals, 'PROJECT_EXPO'),
+      PAPER: computeEventStandings(evals, 'PAPER')
+    };
+  }
+
+  function categoryEventId(category) {
+    if (category === 'PAPER') return 'PAPER';
+    if (category === 'PROJECT_EXPO' || category === 'HARDWARE' || category === 'SOFTWARE') return 'PROJECT_EXPO';
+    return 'EMBEDDATHON';
+  }
+
+  function categoryMax(category) {
+    return EVENT_LIB.getEvent(categoryEventId(category)).maxTotal;
+  }
+
+  function rowsForCategory(category) {
+    const eventId = categoryEventId(category);
+    const rows = state.eventRows[eventId] || [];
+    if (category === 'A' || category === 'B') {
+      return rows.filter((row) => row.team.section === category);
+    }
     return rows;
   }
 
@@ -281,7 +564,9 @@
       const sum = JSON.stringify([evals, cfg]);
       if (sum === state.checksum) return;
       state.checksum = sum;
-      applyLive(computeStandings(evals));
+      state.eventRows = computeStandings(evals);
+      state.maxTotal = categoryMax(state.category);
+      applyLive(rowsForCategory(state.category));
     } catch (err) {
       console.warn('Live sync unavailable, staying in rehearsal mode:', err);
     }
@@ -369,25 +654,8 @@
 
   const pool = () => {
     const list = state.locked;
-    if (state.category === 'OVERALL') return list;
     if (state.category === 'A' || state.category === 'B') {
       return list.filter((r) => r.team.section === state.category);
-    }
-    if (state.category === 'EMBEDTHON') {
-      const match = list.filter((r) => r.team.section === 'A' || /embed|iot|micro|sensor|hardware|circuit|smart/i.test((r.team.abstract_title || '') + (r.team.abstract || '')));
-      return match.length >= 3 ? match : list;
-    }
-    if (state.category === 'HARDWARE') {
-      const match = list.filter((r) => /hardware|sensor|iot|circuit|robot|embed|arduino|esp32|grid|solar/i.test((r.team.abstract_title || '') + (r.team.abstract || '')) || r.team.section === 'A');
-      return match.length >= 3 ? match : list;
-    }
-    if (state.category === 'SOFTWARE') {
-      const match = list.filter((r) => /software|ai|ml|cloud|web|app|vision|detection|predict/i.test((r.team.abstract_title || '') + (r.team.abstract || '')) || r.team.section === 'B');
-      return match.length >= 3 ? match : list;
-    }
-    if (state.category === 'PAPER') {
-      const match = list.filter((r) => /paper|analysis|study|framework|optimization|model/i.test((r.team.abstract_title || '') + (r.team.abstract || '')) || r.team.section === 'B');
-      return match.length >= 3 ? match : list;
     }
     return list;
   };
@@ -399,10 +667,12 @@
     clearTimers();
     state.gate = null;
     audio.stopDrumroll();
+    audio.stopSlotSpin();
     resetConfetti();
     clearAutoTimer();
     state.step = step;
     state.auto.hold = step > STEP_WELCOME && step < STEP_PODIUM;
+    audio.whoosh(step >= 3);
     if (step === STEP_WELCOME) {
       state.locked = state.live;
       state.pending = false;
@@ -564,7 +834,7 @@
                 <div class="rv-total">
                   <span class="rv-total-label">Grand Total</span>
                   <span class="rv-total-value ${state.hasScores ? '' : 'is-empty'}" data-count="${state.hasScores ? row.total : ''}">${state.hasScores ? '0.0' : '—'}</span>
-                  <span class="rv-total-max">/ 100</span>
+                  <span class="rv-total-max">/ ${state.maxTotal}</span>
                 </div>
                 <div class="rv-split">
                   <div><span>Phase 1</span><strong>${show(row.p1)}</strong><small>/ 30</small></div>
@@ -585,12 +855,13 @@
 
     el.stage.innerHTML = rankMarkup(row, rank);
     const act = el.stage.querySelector('.rv-act');
-    const suspenseMs = rank.place === 2 ? 3500 : 2900;
+    // 566's big drum hit lands at ~3.0s, so leave room for it on 3rd place.
+    const suspenseMs = rank.place === 2 ? 3500 : 3200;
 
     state.auto.hold = true;
     el.indicator.textContent = `${rank.label} · drumroll — press Space to reveal`;
     el.nextLabel.textContent = 'Reveal now ▶';
-    audio.drumroll(rank.place === 1 ? 3.1 : suspenseMs / 1000);
+    audio.drumroll(rank.place === 1 ? 3.2 : suspenseMs / 1000);
 
     let landed = false;
     let slotCancelled = false;
@@ -599,13 +870,16 @@
       landed = true;
       if (state.gate === reveal || state.gate === skipRank) state.gate = null;
       audio.stopDrumroll();
+      audio.stopSlotSpin();
       act.classList.add('is-revealed');
 
       if (rank.place === 1) {
-        audio.fanfare();
+        audio.hit();
+        audio.applause();
         launchConfetti('mega');
       } else if (rank.place === 2) {
         audio.hit();
+        audio.runnerUpFanfare();
         launchConfetti('big');
       } else {
         audio.hit();
@@ -667,7 +941,6 @@
       if (isCancelled()) return;
       const p = Math.min(1, (performance.now() - started) / spinMs);
       reel.textContent = names[Math.floor(Math.random() * names.length)] || row.team.name;
-      audio.tick(1600 + Math.random() * 900);
 
       if (p < 1) {
         later(step, 55 + 420 * Math.pow(p, 2.6));
@@ -681,8 +954,14 @@
       machine.classList.add('is-decoy');
       tag.textContent = 'And the winner is…';
       audio.tick(900);
+      audio.stopSlotSpin();
 
-      // 2. Hold the fake winner for two full seconds before the prank.
+      // 2. Build up over the fake winner, then fart at the PSYCH.
+      later(() => {
+        if (isCancelled()) return;
+        audio.stopDrumroll();
+        audio.fakeBuild();
+      }, 500);
       later(() => {
         if (isCancelled()) return;
         reel.classList.remove('is-decoy');
@@ -690,7 +969,7 @@
         machine.classList.remove('is-decoy');
         machine.classList.add('is-fake');
         tag.textContent = 'PSYCH! · Just kidding…';
-        audio.womp();
+        audio.psychFart();
 
         // 3. Hold the PSYCH for a beat, then snap to the real winner.
         later(() => {
@@ -701,13 +980,14 @@
           machine.classList.remove('is-fake');
           machine.classList.add('is-real');
           tag.textContent = `WINNER · ${row.team.name}`;
-          audio.hit();
+          audio.winnerBell();
           later(finish, 650);
         }, 1000);
       }, 2000);
     };
 
     reel.classList.add('is-spinning');
+    audio.slotSpin(3.1);
     step();
     later(finish, 9000);
   }
@@ -754,7 +1034,7 @@
               <span class="rv-podium-avatar rv-podium-avatar--${place}" aria-hidden="true">?</span>
               <span class="rv-podium-label">${label}</span>
               <span class="rv-podium-name">Awaiting</span>
-              <span class="rv-podium-score">—<small>/ 100</small></span>
+              <span class="rv-podium-score">—<small>/ ${state.maxTotal}</small></span>
             </div>
             <div class="rv-podium-block rv-podium-block--${place}">${place}</div>
           </div>`;
@@ -768,7 +1048,7 @@
             <span class="rv-podium-name">${esc(row.team.name)}</span>
             <span class="rv-podium-team">TEAM ${esc(row.team.number)} · SEC ${esc(row.team.section)}</span>
             <span class="rv-podium-score">
-              ${state.hasScores ? row.total.toFixed(1) : '—'}<small>/ 100</small>
+              ${state.hasScores ? row.total.toFixed(1) : '—'}<small>/ ${state.maxTotal}</small>
             </span>
           </div>
           <div class="rv-podium-block rv-podium-block--${place}">${place}</div>
@@ -792,7 +1072,7 @@
         <div class="rv-final-shapes">${shapeRow()}</div>
       </section>`;
 
-    audio.fanfare();
+    audio.podiumFanfare();
     launchConfetti('big');
     later(() => launchConfetti('standard'), 900);
     state.auto.hold = false;
@@ -807,8 +1087,47 @@
     const f = el.modalFilter ? el.modalFilter.value : 'ALL';
     const rows = state.locked.filter((r) => f === 'ALL' || r.team.section === f);
     const show = (v) => (state.hasScores ? v.toFixed(1) : '—');
+    const event = EVENT_LIB.getEvent(categoryEventId(state.category));
+    const isSingle = event.mode === 'SINGLE';
 
-    el.modalBody.innerHTML = rows.map((r, i) => `
+    const modalSub = $('standingsModalSub');
+    if (modalSub) {
+      modalSub.textContent = isSingle
+        ? `${event.icon} ${event.label} · Jury average out of ${event.maxTotal} marks`
+        : 'Phase 1 Mentoring (30%) + Phase 2 Final Expo (70%) = Total Score (100%)';
+    }
+
+    const theadRow = $('standingsTheadRow');
+    if (theadRow) {
+      theadRow.innerHTML = isSingle
+        ? `
+          <th class="is-center">Rank</th>
+          <th>Team</th>
+          <th>Team Name &amp; Project</th>
+          <th class="is-center">Sec</th>
+          <th class="is-center">Judges</th>
+          <th class="is-right">Average (${event.maxTotal})</th>`
+        : `
+          <th class="is-center">Rank</th>
+          <th>Team</th>
+          <th>Team Name &amp; Project</th>
+          <th class="is-center">Sec</th>
+          <th class="is-center">Phase 1 (/30)</th>
+          <th class="is-center">Phase 2 (/70)</th>
+          <th class="is-right">Total (/100)</th>`;
+    }
+
+    el.modalBody.innerHTML = rows.map((r, i) => {
+      const cells = isSingle
+        ? `
+        <td class="is-center">${r.judges}</td>
+        <td class="is-right"><span class="rv-table-total">${show(r.total)}</span></td>`
+        : `
+        <td class="is-center">${show(r.p1)}</td>
+        <td class="is-center">${show(r.p2)}</td>
+        <td class="is-right"><span class="rv-table-total">${show(r.total)}</span></td>`;
+
+      return `
       <tr class="${i === 0 ? 'is-leader' : ''}">
         <td class="is-center"><strong>#${i + 1}</strong></td>
         <td class="rv-table-num">T-${esc(r.team.number)}</td>
@@ -817,10 +1136,9 @@
           <span class="rv-table-sub">${esc(r.team.abstract_title || '')}</span>
         </td>
         <td class="is-center"><span class="rv-table-sec">${esc(r.team.section)}</span></td>
-        <td class="is-center">${show(r.p1)}</td>
-        <td class="is-center">${show(r.p2)}</td>
-        <td class="is-right"><span class="rv-table-total">${show(r.total)}</span></td>
-      </tr>`).join('');
+        ${cells}
+      </tr>`;
+    }).join('');
   }
 
   const openModal = () => {
@@ -846,7 +1164,11 @@
 
   function toggleAudio() {
     state.muted = !state.muted;
-    if (state.muted) audio.stopDrumroll();
+    audio.setMuted(state.muted);
+    if (state.muted) {
+      audio.stopDrumroll();
+      audio.stopSlotSpin();
+    }
     el.audioIcon.textContent = state.muted ? '🔇' : '🔊';
     el.audioText.textContent = state.muted ? 'MUTED' : 'SOUND ON';
   }
@@ -855,7 +1177,7 @@
     const bannerEvent = $('revealBannerEvent');
     const bannerSub = $('revealBannerSub');
     if (!bannerEvent || !bannerSub) return;
-    const isEmbedthon = ['EMBEDTHON', 'A', 'B'].includes(state.category);
+    const isEmbedthon = ['EMBEDDATHON', 'EMBEDTHON', 'A', 'B'].includes(state.category);
     if (isEmbedthon) {
       bannerEvent.textContent = "EMBEDTHON '26";
       bannerEvent.style.color = '';
@@ -889,6 +1211,8 @@
 
     el.category.addEventListener('change', (e) => {
       state.category = e.target.value;
+      state.maxTotal = categoryMax(state.category);
+      applyLive(rowsForCategory(state.category));
       updateBannerForCategory();
       setStep(STEP_WELCOME);
     });
@@ -959,6 +1283,7 @@
 
     seedEmbers();
     updateAutoUI();
+    void audio.preload();
     if (document.fullscreenElement) document.body.classList.add('is-fullscreen');
 
     const params = new URLSearchParams(location.search);
@@ -968,11 +1293,13 @@
       if (exists) el.category.value = urlCategory;
     }
     if (el.category && el.category.value) state.category = el.category.value;
+    state.maxTotal = categoryMax(state.category);
+    state.eventRows = computeStandings({});
 
     bind();
     updateBannerForCategory();
 
-    applyLive(computeStandings({}));  // rehearsal view immediately, no fake scores
+    applyLive(rowsForCategory(state.category));  // rehearsal view immediately, no fake scores
     await syncData();
     setInterval(syncData, POLL_MS);
   }

@@ -1,6 +1,5 @@
-// EMBEDTHON '26 - Dual-Phase Multi-Judge Dynamic Scoring Portal
-// Phase 1: Mentoring Phase (30% / 30 Marks) - Evaluated by Internal Judges
-// Phase 2: Final Expo & Defense (70% / 70 Marks) - Evaluated by External Judges
+// EMBERS / EMBEDTHON '26 - Multi-Event, Multi-Judge Scoring Portal
+// Paper Presentation (50) · Project Expo (50) · Embeddathon (dual-phase 100)
 // Real-time synchronization across phone browsers via Vercel Serverless & Cloud Persistence
 
 (function () {
@@ -8,12 +7,28 @@
 
   const STORAGE_KEY_AUTH = 'embedthon_judge_auth_v4';
   const STORAGE_KEY_CURRENT = 'embedthon_current_team_v4';
+  const STORAGE_KEY_EVENT = 'embedthon_active_event_v1';
+
+  const EVENT_LIB = window.EMBEDTHON_RUBRICS || {
+    EVENTS: {},
+    EVENT_ORDER: [],
+    getEvent: function () {
+      return { id: 'EMBEDDATHON', label: 'Embeddathon', maxTotal: 100, mode: 'DUAL_PHASE', criteria: [] };
+    },
+    quickValues: function (max) {
+      return [max];
+    }
+  };
+  const EVENTS = EVENT_LIB.EVENTS || {};
 
   // State
   let teams = typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA : [];
   let currentTeamIndex = 0;
   let activeSectionFilter = 'A';
   let currentView = 'scoring';
+  let activeEventId = 'EMBEDDATHON';
+  let singleEventInputs = {};
+  let renderedSingleEventId = null;
 
   // Config & Master Evaluations
   let juryConfig = {
@@ -44,6 +59,7 @@
   const loginOverlay = document.getElementById('loginOverlay');
   const loginPhaseNotice = document.getElementById('loginPhaseNotice');
   const loginActivePhaseTitle = document.getElementById('loginActivePhaseTitle');
+  const loginActivePhaseSub = document.getElementById('loginActivePhaseSub');
   const loginInternalSlotsContainer = document.getElementById('loginInternalSlotsContainer');
   const loginExternalSlotsContainer = document.getElementById('loginExternalSlotsContainer');
   const btnSelectAdminLogin = document.getElementById('btnSelectAdminLogin');
@@ -90,8 +106,27 @@
   const memberCountBadge = document.getElementById('memberCountBadge');
   const membersContainer = document.getElementById('membersContainer');
 
+  // Event / Track Selector
+  const eventSelectorCard = document.getElementById('eventSelectorCard');
+  const eventTabsRow = document.getElementById('eventTabsRow');
+  const judgeAssignmentBadge = document.getElementById('judgeAssignmentBadge');
+  const eventVenueLabel = document.getElementById('eventVenueLabel');
+  const eventAssignmentSchedule = document.getElementById('eventAssignmentSchedule');
+
   // Jury Consensus Panel
+  const juryConsensusTitle = document.getElementById('juryConsensusTitle');
   const phaseStatusSummaryBadge = document.getElementById('phaseStatusSummaryBadge');
+  const dualPhaseConsensusGrid = document.getElementById('dualPhaseConsensusGrid');
+  const singleEventConsensusPanel = document.getElementById('singleEventConsensusPanel');
+  const singleEventJuryLabel = document.getElementById('singleEventJuryLabel');
+  const singleEventAvgMax = document.getElementById('singleEventAvgMax');
+  const singleEventJudgeBadges = document.getElementById('singleEventJudgeBadges');
+  const singleEventAvgDisplay = document.getElementById('singleEventAvgDisplay');
+  const singleEventCriteriaAverages = document.getElementById('singleEventCriteriaAverages');
+  const singleEventConsensusBox = document.getElementById('singleEventConsensusBox');
+  const singleEventConsensusLabel = document.getElementById('singleEventConsensusLabel');
+  const singleEventConsensusTotal = document.getElementById('singleEventConsensusTotal');
+  const grandCumulativeBox = document.getElementById('grandCumulativeBox');
   const internalJudgesBadges = document.getElementById('internalJudgesBadges');
   const internalAvgDisplay = document.getElementById('internalAvgDisplay');
   const externalJudgesBadges = document.getElementById('externalJudgesBadges');
@@ -113,6 +148,11 @@
   const inputP1Crit1 = document.getElementById('inputP1Crit1'); // 10
   const inputP1Crit2 = document.getElementById('inputP1Crit2'); // 10
   const inputP1Crit3 = document.getElementById('inputP1Crit3'); // 10
+
+  // Single-rubric event section (Paper / Project Expo)
+  const singleEventRubricsSection = document.getElementById('singleEventRubricsSection');
+  const singleEventRubricTitle = document.getElementById('singleEventRubricTitle');
+  const singleEventRubricList = document.getElementById('singleEventRubricList');
 
   // Phase 2 Inputs (External Final - Max 70)
   const phase2RubricsSection = document.getElementById('phase2RubricsSection');
@@ -142,6 +182,10 @@
 
   // Leaderboard View
   const leaderboardSectionSelect = document.getElementById('leaderboardSectionSelect');
+  const leaderboardEventSelect = document.getElementById('leaderboardEventSelect');
+  const leaderboardThead = document.getElementById('leaderboardThead');
+  const leaderboardTitle = document.getElementById('leaderboardTitle');
+  const leaderboardSubtitle = document.getElementById('leaderboardSubtitle');
   const leaderboardTbody = document.getElementById('leaderboardTbody');
   const btnExportCSV = document.getElementById('btnExportCSV');
   const btnShareWhatsApp = document.getElementById('btnShareWhatsApp');
@@ -167,6 +211,8 @@
   let ceremonyCurrentStep = 0; // 0: Welcome, 1: 3rd place, 2: 2nd place, 3: Champion, 4: Podium
   let ceremonyCategory = 'OVERALL';
   let ceremonyWinnersList = [];
+  let ceremonyMaxTotal = 100;
+  let ceremonyEventId = 'EMBEDDATHON';
 
   // Admin Modal Elements
   const modalJurySetup = document.getElementById('modalJurySetup');
@@ -187,6 +233,7 @@
   // -------------------------------------------------------------
   async function init() {
     loadSavedTeamIndex();
+    loadSavedEventId();
 
     // 1. Fetch server config and evaluations
     await fetchServerConfig();
@@ -197,6 +244,7 @@
 
     // 3. Render base components
     renderLoginJudgeSlots();
+    renderEventSelector();
     renderTeamPills();
     renderTeamGridModal();
     loadTeamIntoForm(currentTeamIndex);
@@ -216,6 +264,210 @@
         openCeremonyModal();
       }, 400);
     }
+  }
+
+  // -------------------------------------------------------------
+  // Event / Rubric Helpers
+  // -------------------------------------------------------------
+  function getActiveEvent() {
+    return EVENT_LIB.getEvent(activeEventId);
+  }
+
+  function isSingleEventMode() {
+    return getActiveEvent().mode === 'SINGLE';
+  }
+
+  function loadSavedEventId() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_EVENT);
+      if (saved && (EVENTS[saved] || saved === 'EMBEDDATHON')) {
+        activeEventId = saved;
+      }
+    } catch (e) {}
+  }
+
+  function saveActiveEvent() {
+    try {
+      localStorage.setItem(STORAGE_KEY_EVENT, activeEventId);
+    } catch (e) {}
+  }
+
+  function getJudgeAssignment(judgeId) {
+    const configured = (juryConfig.judgeAssignments || {})[judgeId];
+    if (configured) return configured;
+    if (currentJudge && currentJudge.id === judgeId && currentJudge.assignment) {
+      return currentJudge.assignment;
+    }
+    return null;
+  }
+
+  function getEventMap(eventId) {
+    const all = masterEvaluations || {};
+    let map = null;
+
+    if (all[eventId] && typeof all[eventId] === 'object') {
+      map = all[eventId];
+    } else if (all._byEvent && all._byEvent[eventId] && typeof all._byEvent[eventId] === 'object') {
+      map = all._byEvent[eventId];
+    }
+
+    // Backward compatibility: legacy data was stored flat under team numbers.
+    if (eventId === 'EMBEDDATHON') {
+      const legacy = {};
+      Object.keys(all).forEach((key) => {
+        if (/^\d{1,2}$/.test(key) && all[key] && typeof all[key] === 'object') {
+          legacy[key.padStart(2, '0')] = all[key];
+        }
+      });
+      map = { ...legacy, ...(map || {}) };
+    }
+
+    return map || {};
+  }
+
+  function getTeamEventEvals(teamNumber, eventId) {
+    return getEventMap(eventId || activeEventId)[teamNumber] || {};
+  }
+
+  function getJudgeEventEval(teamNumber, judgeId, eventId) {
+    return getTeamEventEvals(teamNumber, eventId)[judgeId] || null;
+  }
+
+  function setJudgeEventEval(eventId, teamNumber, judgeId, record) {
+    if (!masterEvaluations[eventId] || typeof masterEvaluations[eventId] !== 'object') {
+      masterEvaluations[eventId] = {};
+    }
+    if (!masterEvaluations[eventId][teamNumber]) {
+      masterEvaluations[eventId][teamNumber] = {};
+    }
+    masterEvaluations[eventId][teamNumber][judgeId] = record;
+  }
+
+  function getAllJudges() {
+    return [...(juryConfig.internalJudges || []), ...(juryConfig.externalJudges || [])];
+  }
+
+  function hasJudgeScored(evalObj, eventId) {
+    if (!evalObj) return false;
+    if (eventId === 'EMBEDDATHON') {
+      return Number(evalObj.phase1 || 0) > 0 || Number(evalObj.phase2 || 0) > 0 || Number(evalObj.total || 0) > 0;
+    }
+    return Number(evalObj.total || 0) > 0;
+  }
+
+  function getEventStandings(eventId) {
+    return teams.map((team) => {
+      const teamEvals = getTeamEventEvals(team.number, eventId);
+      const values = Object.values(teamEvals).filter(Boolean);
+
+      if (eventId === 'EMBEDDATHON') {
+        const p1Scores = values.map((x) => Number(x.phase1)).filter((v) => v > 0);
+        const p2Scores = values.map((x) => Number(x.phase2)).filter((v) => v > 0);
+        const p1Avg = p1Scores.length ? Number((p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1)) : 0;
+        const p2Avg = p2Scores.length ? Number((p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1)) : 0;
+        return {
+          team: team,
+          p1Avg: p1Avg,
+          p2Avg: p2Avg,
+          grandTotal: Number((p1Avg + p2Avg).toFixed(1)),
+          numJudges: values.filter((x) => hasJudgeScored(x, eventId)).length,
+          evals: values
+        };
+      }
+
+      const totalScores = values.map((x) => Number(x.total)).filter((v) => v > 0);
+      const avg = totalScores.length
+        ? Number((totalScores.reduce((a, b) => a + b, 0) / totalScores.length).toFixed(1))
+        : 0;
+      return {
+        team: team,
+        p1Avg: 0,
+        p2Avg: 0,
+        grandTotal: avg,
+        numJudges: totalScores.length,
+        evals: values
+      };
+    });
+  }
+
+  function renderEventSelector() {
+    if (!eventTabsRow) return;
+
+    const order = EVENT_LIB.EVENT_ORDER && EVENT_LIB.EVENT_ORDER.length
+      ? EVENT_LIB.EVENT_ORDER
+      : ['PAPER', 'PROJECT_EXPO', 'EMBEDDATHON'];
+
+    eventTabsRow.innerHTML = '';
+    order.forEach((eventId) => {
+      const event = EVENTS[eventId];
+      if (!event) return;
+      const isActive = eventId === activeEventId;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = isActive
+        ? 'px-2 py-2 rounded-xl border-2 text-left transition active:scale-95 bg-[#0f172a] text-white border-[#0f172a] shadow-sm'
+        : 'px-2 py-2 rounded-xl border text-left transition active:scale-95 bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6]';
+      btn.innerHTML = `
+        <span class="text-base block leading-none">${event.icon}</span>
+        <span class="text-[9px] font-black block truncate mt-0.5">${event.shortLabel}</span>
+        <span class="text-[8px] font-bold block ${isActive ? 'text-orange-200' : 'text-[#64748b]'}">${event.maxTotal} pts</span>
+      `;
+      btn.addEventListener('click', () => setActiveEvent(eventId));
+      eventTabsRow.appendChild(btn);
+    });
+
+    updateAssignmentUI();
+  }
+
+  function updateAssignmentUI() {
+    const event = getActiveEvent();
+    const assignment = currentJudge ? getJudgeAssignment(currentJudge.id) : null;
+
+    if (eventVenueLabel) {
+      eventVenueLabel.textContent = `📍 ${assignment && assignment.venue ? assignment.venue : event.venue}`;
+    }
+
+    if (judgeAssignmentBadge) {
+      if (assignment && assignment.eventId) {
+        const assignedEvent = EVENT_LIB.getEvent(assignment.eventId);
+        judgeAssignmentBadge.textContent = `${assignedEvent.icon} Assigned · ${assignedEvent.shortLabel}`;
+        judgeAssignmentBadge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200';
+      } else if (currentJudge) {
+        judgeAssignmentBadge.textContent = 'Open allocation';
+        judgeAssignmentBadge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200';
+      } else {
+        judgeAssignmentBadge.textContent = 'Not assigned';
+        judgeAssignmentBadge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-[#475569] border border-slate-200';
+      }
+    }
+
+    if (eventAssignmentSchedule) {
+      if (assignment && (assignment.start || assignment.day)) {
+        const dayText = assignment.day ? `Day ${assignment.day}` : '';
+        const timeText = assignment.start ? `${assignment.start}${assignment.end ? '–' + assignment.end : ''}` : '';
+        const slotText = assignment.slotTitle || '';
+        eventAssignmentSchedule.textContent = [dayText, timeText, slotText].filter(Boolean).join(' · ') || 'Schedule assigned';
+      } else if (currentJudge) {
+        eventAssignmentSchedule.textContent = 'No venue slot assigned';
+      } else {
+        eventAssignmentSchedule.textContent = 'Login to view your slot';
+      }
+    }
+  }
+
+  function setActiveEvent(eventId) {
+    if (!EVENTS[eventId] || eventId === activeEventId) return;
+    activeEventId = eventId;
+    saveActiveEvent();
+    renderedSingleEventId = null;
+    applyEventMode();
+    loadCurrentJudgeScoresForTeam();
+    renderJuryConsensus();
+    renderTeamPills();
+    renderTeamGridModal();
+    renderRosterList(searchTeamsInput ? searchTeamsInput.value : '');
+    renderLeaderboard();
+    updateProgressUI();
   }
 
   // -------------------------------------------------------------
@@ -247,6 +499,10 @@
 
           // Re-render views dynamically
           updatePhaseNotice();
+          updateAssignmentUI();
+          if (loginOverlay && !loginOverlay.classList.contains('hidden')) {
+            renderLoginJudgeSlots();
+          }
           updateProgressUI();
           renderJuryConsensus();
           renderTeamPills();
@@ -304,17 +560,36 @@
   }
 
   function updatePhaseNotice() {
+    if (isSingleEventMode()) {
+      const event = getActiveEvent();
+      if (loginActivePhaseTitle) loginActivePhaseTitle.textContent = `${event.icon} ${event.label} · ${event.maxTotal} Marks`;
+      if (loginActivePhaseSub) loginActivePhaseSub.textContent = `Single-jury rubric · ${event.venue}`;
+      if (phaseStatusSummaryBadge) phaseStatusSummaryBadge.textContent = `${event.icon} ${event.shortLabel} · /${event.maxTotal}`;
+      return;
+    }
+
     const phase = juryConfig.activePhase || 'PHASE_1';
     let phaseLabel = 'Phase 1: Mentoring Active';
     if (phase === 'PHASE_2') phaseLabel = 'Phase 2: Final Expo Active';
     if (phase === 'BOTH') phaseLabel = 'Both Phases Active (Mentoring & Final)';
 
     if (loginActivePhaseTitle) loginActivePhaseTitle.textContent = phaseLabel;
+    if (loginActivePhaseSub) loginActivePhaseSub.textContent = 'Internal Judges score Phase 1 (30%) · External score Phase 2 (70%)';
     if (phaseStatusSummaryBadge) phaseStatusSummaryBadge.textContent = phaseLabel;
   }
 
   function updateActiveJudgeUI() {
+    if (currentJudge) {
+      const assignment = getJudgeAssignment(currentJudge.id);
+      if (assignment && assignment.eventId && EVENTS[assignment.eventId] && assignment.eventId !== activeEventId) {
+        activeEventId = assignment.eventId;
+        renderedSingleEventId = null;
+        saveActiveEvent();
+      }
+    }
+
     updatePhaseNotice();
+    renderEventSelector();
 
     if (!currentJudge) {
       activeJudgeBadge.textContent = 'Login';
@@ -322,14 +597,17 @@
       return;
     }
 
+    const event = getActiveEvent();
     const typeTag = currentJudge.isAdmin
       ? 'ADMIN'
       : currentJudge.type === 'INTERNAL'
-      ? 'INTERNAL MENTOR (PHASE 1)'
-      : 'EXTERNAL JURY (PHASE 2)';
+      ? 'INTERNAL MENTOR'
+      : 'EXTERNAL JURY';
+    const assignment = getJudgeAssignment(currentJudge.id);
+    const venueTag = assignment && assignment.venue ? ` · ${assignment.venue}` : '';
 
     activeJudgeBadge.textContent = `${currentJudge.id} · ${currentJudge.name}`;
-    subHeaderJudgeRole.textContent = `${currentJudge.name.toUpperCase()} · ${typeTag}`;
+    subHeaderJudgeRole.textContent = `${event.icon} ${event.shortLabel.toUpperCase()} · ${typeTag}${venueTag}`;
 
     adaptFormToJudgeRole();
     loadCurrentJudgeScoresForTeam();
@@ -337,8 +615,38 @@
     updateProgressUI();
   }
 
+  function applyEventMode() {
+    adaptFormToJudgeRole();
+  }
+
   function adaptFormToJudgeRole() {
     if (!currentJudge) return;
+
+    const event = getActiveEvent();
+
+    if (event.mode === 'SINGLE') {
+      ensureSingleEventRubric(event);
+      singleEventRubricsSection.classList.remove('hidden');
+      phase1RubricsSection.classList.add('hidden');
+      phase2RubricsSection.classList.add('hidden');
+
+      scoringRoleBadge.textContent = currentJudge.isAdmin
+        ? 'Coordinator / Admin'
+        : currentJudge.type === 'INTERNAL'
+        ? '🏛️ Internal Mentor'
+        : '🌟 External Jury';
+      scoringFormTitle.textContent = `${event.icon} ${event.label} Score`;
+      scoringFormSubtitle.textContent = `Rubric: ${event.criteria
+        .map((c) => `${c.label} ${c.max}`)
+        .join(' · ')}`;
+      heroScoreLabel.textContent = 'Your Score';
+      displayMaxPossible.textContent = `/ ${event.maxTotal}`;
+      scorePhaseSubtitle.textContent = `${event.label} · ${event.maxTotal} Marks`;
+      phaseStatusSummaryBadge.textContent = `${event.icon} ${event.shortLabel} · /${event.maxTotal}`;
+      return;
+    }
+
+    singleEventRubricsSection.classList.add('hidden');
 
     if (currentJudge.isAdmin) {
       scoringRoleBadge.textContent = 'Coordinator / Admin';
@@ -372,6 +680,79 @@
       phase2RubricsSection.classList.remove('hidden');
       enableInputs(phase2RubricsSection, true);
     }
+
+    updatePhaseNotice();
+  }
+
+  function ensureSingleEventRubric(event) {
+    if (!singleEventRubricList) return;
+    if (renderedSingleEventId === event.id) return;
+
+    renderedSingleEventId = event.id;
+    singleEventInputs = {};
+    singleEventRubricTitle.textContent = `${event.icon} ${event.label} Rubric (Max ${event.maxTotal} Marks)`;
+    singleEventRubricList.innerHTML = '';
+
+    event.criteria.forEach((criterion, index) => {
+      const quick = EVENT_LIB.quickValues(criterion.max);
+      const card = document.createElement('div');
+      card.className = 'p-2.5 bg-[#fdfbf7] rounded-xl border border-[#e3dccd] space-y-1.5';
+      card.innerHTML = `
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <span class="text-xs font-extrabold text-[#1e293b] block">${index + 1}. ${criterion.label}</span>
+            <span class="text-[10px] text-[#64748b] block">${criterion.subtitle || criterion.hint || ''}</span>
+          </div>
+          <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-[#cbd5e1] flex-shrink-0">
+            <input type="number" id="inputEvt_${criterion.key}" min="0" max="${criterion.max}" step="0.5" placeholder="0" class="w-10 text-center text-xs font-black text-[#ea580c] focus:outline-none">
+            <span class="text-[10px] font-bold text-[#64748b]">/ ${criterion.max}</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+          <span class="text-[9px] font-bold text-[#64748b] uppercase">Quick:</span>
+          ${quick
+            .map(
+              (value) => `
+            <button type="button" class="quick-pill-btn px-2.5 py-1 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg text-[#334155]" data-target="inputEvt_${criterion.key}" data-val="${value}">${value}${value === criterion.max ? '★' : ''}</button>`
+            )
+            .join('')}
+          <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputEvt_${criterion.key}" data-step="-1">−</button>
+          <button type="button" class="step-btn px-2 py-0.5 rounded-lg text-xs font-black bg-[#f6f1e6] border" data-target="inputEvt_${criterion.key}" data-step="1">+</button>
+        </div>
+      `;
+
+      singleEventRubricList.appendChild(card);
+      singleEventInputs[criterion.key] = card.querySelector('input');
+    });
+
+    singleEventRubricList.oninput = function () {
+      recalculateScores();
+    };
+
+    singleEventRubricList.onclick = function (event_) {
+      const quickBtn = event_.target.closest('.quick-pill-btn');
+      const stepBtn = event_.target.closest('.step-btn');
+
+      if (quickBtn) {
+        const target = document.getElementById(quickBtn.getAttribute('data-target'));
+        if (target) {
+          target.value = quickBtn.getAttribute('data-val');
+          recalculateScores();
+        }
+        return;
+      }
+
+      if (stepBtn) {
+        const target = document.getElementById(stepBtn.getAttribute('data-target'));
+        if (!target) return;
+        const max = parseFloat(target.getAttribute('max')) || 100;
+        const min = parseFloat(target.getAttribute('min')) || 0;
+        const step = parseFloat(stepBtn.getAttribute('data-step')) || 0;
+        const current = parseFloat(target.value) || 0;
+        target.value = Math.min(max, Math.max(min, current + step));
+        recalculateScores();
+      }
+    };
   }
 
   function enableInputs(container, enabled) {
@@ -390,6 +771,10 @@
     const internalList = juryConfig.internalJudges || [];
     internalList.forEach((j) => {
       const isSelected = selectedLoginJudgeId === j.id;
+      const assignment = getJudgeAssignment(j.id);
+      const assignmentLabel = assignment && assignment.eventId
+        ? `${EVENT_LIB.getEvent(assignment.eventId).shortLabel}${assignment.venue ? ' · ' + assignment.venue : ''}`
+        : 'No event assigned';
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `p-2 rounded-xl border text-left transition flex flex-col justify-between active:scale-95 ${
@@ -402,6 +787,7 @@
         <span class="text-xs font-black tracking-wide">${j.id}</span>
         <span class="text-[10px] font-bold truncate">${j.name}</span>
         <span class="text-[8px] opacity-75 truncate">${j.role || 'Internal'}</span>
+        <span class="text-[8px] font-bold truncate ${isSelected ? 'text-orange-100' : 'text-[#ea580c]'}">${assignmentLabel}</span>
       `;
 
       btn.addEventListener('click', () => {
@@ -421,6 +807,10 @@
     const externalList = juryConfig.externalJudges || [];
     externalList.forEach((j) => {
       const isSelected = selectedLoginJudgeId === j.id;
+      const assignment = getJudgeAssignment(j.id);
+      const assignmentLabel = assignment && assignment.eventId
+        ? `${EVENT_LIB.getEvent(assignment.eventId).shortLabel}${assignment.venue ? ' · ' + assignment.venue : ''}`
+        : 'No event assigned';
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `p-2 rounded-xl border text-left transition flex flex-col justify-between active:scale-95 ${
@@ -433,6 +823,7 @@
         <span class="text-xs font-black tracking-wide">${j.id}</span>
         <span class="text-[10px] font-bold truncate">${j.name}</span>
         <span class="text-[8px] opacity-75 truncate">${j.role || 'External'}</span>
+        <span class="text-[8px] font-bold truncate ${isSelected ? 'text-orange-100' : 'text-[#ea580c]'}">${assignmentLabel}</span>
       `;
 
       btn.addEventListener('click', () => {
@@ -550,23 +941,17 @@
     const totalTeams = teams.length;
     let myScoredCount = 0;
     const judgeId = currentJudge ? currentJudge.id : 'INT-1';
+    const event = getActiveEvent();
 
     teams.forEach((t) => {
-      const teamEvals = masterEvaluations[t.number] || {};
-      const scoreObj = teamEvals[judgeId];
-      if (scoreObj) {
-        if (currentJudge && currentJudge.type === 'INTERNAL' && scoreObj.phase1 > 0) {
-          myScoredCount++;
-        } else if (currentJudge && currentJudge.type === 'EXTERNAL' && scoreObj.phase2 > 0) {
-          myScoredCount++;
-        } else if (scoreObj.total > 0) {
-          myScoredCount++;
-        }
+      const scoreObj = getJudgeEventEval(t.number, judgeId, activeEventId);
+      if (scoreObj && hasJudgeScored(scoreObj, activeEventId)) {
+        myScoredCount++;
       }
     });
 
     if (progressPill) {
-      progressPill.textContent = `${myScoredCount} / ${totalTeams} Scored (${judgeId})`;
+      progressPill.textContent = `${event.shortLabel}: ${myScoredCount} / ${totalTeams} Scored (${judgeId})`;
     }
   }
 
@@ -603,12 +988,13 @@
 
     if (teamBigNumber) teamBigNumber.textContent = team.number;
     if (teamBigName) teamBigName.textContent = team.name;
-    if (teamSubtitle) teamSubtitle.textContent = `${team.member_count} members · Section ${team.section} · Official Allotment`;
+    if (teamSubtitle) teamSubtitle.textContent = `${team.member_count} members · Section ${team.section} · ${getActiveEvent().label}`;
     if (memberCountBadge) memberCountBadge.textContent = `${team.member_count} REGISTERED`;
 
     if (bnavTeamLabel) bnavTeamLabel.textContent = `Save Team #${team.number}`;
 
     renderTeamMembers(team.members);
+    applyEventMode();
     loadCurrentJudgeScoresForTeam();
     renderJuryConsensus();
     renderTeamPills();
@@ -658,19 +1044,30 @@
     if (!team) return;
 
     const judgeId = currentJudge ? currentJudge.id : 'INT-1';
-    const teamEvals = masterEvaluations[team.number] || {};
-    const evalData = teamEvals[judgeId] || {};
+    const evalData = getJudgeEventEval(team.number, judgeId, activeEventId) || {};
 
-    // Populate Phase 1
-    if (inputP1Crit1) inputP1Crit1.value = evalData.p1_crit1 !== undefined ? evalData.p1_crit1 : '';
-    if (inputP1Crit2) inputP1Crit2.value = evalData.p1_crit2 !== undefined ? evalData.p1_crit2 : '';
-    if (inputP1Crit3) inputP1Crit3.value = evalData.p1_crit3 !== undefined ? evalData.p1_crit3 : '';
+    if (isSingleEventMode()) {
+      const event = getActiveEvent();
+      event.criteria.forEach((criterion) => {
+        const input = singleEventInputs[criterion.key];
+        if (!input) return;
+        const value = evalData.scores && evalData.scores[criterion.key] !== undefined
+          ? evalData.scores[criterion.key]
+          : '';
+        input.value = value;
+      });
+    } else {
+      // Populate Phase 1
+      if (inputP1Crit1) inputP1Crit1.value = evalData.p1_crit1 !== undefined ? evalData.p1_crit1 : '';
+      if (inputP1Crit2) inputP1Crit2.value = evalData.p1_crit2 !== undefined ? evalData.p1_crit2 : '';
+      if (inputP1Crit3) inputP1Crit3.value = evalData.p1_crit3 !== undefined ? evalData.p1_crit3 : '';
 
-    // Populate Phase 2
-    if (inputP2Crit1) inputP2Crit1.value = evalData.p2_crit1 !== undefined ? evalData.p2_crit1 : '';
-    if (inputP2Crit2) inputP2Crit2.value = evalData.p2_crit2 !== undefined ? evalData.p2_crit2 : '';
-    if (inputP2Crit3) inputP2Crit3.value = evalData.p2_crit3 !== undefined ? evalData.p2_crit3 : '';
-    if (inputP2Crit4) inputP2Crit4.value = evalData.p2_crit4 !== undefined ? evalData.p2_crit4 : '';
+      // Populate Phase 2
+      if (inputP2Crit1) inputP2Crit1.value = evalData.p2_crit1 !== undefined ? evalData.p2_crit1 : '';
+      if (inputP2Crit2) inputP2Crit2.value = evalData.p2_crit2 !== undefined ? evalData.p2_crit2 : '';
+      if (inputP2Crit3) inputP2Crit3.value = evalData.p2_crit3 !== undefined ? evalData.p2_crit3 : '';
+      if (inputP2Crit4) inputP2Crit4.value = evalData.p2_crit4 !== undefined ? evalData.p2_crit4 : '';
+    }
 
     if (inputRemarks) inputRemarks.value = evalData.remarks || '';
 
@@ -678,37 +1075,49 @@
   }
 
   function recalculateScores() {
-    const p1_c1 = Math.min(10, Math.max(0, parseFloat(inputP1Crit1?.value) || 0));
-    const p1_c2 = Math.min(10, Math.max(0, parseFloat(inputP1Crit2?.value) || 0));
-    const p1_c3 = Math.min(10, Math.max(0, parseFloat(inputP1Crit3?.value) || 0));
-    const p1_total = Number((p1_c1 + p1_c2 + p1_c3).toFixed(1));
-
-    const p2_c1 = Math.min(25, Math.max(0, parseFloat(inputP2Crit1?.value) || 0));
-    const p2_c2 = Math.min(20, Math.max(0, parseFloat(inputP2Crit2?.value) || 0));
-    const p2_c3 = Math.min(15, Math.max(0, parseFloat(inputP2Crit3?.value) || 0));
-    const p2_c4 = Math.min(10, Math.max(0, parseFloat(inputP2Crit4?.value) || 0));
-    const p2_total = Number((p2_c1 + p2_c2 + p2_c3 + p2_c4).toFixed(1));
-
     let activeScore = 0;
     let maxPossible = 30;
 
-    if (currentJudge && currentJudge.type === 'INTERNAL') {
-      activeScore = p1_total;
-      maxPossible = 30;
-    } else if (currentJudge && currentJudge.type === 'EXTERNAL') {
-      activeScore = p2_total;
-      maxPossible = 70;
+    if (isSingleEventMode()) {
+      const event = getActiveEvent();
+      activeScore = 0;
+      maxPossible = event.maxTotal;
+      event.criteria.forEach((criterion) => {
+        const input = singleEventInputs[criterion.key];
+        const value = Math.min(criterion.max, Math.max(0, parseFloat(input && input.value) || 0));
+        activeScore += value;
+      });
+      activeScore = Number(activeScore.toFixed(1));
     } else {
-      // Admin
-      activeScore = Number((p1_total + p2_total).toFixed(1));
-      maxPossible = 100;
+      const p1_c1 = Math.min(10, Math.max(0, parseFloat(inputP1Crit1?.value) || 0));
+      const p1_c2 = Math.min(10, Math.max(0, parseFloat(inputP1Crit2?.value) || 0));
+      const p1_c3 = Math.min(10, Math.max(0, parseFloat(inputP1Crit3?.value) || 0));
+      const p1_total = Number((p1_c1 + p1_c2 + p1_c3).toFixed(1));
+
+      const p2_c1 = Math.min(25, Math.max(0, parseFloat(inputP2Crit1?.value) || 0));
+      const p2_c2 = Math.min(20, Math.max(0, parseFloat(inputP2Crit2?.value) || 0));
+      const p2_c3 = Math.min(15, Math.max(0, parseFloat(inputP2Crit3?.value) || 0));
+      const p2_c4 = Math.min(10, Math.max(0, parseFloat(inputP2Crit4?.value) || 0));
+      const p2_total = Number((p2_c1 + p2_c2 + p2_c3 + p2_c4).toFixed(1));
+
+      if (currentJudge && currentJudge.type === 'INTERNAL') {
+        activeScore = p1_total;
+        maxPossible = 30;
+      } else if (currentJudge && currentJudge.type === 'EXTERNAL') {
+        activeScore = p2_total;
+        maxPossible = 70;
+      } else {
+        // Admin
+        activeScore = Number((p1_total + p2_total).toFixed(1));
+        maxPossible = 100;
+      }
     }
 
     if (displayScoreValue) displayScoreValue.textContent = activeScore;
     if (bnavScoreLabel) bnavScoreLabel.textContent = `Score: ${activeScore} / ${maxPossible}`;
 
     // Rating badge calculation
-    const pct = (activeScore / maxPossible) * 100;
+    const pct = maxPossible > 0 ? (activeScore / maxPossible) * 100 : 0;
     if (scoreRatingBadge) {
       if (activeScore === 0) {
         scoreRatingBadge.textContent = 'Not Scored';
@@ -736,7 +1145,91 @@
     const team = teams[currentTeamIndex];
     if (!team) return;
 
-    const teamEvals = masterEvaluations[team.number] || {};
+    const event = getActiveEvent();
+    const teamEvals = getTeamEventEvals(team.number, activeEventId);
+
+    if (event.mode === 'SINGLE') {
+      if (juryConsensusTitle) juryConsensusTitle.textContent = `${event.icon} ${event.label} Jury Consensus`;
+      if (dualPhaseConsensusGrid) dualPhaseConsensusGrid.classList.add('hidden');
+      if (singleEventConsensusPanel) singleEventConsensusPanel.classList.remove('hidden');
+      if (grandCumulativeBox) grandCumulativeBox.classList.add('hidden');
+
+      const judgeMap = {};
+      getAllJudges().forEach((j) => {
+        const assignment = getJudgeAssignment(j.id);
+        const isAssignedHere = assignment && assignment.eventId === activeEventId;
+        const isCurrent = currentJudge && currentJudge.id === j.id;
+        if (isAssignedHere || isCurrent) judgeMap[j.id] = j;
+      });
+      Object.keys(teamEvals).forEach((judgeId) => {
+        if (!judgeMap[judgeId]) {
+          judgeMap[judgeId] = { id: judgeId, name: teamEvals[judgeId].judgeName || judgeId };
+        }
+      });
+
+      const scoredTotals = [];
+      if (singleEventJudgeBadges) {
+        singleEventJudgeBadges.innerHTML = '';
+        Object.keys(judgeMap).forEach((judgeId) => {
+          const judge = judgeMap[judgeId];
+          const ev = teamEvals[judgeId];
+          const hasScored = ev && Number(ev.total) > 0;
+          if (hasScored) scoredTotals.push(Number(ev.total));
+
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between text-[10px] py-0.5';
+          row.innerHTML = `
+            <span class="font-bold truncate text-[#1e293b]">${judge.name}:</span>
+            <span class="font-mono font-black ${hasScored ? 'text-emerald-700' : 'text-[#94a3b8]'}">
+              ${hasScored ? `${ev.total} / ${event.maxTotal}` : 'Pending'}
+            </span>
+          `;
+          singleEventJudgeBadges.appendChild(row);
+        });
+      }
+
+      if (singleEventJuryLabel) singleEventJuryLabel.textContent = `${event.shortLabel} Jury`;
+      if (singleEventAvgMax) singleEventAvgMax.textContent = `/ ${event.maxTotal}`;
+      if (singleEventConsensusLabel) singleEventConsensusLabel.textContent = `${event.icon} ${event.shortLabel} Jury Average:`;
+      if (singleEventConsensusTotal) singleEventConsensusTotal.textContent = '/ ' + event.maxTotal;
+
+      const avg = scoredTotals.length
+        ? Number((scoredTotals.reduce((a, b) => a + b, 0) / scoredTotals.length).toFixed(1))
+        : 0;
+      const avgText = scoredTotals.length ? `${avg} / ${event.maxTotal}` : `— / ${event.maxTotal}`;
+      if (singleEventAvgDisplay) singleEventAvgDisplay.textContent = avgText;
+      if (singleEventConsensusTotal) singleEventConsensusTotal.textContent = avgText;
+
+      if (singleEventCriteriaAverages) {
+        singleEventCriteriaAverages.innerHTML = '';
+        event.criteria.forEach((criterion) => {
+          const values = Object.values(teamEvals)
+            .filter((ev) => ev && ev.scores && Number(ev.scores[criterion.key]) > 0)
+            .map((ev) => Number(ev.scores[criterion.key]));
+          const cAvg = values.length
+            ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)
+            : '—';
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between gap-1';
+          row.innerHTML = `
+            <span class="truncate text-[#475569] font-semibold">${criterion.label}</span>
+            <span class="font-mono font-black text-[#1e293b]">${cAvg} / ${criterion.max}</span>
+          `;
+          singleEventCriteriaAverages.appendChild(row);
+        });
+      }
+
+      if (phaseStatusSummaryBadge) {
+        phaseStatusSummaryBadge.textContent = `${event.icon} ${event.shortLabel} · ${scoredTotals.length} scored`;
+        phaseStatusSummaryBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200';
+      }
+      return;
+    }
+
+    if (juryConsensusTitle) juryConsensusTitle.textContent = 'Jury Status & Consensus';
+    if (dualPhaseConsensusGrid) dualPhaseConsensusGrid.classList.remove('hidden');
+    if (singleEventConsensusPanel) singleEventConsensusPanel.classList.add('hidden');
+    if (grandCumulativeBox) grandCumulativeBox.classList.remove('hidden');
 
     const internalList = juryConfig.internalJudges || [];
     const externalList = juryConfig.externalJudges || [];
@@ -807,6 +1300,8 @@
         cumulativeScoreDisplay.textContent = '— / 100';
       }
     }
+
+    updatePhaseNotice();
   }
 
   // -------------------------------------------------------------
@@ -821,49 +1316,80 @@
     const team = teams[currentTeamIndex];
     if (!team) return;
 
-    const p1_c1 = Math.min(10, Math.max(0, parseFloat(inputP1Crit1?.value) || 0));
-    const p1_c2 = Math.min(10, Math.max(0, parseFloat(inputP1Crit2?.value) || 0));
-    const p1_c3 = Math.min(10, Math.max(0, parseFloat(inputP1Crit3?.value) || 0));
+    const event = getActiveEvent();
+    let payload;
+    let record;
 
-    const p2_c1 = Math.min(25, Math.max(0, parseFloat(inputP2Crit1?.value) || 0));
-    const p2_c2 = Math.min(20, Math.max(0, parseFloat(inputP2Crit2?.value) || 0));
-    const p2_c3 = Math.min(15, Math.max(0, parseFloat(inputP2Crit3?.value) || 0));
-    const p2_c4 = Math.min(10, Math.max(0, parseFloat(inputP2Crit4?.value) || 0));
+    if (event.mode === 'SINGLE') {
+      const scores = {};
+      let total = 0;
+      event.criteria.forEach((criterion) => {
+        const input = singleEventInputs[criterion.key];
+        const value = Math.min(criterion.max, Math.max(0, parseFloat(input && input.value) || 0));
+        scores[criterion.key] = Number(value.toFixed(1));
+        total += scores[criterion.key];
+      });
 
-    const payload = {
-      teamNumber: team.number,
-      judgeId: currentJudge.id,
-      judgeName: currentJudge.name,
-      p1_crit1: p1_c1,
-      p1_crit2: p1_c2,
-      p1_crit3: p1_c3,
-      p2_crit1: p2_c1,
-      p2_crit2: p2_c2,
-      p2_crit3: p2_c3,
-      p2_crit4: p2_c4,
-      remarks: inputRemarks ? inputRemarks.value.trim() : '',
-      updatedAt: new Date().toISOString()
-    };
+      payload = {
+        eventId: event.id,
+        teamNumber: team.number,
+        judgeId: currentJudge.id,
+        judgeName: currentJudge.name,
+        scores: scores,
+        remarks: inputRemarks ? inputRemarks.value.trim() : '',
+        updatedAt: new Date().toISOString()
+      };
 
-    // Update local cache optimistically
-    if (!masterEvaluations[team.number]) {
-      masterEvaluations[team.number] = {};
+      record = {
+        ...payload,
+        eventLabel: event.label,
+        total: Number(total.toFixed(1))
+      };
+    } else {
+      const p1_c1 = Math.min(10, Math.max(0, parseFloat(inputP1Crit1?.value) || 0));
+      const p1_c2 = Math.min(10, Math.max(0, parseFloat(inputP1Crit2?.value) || 0));
+      const p1_c3 = Math.min(10, Math.max(0, parseFloat(inputP1Crit3?.value) || 0));
+
+      const p2_c1 = Math.min(25, Math.max(0, parseFloat(inputP2Crit1?.value) || 0));
+      const p2_c2 = Math.min(20, Math.max(0, parseFloat(inputP2Crit2?.value) || 0));
+      const p2_c3 = Math.min(15, Math.max(0, parseFloat(inputP2Crit3?.value) || 0));
+      const p2_c4 = Math.min(10, Math.max(0, parseFloat(inputP2Crit4?.value) || 0));
+
+      payload = {
+        eventId: 'EMBEDDATHON',
+        teamNumber: team.number,
+        judgeId: currentJudge.id,
+        judgeName: currentJudge.name,
+        p1_crit1: p1_c1,
+        p1_crit2: p1_c2,
+        p1_crit3: p1_c3,
+        p2_crit1: p2_c1,
+        p2_crit2: p2_c2,
+        p2_crit3: p2_c3,
+        p2_crit4: p2_c4,
+        remarks: inputRemarks ? inputRemarks.value.trim() : '',
+        updatedAt: new Date().toISOString()
+      };
+
+      record = {
+        ...payload,
+        phase1: Number((p1_c1 + p1_c2 + p1_c3).toFixed(1)),
+        phase2: Number((p2_c1 + p2_c2 + p2_c3 + p2_c4).toFixed(1)),
+        total: Number((p1_c1 + p1_c2 + p1_c3 + p2_c1 + p2_c2 + p2_c3 + p2_c4).toFixed(1))
+      };
     }
 
-    masterEvaluations[team.number][currentJudge.id] = {
-      ...payload,
-      phase1: Number((p1_c1 + p1_c2 + p1_c3).toFixed(1)),
-      phase2: Number((p2_c1 + p2_c2 + p2_c3 + p2_c4).toFixed(1)),
-      total: Number((p1_c1 + p1_c2 + p1_c3 + p2_c1 + p2_c2 + p2_c3 + p2_c4).toFixed(1))
-    };
+    // Update local cache optimistically
+    setJudgeEventEval(event.id, team.number, currentJudge.id, record);
 
     renderJuryConsensus();
     renderTeamPills();
+    renderTeamGridModal();
     updateProgressUI();
 
     // Show feedback banner
     if (saveFeedbackNotice) {
-      saveFeedbackNotice.textContent = `✓ Score for Team #${team.number} saved and synced!`;
+      saveFeedbackNotice.textContent = `✓ ${event.shortLabel} score for Team #${team.number} saved and synced!`;
       saveFeedbackNotice.classList.remove('hidden');
       setTimeout(() => {
         saveFeedbackNotice.classList.add('hidden');
@@ -893,19 +1419,8 @@
 
     teams.forEach((t, idx) => {
       const isSelected = idx === currentTeamIndex;
-      const teamEvals = masterEvaluations[t.number] || {};
-      const evalObj = teamEvals[currentJudgeId];
-
-      let isScoredByMe = false;
-      if (evalObj) {
-        if (currentJudge && currentJudge.type === 'INTERNAL') {
-          isScoredByMe = evalObj.phase1 > 0;
-        } else if (currentJudge && currentJudge.type === 'EXTERNAL') {
-          isScoredByMe = evalObj.phase2 > 0;
-        } else {
-          isScoredByMe = evalObj.total > 0;
-        }
-      }
+      const evalObj = getJudgeEventEval(t.number, currentJudgeId, activeEventId);
+      const isScoredByMe = evalObj && hasJudgeScored(evalObj, activeEventId);
 
       const pill = document.createElement('button');
       pill.type = 'button';
@@ -939,9 +1454,8 @@
 
     teams.forEach((t, idx) => {
       const isSelected = idx === currentTeamIndex;
-      const teamEvals = masterEvaluations[t.number] || {};
-      const evalObj = teamEvals[currentJudgeId];
-      const hasScore = evalObj && (evalObj.total > 0 || evalObj.phase1 > 0 || evalObj.phase2 > 0);
+      const evalObj = getJudgeEventEval(t.number, currentJudgeId, activeEventId);
+      const hasScore = evalObj && hasJudgeScored(evalObj, activeEventId);
 
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -995,12 +1509,32 @@
         card.className =
           'p-3 bg-white rounded-xl border border-[#e3dccd] hover:border-[#ea580c] transition cursor-pointer shadow-xs flex items-center justify-between gap-3';
 
-        const teamEvals = masterEvaluations[t.number] || {};
-        const p1Scores = Object.values(teamEvals).filter((x) => x && x.phase1 > 0).map((x) => x.phase1);
-        const p2Scores = Object.values(teamEvals).filter((x) => x && x.phase2 > 0).map((x) => x.phase2);
+        const event = getActiveEvent();
+        const teamEvals = getTeamEventEvals(t.number, activeEventId);
 
-        const p1Avg = p1Scores.length ? (p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1) : '—';
-        const p2Avg = p2Scores.length ? (p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1) : '—';
+        let scoreSummaryHtml = '';
+
+        if (event.mode === 'SINGLE') {
+          const totals = Object.values(teamEvals)
+            .filter((x) => x && Number(x.total) > 0)
+            .map((x) => Number(x.total));
+          const avg = totals.length
+            ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1)
+            : '—';
+          scoreSummaryHtml = `
+            <div class="text-[10px] font-bold text-[#64748b]">Avg: <span class="font-black text-[#ea580c]">${avg}</span> / ${event.maxTotal}</div>
+            <div class="text-[10px] font-bold text-[#64748b]">${totals.length} judge${totals.length === 1 ? '' : 's'}</div>
+          `;
+        } else {
+          const p1Scores = Object.values(teamEvals).filter((x) => x && x.phase1 > 0).map((x) => x.phase1);
+          const p2Scores = Object.values(teamEvals).filter((x) => x && x.phase2 > 0).map((x) => x.phase2);
+          const p1Avg = p1Scores.length ? (p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1) : '—';
+          const p2Avg = p2Scores.length ? (p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1) : '—';
+          scoreSummaryHtml = `
+            <div class="text-[10px] font-bold text-[#64748b]">P1: <span class="font-black text-[#ea580c]">${p1Avg}</span> / 30</div>
+            <div class="text-[10px] font-bold text-[#64748b]">P2: <span class="font-black text-[#ea580c]">${p2Avg}</span> / 70</div>
+          `;
+        }
 
         card.innerHTML = `
           <div class="flex items-center gap-2.5 min-w-0">
@@ -1018,8 +1552,7 @@
             </div>
           </div>
           <div class="text-right flex-shrink-0">
-            <div class="text-[10px] font-bold text-[#64748b]">P1: <span class="font-black text-[#ea580c]">${p1Avg}</span> / 30</div>
-            <div class="text-[10px] font-bold text-[#64748b]">P2: <span class="font-black text-[#ea580c]">${p2Avg}</span> / 70</div>
+            ${scoreSummaryHtml}
           </div>
         `;
 
@@ -1044,26 +1577,47 @@
     if (!leaderboardTbody) return;
     leaderboardTbody.innerHTML = '';
 
+    const event = getActiveEvent();
     const selectedSec = leaderboardSectionSelect ? leaderboardSectionSelect.value : 'ALL';
+    if (leaderboardEventSelect) leaderboardEventSelect.value = activeEventId;
 
-    const ranked = teams
-      .map((t) => {
-        const teamEvals = masterEvaluations[t.number] || {};
-        const p1Scores = Object.values(teamEvals).filter((x) => x && x.phase1 > 0).map((x) => x.phase1);
-        const p2Scores = Object.values(teamEvals).filter((x) => x && x.phase2 > 0).map((x) => x.phase2);
+    if (leaderboardTitle) leaderboardTitle.textContent = `${event.icon} ${event.label} Standings`;
+    if (leaderboardSubtitle) {
+      leaderboardSubtitle.textContent = event.mode === 'SINGLE'
+        ? `Live jury ranking · total ${event.maxTotal} marks (${event.criteria.map((c) => c.max).join(' + ')})`
+        : 'Phase 1 (30%) + Phase 2 (70%) = Total (100%)';
+    }
 
-        const p1Avg = p1Scores.length ? Number((p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1)) : 0;
-        const p2Avg = p2Scores.length ? Number((p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1)) : 0;
-        const grandTotal = Number((p1Avg + p2Avg).toFixed(1));
+    if (leaderboardThead) {
+      if (event.mode === 'SINGLE') {
+        leaderboardThead.innerHTML = `
+          <tr class="bg-[#f6f1e6] border-b border-[#e3dccd] text-[#64748b] font-bold uppercase text-[10px]">
+            <th class="py-2 px-2 text-center w-8">#</th>
+            <th class="py-2 px-2 w-10 font-serif-pace text-[#ea580c]">Team</th>
+            <th class="py-2 px-2.5">Team Name</th>
+            <th class="py-2 px-1 text-center">Sec</th>
+            <th class="py-2 px-2 text-center">Judges</th>
+            <th class="py-2 px-2.5 text-right font-black text-[#ea580c]">Avg / ${event.maxTotal}</th>
+            <th class="py-2 px-2 text-center w-12">Action</th>
+          </tr>
+        `;
+      } else {
+        leaderboardThead.innerHTML = `
+          <tr class="bg-[#f6f1e6] border-b border-[#e3dccd] text-[#64748b] font-bold uppercase text-[10px]">
+            <th class="py-2 px-2 text-center w-8">#</th>
+            <th class="py-2 px-2 w-10 font-serif-pace text-[#ea580c]">Team</th>
+            <th class="py-2 px-2.5">Team Name</th>
+            <th class="py-2 px-1 text-center">Sec</th>
+            <th class="py-2 px-2 text-right font-bold text-slate-700">P1 (30)</th>
+            <th class="py-2 px-2 text-right font-bold text-slate-700">P2 (70)</th>
+            <th class="py-2 px-2.5 text-right font-black text-[#ea580c]">Total</th>
+            <th class="py-2 px-2 text-center w-12">Action</th>
+          </tr>
+        `;
+      }
+    }
 
-        return {
-          team: t,
-          p1Avg,
-          p2Avg,
-          grandTotal,
-          numJudges: Object.keys(teamEvals).length
-        };
-      })
+    const ranked = getEventStandings(activeEventId)
       .filter((item) => selectedSec === 'ALL' || item.team.section === selectedSec)
       .sort((a, b) => b.grandTotal - a.grandTotal);
 
@@ -1071,20 +1625,36 @@
       const tr = document.createElement('tr');
       tr.className = rankIdx % 2 === 0 ? 'bg-white' : 'bg-[#fdfbf7]';
 
-      tr.innerHTML = `
-        <td class="py-2.5 px-2 text-center font-bold text-[#64748b] text-[11px]">${rankIdx + 1}</td>
-        <td class="py-2.5 px-2 font-black font-serif-pace text-[#ea580c]">#${item.team.number}</td>
-        <td class="py-2.5 px-2.5 font-bold text-[#0f172a] truncate max-w-[140px]">${item.team.name}</td>
-        <td class="py-2.5 px-1 text-center font-bold text-[#64748b] text-[10px]">${item.team.section}</td>
-        <td class="py-2.5 px-2 text-right font-bold text-slate-700">${item.p1Avg > 0 ? item.p1Avg : '—'}</td>
-        <td class="py-2.5 px-2 text-right font-bold text-slate-700">${item.p2Avg > 0 ? item.p2Avg : '—'}</td>
-        <td class="py-2.5 px-2.5 text-right font-black text-sm text-[#ea580c]">${item.grandTotal > 0 ? item.grandTotal : '—'}</td>
-        <td class="py-2.5 px-2 text-center">
-          <button type="button" class="btn-grade-team px-2 py-0.5 rounded text-[10px] font-black bg-[#f6f1e6] hover:bg-[#ea580c] hover:text-white transition" data-num="${item.team.number}">
-            Score
-          </button>
-        </td>
-      `;
+      if (event.mode === 'SINGLE') {
+        tr.innerHTML = `
+          <td class="py-2.5 px-2 text-center font-bold text-[#64748b] text-[11px]">${rankIdx + 1}</td>
+          <td class="py-2.5 px-2 font-black font-serif-pace text-[#ea580c]">#${item.team.number}</td>
+          <td class="py-2.5 px-2.5 font-bold text-[#0f172a] truncate max-w-[140px]">${item.team.name}</td>
+          <td class="py-2.5 px-1 text-center font-bold text-[#64748b] text-[10px]">${item.team.section}</td>
+          <td class="py-2.5 px-2 text-center font-bold text-[#64748b]">${item.numJudges}</td>
+          <td class="py-2.5 px-2.5 text-right font-black text-sm text-[#ea580c]">${item.grandTotal > 0 ? `${item.grandTotal} / ${event.maxTotal}` : '—'}</td>
+          <td class="py-2.5 px-2 text-center">
+            <button type="button" class="btn-grade-team px-2 py-0.5 rounded text-[10px] font-black bg-[#f6f1e6] hover:bg-[#ea580c] hover:text-white transition" data-num="${item.team.number}">
+              Score
+            </button>
+          </td>
+        `;
+      } else {
+        tr.innerHTML = `
+          <td class="py-2.5 px-2 text-center font-bold text-[#64748b] text-[11px]">${rankIdx + 1}</td>
+          <td class="py-2.5 px-2 font-black font-serif-pace text-[#ea580c]">#${item.team.number}</td>
+          <td class="py-2.5 px-2.5 font-bold text-[#0f172a] truncate max-w-[140px]">${item.team.name}</td>
+          <td class="py-2.5 px-1 text-center font-bold text-[#64748b] text-[10px]">${item.team.section}</td>
+          <td class="py-2.5 px-2 text-right font-bold text-slate-700">${item.p1Avg > 0 ? item.p1Avg : '—'}</td>
+          <td class="py-2.5 px-2 text-right font-bold text-slate-700">${item.p2Avg > 0 ? item.p2Avg : '—'}</td>
+          <td class="py-2.5 px-2.5 text-right font-black text-sm text-[#ea580c]">${item.grandTotal > 0 ? item.grandTotal : '—'}</td>
+          <td class="py-2.5 px-2 text-center">
+            <button type="button" class="btn-grade-team px-2 py-0.5 rounded text-[10px] font-black bg-[#f6f1e6] hover:bg-[#ea580c] hover:text-white transition" data-num="${item.team.number}">
+              Score
+            </button>
+          </td>
+        `;
+      }
 
       tr.querySelector('.btn-grade-team').addEventListener('click', () => {
         const idx = teams.findIndex((x) => x.number === item.team.number);
@@ -1279,6 +1849,7 @@
       juryConfig.activePhase = data.activePhase;
       juryConfig.internalJudges = data.internalJudges;
       juryConfig.externalJudges = data.externalJudges;
+      juryConfig.judgeAssignments = data.judgeAssignments || juryConfig.judgeAssignments || {};
 
       modalJurySetup.classList.add('hidden');
       alert('✓ Jury setup and active phase updated successfully!');
@@ -1500,6 +2071,12 @@
     // Leaderboard Section Select
     leaderboardSectionSelect.addEventListener('change', renderLeaderboard);
 
+    if (leaderboardEventSelect) {
+      leaderboardEventSelect.addEventListener('change', (e) => {
+        setActiveEvent(e.target.value);
+      });
+    }
+
     // Export CSV
     btnExportCSV.addEventListener('click', exportLeaderboardCSV);
 
@@ -1542,57 +2119,60 @@
   // CSV Export & WhatsApp
   // -------------------------------------------------------------
   function exportLeaderboardCSV() {
-    let csv = 'Rank,Team Number,Team Name,Section,Phase 1 (Mentoring 30%),Phase 2 (Final Expo 70%),Grand Total (100%)\n';
+    const event = getActiveEvent();
+    const ranked = getEventStandings(activeEventId).sort((a, b) => b.grandTotal - a.grandTotal);
 
-    const ranked = teams
-      .map((t) => {
-        const teamEvals = masterEvaluations[t.number] || {};
-        const p1Scores = Object.values(teamEvals).filter((x) => x && x.phase1 > 0).map((x) => x.phase1);
-        const p2Scores = Object.values(teamEvals).filter((x) => x && x.phase2 > 0).map((x) => x.phase2);
+    let csv = '';
 
-        const p1Avg = p1Scores.length ? Number((p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1)) : 0;
-        const p2Avg = p2Scores.length ? Number((p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1)) : 0;
-        const grandTotal = Number((p1Avg + p2Avg).toFixed(1));
+    if (event.mode === 'SINGLE') {
+      const criterionHeaders = event.criteria
+        .map((c) => `"${c.label} (Max ${c.max})"`)
+        .join(',');
+      csv = `Rank,Team Number,Team Name,Section,Event,Judges,${criterionHeaders},Average (${event.maxTotal})\n`;
 
-        return { team: t, p1Avg, p2Avg, grandTotal };
-      })
-      .sort((a, b) => b.grandTotal - a.grandTotal);
-
-    ranked.forEach((item, idx) => {
-      csv += `${idx + 1},#${item.team.number},"${item.team.name.replace(/"/g, '""')}",${item.team.section},${item.p1Avg},${item.p2Avg},${item.grandTotal}\n`;
-    });
+      ranked.forEach((item, idx) => {
+        const criterionAverages = event.criteria.map((criterion) => {
+          const values = item.evals
+            .filter((ev) => ev && ev.scores && Number(ev.scores[criterion.key]) > 0)
+            .map((ev) => Number(ev.scores[criterion.key]));
+          return values.length
+            ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)
+            : '0';
+        });
+        csv += `${idx + 1},#${item.team.number},"${item.team.name.replace(/"/g, '""')}",${item.team.section},"${event.label}",${item.numJudges},${criterionAverages.join(',')},${item.grandTotal}\n`;
+      });
+    } else {
+      csv = 'Rank,Team Number,Team Name,Section,Event,Phase 1 (Mentoring 30%),Phase 2 (Final Expo 70%),Grand Total (100%)\n';
+      ranked.forEach((item, idx) => {
+        csv += `${idx + 1},#${item.team.number},"${item.team.name.replace(/"/g, '""')}",${item.team.section},"${event.label}",${item.p1Avg},${item.p2Avg},${item.grandTotal}\n`;
+      });
+    }
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `EMBEDTHON_26_Scores_Export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `EMBEDTHON_26_${activeEventId}_Scores_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
 
   function shareWhatsAppSummary() {
-    let msg = `*EMBEDTHON '26 · OFFICIAL EVALUATION STANDINGS*\nP.A. College of Engineering · Dept. of CSE\n\n`;
+    const event = getActiveEvent();
+    let msg = `*EMBEDTHON '26 · ${event.icon} ${event.label.toUpperCase()} STANDINGS*\nP.A. College of Engineering · Dept. of CSE\nTotal: ${event.maxTotal} marks\n\n`;
 
-    const top5 = teams
-      .map((t) => {
-        const teamEvals = masterEvaluations[t.number] || {};
-        const p1Scores = Object.values(teamEvals).filter((x) => x && x.phase1 > 0).map((x) => x.phase1);
-        const p2Scores = Object.values(teamEvals).filter((x) => x && x.phase2 > 0).map((x) => x.phase2);
-
-        const p1Avg = p1Scores.length ? Number((p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1)) : 0;
-        const p2Avg = p2Scores.length ? Number((p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1)) : 0;
-        const grandTotal = Number((p1Avg + p2Avg).toFixed(1));
-
-        return { team: t, p1Avg, p2Avg, grandTotal };
-      })
+    const top5 = getEventStandings(activeEventId)
       .sort((a, b) => b.grandTotal - a.grandTotal)
       .slice(0, 5);
 
     top5.forEach((item, idx) => {
       const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
-      msg += `${medal} Team #${item.team.number}: ${item.team.name} -> Total: *${item.grandTotal}/100* (P1: ${item.p1Avg}, P2: ${item.p2Avg})\n`;
+      if (event.mode === 'SINGLE') {
+        msg += `${medal} Team #${item.team.number}: ${item.team.name} -> Avg: *${item.grandTotal}/${event.maxTotal}* (${item.numJudges} judges)\n`;
+      } else {
+        msg += `${medal} Team #${item.team.number}: ${item.team.name} -> Total: *${item.grandTotal}/100* (P1: ${item.p1Avg}, P2: ${item.p2Avg})\n`;
+      }
     });
 
     msg += `\nPortal: https://embedthon-judge-portal.vercel.app/`;
@@ -1957,34 +2537,32 @@
   }
 
   function computeCeremonyRankings(category) {
-    const list = teams
-      .map((t) => {
-        const teamEvals = masterEvaluations[t.number] || {};
-        const p1Scores = Object.values(teamEvals).filter((x) => x && x.phase1 > 0).map((x) => x.phase1);
-        const p2Scores = Object.values(teamEvals).filter((x) => x && x.phase2 > 0).map((x) => x.phase2);
+    let eventId = 'EMBEDDATHON';
+    if (EVENTS[category]) {
+      eventId = category;
+    } else if (category === 'OVERALL') {
+      eventId = activeEventId;
+    }
 
-        const p1Avg = p1Scores.length ? Number((p1Scores.reduce((a, b) => a + b, 0) / p1Scores.length).toFixed(1)) : 0;
-        const p2Avg = p2Scores.length ? Number((p2Scores.reduce((a, b) => a + b, 0) / p2Scores.length).toFixed(1)) : 0;
-        const grandTotal = Number((p1Avg + p2Avg).toFixed(1));
+    const event = EVENT_LIB.getEvent(eventId);
+    ceremonyEventId = eventId;
+    ceremonyMaxTotal = event.maxTotal;
 
-        return {
-          team: t,
-          p1Avg,
-          p2Avg,
-          grandTotal,
-          numJudges: Object.keys(teamEvals).length
-        };
-      })
-      .filter((item) => category === 'OVERALL' || item.team.section === category)
+    const list = getEventStandings(eventId)
+      .filter((item) => category === 'OVERALL' || EVENTS[category] || item.team.section === category)
       .sort((a, b) => b.grandTotal - a.grandTotal);
 
     // If no evaluations are saved yet (demo preview mode), provide top 3 preview
     if (!list.length || list[0].grandTotal === 0) {
-      return (category === 'OVERALL' ? teams.slice(0, 3) : teams.filter(x => x.section === category).slice(0, 3)).map((t, idx) => ({
+      const previewTeams = category === 'OVERALL' || EVENTS[category]
+        ? teams.slice(0, 3)
+        : teams.filter((x) => x.section === category).slice(0, 3);
+
+      return previewTeams.map((t, idx) => ({
         team: t,
-        p1Avg: idx === 0 ? 28.5 : idx === 1 ? 27.0 : 25.5,
-        p2Avg: idx === 0 ? 66.5 : idx === 1 ? 64.0 : 61.5,
-        grandTotal: idx === 0 ? 95.0 : idx === 1 ? 91.0 : 87.0,
+        p1Avg: event.mode === 'DUAL_PHASE' ? (idx === 0 ? 28.5 : idx === 1 ? 27.0 : 25.5) : 0,
+        p2Avg: event.mode === 'DUAL_PHASE' ? (idx === 0 ? 66.5 : idx === 1 ? 64.0 : 61.5) : 0,
+        grandTotal: Number((event.maxTotal * (idx === 0 ? 0.95 : idx === 1 ? 0.91 : 0.87)).toFixed(1)),
         isPreview: true
       }));
     }
@@ -2037,6 +2615,7 @@
   function getCategoryTitle(cat) {
     if (cat === 'A') return 'Section A Winners';
     if (cat === 'B') return 'Section B Winners';
+    if (EVENTS[cat]) return `${EVENTS[cat].icon} ${EVENTS[cat].label} Winners`;
     return 'Overall Champions';
   }
 
@@ -2190,7 +2769,8 @@
           </div>
 
           <!-- Final Score Pill Matrix matching consensus style -->
-          <div class="pt-2 border-t border-[#f0ebe0] grid grid-cols-3 gap-2 text-center">
+          ${ceremonyEventId === 'EMBEDDATHON'
+            ? `<div class="pt-2 border-t border-[#f0ebe0] grid grid-cols-3 gap-2 text-center">
             <div class="p-2 rounded-xl bg-[#fdfbf7] border border-[#e3dccd]">
               <span class="text-[9px] text-[#64748b] block font-bold uppercase">Phase 1 (30%)</span>
               <span class="text-xs font-black text-[#0f172a]">${item.p1Avg} / 30</span>
@@ -2203,7 +2783,13 @@
               <span class="text-[9px] text-[#ea580c] block font-black uppercase">Grand Total</span>
               <span class="text-sm font-black text-[#ea580c]">${item.grandTotal} / 100</span>
             </div>
-          </div>
+          </div>`
+            : `<div class="pt-2 border-t border-[#f0ebe0]">
+            <div class="p-2 rounded-xl bg-[#fff7ed] border-2 border-[#ea580c] text-center">
+              <span class="text-[9px] text-[#ea580c] block font-black uppercase">${EVENT_LIB.getEvent(ceremonyEventId).label} Jury Average</span>
+              <span class="text-sm font-black text-[#ea580c]">${item.grandTotal} / ${ceremonyMaxTotal}</span>
+            </div>
+          </div>`}
 
         </div>
 
@@ -2254,7 +2840,7 @@
                 <div class="text-[11px] font-bold text-[#0f172a] truncate">${silver ? silver.team.name : 'Awaiting'}</div>
               </div>
               <div class="font-black text-xs sm:text-sm bg-white/80 text-[#0f172a] py-0.5 rounded shadow-2xs">
-                ${silver ? silver.grandTotal : '—'} / 100
+                ${silver ? silver.grandTotal : '—'} / ${ceremonyMaxTotal}
               </div>
             </div>
           </div>
@@ -2269,7 +2855,7 @@
                 <div class="text-xs sm:text-sm font-black text-amber-100 truncate">${champ ? champ.team.name : 'Awaiting'}</div>
               </div>
               <div class="font-black text-sm sm:text-base bg-white text-[#ea580c] py-1 rounded shadow-xs">
-                ${champ ? champ.grandTotal : '—'} / 100
+                ${champ ? champ.grandTotal : '—'} / ${ceremonyMaxTotal}
               </div>
             </div>
           </div>
@@ -2284,7 +2870,7 @@
                 <div class="text-[11px] font-bold text-amber-100 truncate">${bronze ? bronze.team.name : 'Awaiting'}</div>
               </div>
               <div class="font-black text-xs sm:text-sm bg-white/80 text-amber-950 py-0.5 rounded shadow-2xs">
-                ${bronze ? bronze.grandTotal : '—'} / 100
+                ${bronze ? bronze.grandTotal : '—'} / ${ceremonyMaxTotal}
               </div>
             </div>
           </div>

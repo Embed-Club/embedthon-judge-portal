@@ -10,7 +10,9 @@ const DEFAULT_CONFIG = {
   externalJudges: [
     { id: 'EXT-1', name: 'External Judge 1', role: 'Industry Expert', pin: '3333' },
     { id: 'EXT-2', name: 'External Judge 2', role: 'IEEE Jury Member', pin: '4444' }
-  ]
+  ],
+  // Judge deployment: event/track, venue and schedule slot.
+  judgeAssignments: {}
 };
 
 module.exports = async function handler(req, res) {
@@ -37,6 +39,9 @@ module.exports = async function handler(req, res) {
     if (!config.internalJudges || !config.internalJudges.length) config.internalJudges = DEFAULT_CONFIG.internalJudges;
     if (!config.externalJudges || !config.externalJudges.length) config.externalJudges = DEFAULT_CONFIG.externalJudges;
     if (!config.activePhase) config.activePhase = 'PHASE_1';
+    if (!config.judgeAssignments || typeof config.judgeAssignments !== 'object') {
+      config.judgeAssignments = {};
+    }
 
     if (req.method === 'GET') {
       if (!gist.files || !gist.files['config.json'] || !JSON.parse(gist.files['config.json'].content).internalJudges) {
@@ -69,6 +74,26 @@ module.exports = async function handler(req, res) {
         config.adminPin = String(body.newAdminPin).trim();
       }
 
+      if (body.judgeAssignments && typeof body.judgeAssignments === 'object') {
+        const cleanAssignments = {};
+        Object.keys(body.judgeAssignments).forEach((judgeId) => {
+          const assignment = body.judgeAssignments[judgeId];
+          if (!assignment || typeof assignment !== 'object') return;
+          const eventId = String(assignment.eventId || assignment.event || '').trim().toUpperCase();
+          if (!['PAPER', 'PROJECT_EXPO', 'EMBEDDATHON'].includes(eventId)) return;
+          cleanAssignments[judgeId] = {
+            eventId: eventId,
+            venue: String(assignment.venue || '').trim(),
+            slotId: String(assignment.slotId || '').trim(),
+            day: assignment.day !== undefined ? String(assignment.day) : '',
+            start: String(assignment.start || '').trim(),
+            end: String(assignment.end || '').trim(),
+            slotTitle: String(assignment.slotTitle || '').trim()
+          };
+        });
+        config.judgeAssignments = cleanAssignments;
+      }
+
       await updateGistFile('config.json', JSON.stringify(config, null, 2));
 
       return res.status(200).json({
@@ -76,6 +101,7 @@ module.exports = async function handler(req, res) {
         activePhase: config.activePhase,
         internalJudges: config.internalJudges,
         externalJudges: config.externalJudges,
+        judgeAssignments: config.judgeAssignments,
         adminPin: config.adminPin
       });
     }

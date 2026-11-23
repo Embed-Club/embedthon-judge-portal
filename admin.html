@@ -161,7 +161,7 @@
         </div>
 
         <div class="p-3 bg-white rounded-xl border border-[#e3dccd] shadow-xs">
-          <span class="text-[10px] font-black uppercase text-[#64748b] block">Phase 1 (Mentoring 30%)</span>
+          <span class="text-[10px] font-black uppercase text-[#64748b] block">Embeddathon P1 (30%)</span>
           <div class="flex items-baseline gap-1 mt-0.5">
             <span id="metricP1Scored" class="text-2xl font-black text-[#ea580c]">0</span>
             <span class="text-[10px] text-[#64748b]">/ 24 scored</span>
@@ -172,7 +172,7 @@
         </div>
 
         <div class="p-3 bg-white rounded-xl border border-[#e3dccd] shadow-xs">
-          <span class="text-[10px] font-black uppercase text-[#64748b] block">Phase 2 (Expo 70%)</span>
+          <span class="text-[10px] font-black uppercase text-[#64748b] block">Embeddathon P2 (70%)</span>
           <div class="flex items-baseline gap-1 mt-0.5">
             <span id="metricP2Scored" class="text-2xl font-black text-indigo-600">0</span>
             <span class="text-[10px] text-[#64748b]">/ 24 scored</span>
@@ -183,7 +183,7 @@
         </div>
 
         <div class="p-3 bg-white rounded-xl border border-[#e3dccd] shadow-xs">
-          <span class="text-[10px] font-black uppercase text-[#64748b] block">Consensus Finalized</span>
+          <span class="text-[10px] font-black uppercase text-[#64748b] block">Embeddathon Complete</span>
           <div class="flex items-baseline gap-1 mt-0.5">
             <span id="metricBothComplete" class="text-2xl font-black text-emerald-600">0</span>
             <span class="text-[10px] text-[#64748b]">/ 24 complete</span>
@@ -271,9 +271,9 @@
           <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
             <div>
               <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a] flex items-center gap-1.5">
-                <span>🏛️ Internal Judges (Phase 1 · 30%)</span>
+                <span>🏛️ Internal Jury (Embeddathon Phase 1)</span>
               </h3>
-              <p class="text-[10px] text-[#64748b]">CSE Faculty Mentors responsible for Mentoring rounds</p>
+              <p class="text-[10px] text-[#64748b]">Faculty mentors for Embeddathon Phase 1; can also be deployed to Paper or Project Expo</p>
             </div>
             <button type="button" id="btnAdminAddInternal" class="px-2.5 py-1 rounded-lg bg-[#fff8f3] border border-[#fed7aa] text-xs font-extrabold text-[#ea580c] hover:bg-[#fed7aa]/30 transition active:scale-95">
               + Add Judge
@@ -290,9 +290,9 @@
           <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
             <div>
               <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a] flex items-center gap-1.5">
-                <span>🌟 External Judges (Phase 2 · 70%)</span>
+                <span>🌟 External Jury (Embeddathon Phase 2)</span>
               </h3>
-              <p class="text-[10px] text-[#64748b]">Industry Experts & IEEE Jury for Final Expo</p>
+              <p class="text-[10px] text-[#64748b]">Industry/IEEE jury for Embeddathon Phase 2; can also be deployed to Paper or Project Expo</p>
             </div>
             <button type="button" id="btnAdminAddExternal" class="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-xs font-extrabold text-indigo-700 hover:bg-indigo-100 transition active:scale-95">
               + Add Judge
@@ -306,6 +306,38 @@
 
       </div>
 
+
+      <!-- SECTION 3.5: JUDGE DEPLOYMENT, VENUE & SCHEDULE ALLOCATION -->
+      <div class="bg-white rounded-2xl border-2 border-indigo-200 p-4 sm:p-5 shadow-xs space-y-3.5">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a] flex items-center gap-1.5">
+              <span>🗓️ Judge Deployment, Venue & Schedule Allocation</span>
+            </h3>
+            <p class="text-[10px] text-[#64748b]">Select an event, venue and EMBERS schedule slot for every judge. These assignments appear on the judge's phone after login.</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span id="logisticsSourceBadge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600 border border-slate-200">Loading schedule…</span>
+            <button type="button" id="btnSaveJudgeAllocations" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition active:scale-95">
+              💾 Save Allocations
+            </button>
+          </div>
+        </div>
+
+        <div id="judgeAllocationList" class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <!-- Dynamically populated judge allocation cards -->
+        </div>
+
+        <div class="pt-2 border-t border-[#f0ebe0]">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-[11px] font-black uppercase tracking-wider text-[#0f172a]">Venue & Slot Board</h4>
+            <span class="text-[10px] text-[#64748b]">Live deployment summary</span>
+          </div>
+          <div id="eventVenueBoard" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <!-- Dynamically populated per event -->
+          </div>
+        </div>
+      </div>
 
       <!-- SAVE & SYNC BUTTON BAR -->
       <div class="bg-[#fff8f3] p-4 rounded-2xl border-2 border-[#fed7aa] shadow-xs flex items-center justify-between flex-wrap gap-3">
@@ -333,6 +365,11 @@
           </div>
 
           <div class="flex items-center gap-1.5">
+            <select id="matrixEventFilter" class="text-xs font-bold bg-[#fff7ed] border border-[#fed7aa] rounded-lg px-2.5 py-1 text-[#ea580c]">
+              <option value="PAPER">📄 Paper Presentation</option>
+              <option value="PROJECT_EXPO">🛠️ Project Expo</option>
+              <option value="EMBEDDATHON" selected>⚡ Embeddathon</option>
+            </select>
             <select id="matrixSectionFilter" class="text-xs font-bold bg-[#f6f1e6] border border-[#e3dccd] rounded-lg px-2.5 py-1 text-[#1e293b]">
               <option value="ALL">All Sections (24 Teams)</option>
               <option value="A">Section A (01–11)</option>
@@ -343,7 +380,7 @@
 
         <div class="overflow-x-auto rounded-xl border border-[#e3dccd]">
           <table class="w-full text-left border-collapse text-xs">
-            <thead>
+            <thead id="adminMatrixThead">
               <tr class="bg-[#f6f1e6] border-b border-[#e3dccd] text-[#64748b] font-bold uppercase text-[10px]">
                 <th class="py-2.5 px-2.5 w-12 font-serif-pace text-[#ea580c]">Team</th>
                 <th class="py-2.5 px-3">Team Name</th>
@@ -427,6 +464,7 @@
 
   </div>
 
+  <script src="rubrics.js"></script>
   <script src="teams.js"></script>
   <script src="admin.js"></script>
 </body>
