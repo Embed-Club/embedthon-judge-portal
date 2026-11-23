@@ -56,43 +56,40 @@
       <!-- Login Form (Only ID and PIN) -->
       <form id="formLogin" onsubmit="return false;" class="space-y-3.5">
         
-        <!-- Judge ID -->
+        <!-- Judge Name -->
         <div>
           <label for="loginJudgeIdSelect" class="block text-xs font-bold text-[#1e293b] uppercase tracking-wide mb-1">
-            Judge ID
+            Judge Name
           </label>
-          <select id="loginJudgeIdSelect" class="w-full text-xs font-bold px-3 py-2.5 bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none cursor-pointer">
-            <optgroup label="⚡ Track 1: Embeddathon — Internal Mentors (Labs 1 & 2)">
-              <option value="INT-1">INT-1 · Fizan (Internal Mentor)</option>
-              <option value="INT-2">INT-2 · Rafan (Internal Mentor)</option>
+          <select id="loginJudgeIdSelect" class="w-full text-sm font-bold px-3 py-2.5 bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none cursor-pointer">
+            <optgroup label="Project Expo">
+              <option value="EXP-1" selected>Suhail Afzal</option>
+              <option value="EXP-2">Dr. Mohammed Hafeez M.K.</option>
             </optgroup>
-            <optgroup label="⚡ Track 1: Embeddathon — External Jury (Labs 1 & 2)">
-              <option value="EXT-1">EXT-1 · Muadh Bin Mohammed Ali (External Jury)</option>
-              <option value="EXT-2">EXT-2 · Mohammed Nouman (External Jury)</option>
+            <optgroup label="Embeddathon">
+              <option value="INT-1">Fizan</option>
+              <option value="INT-2">Rafan</option>
+              <option value="EXT-1">Muadh Bin Mohammed Ali</option>
+              <option value="EXT-2">Mohammed Nouman</option>
             </optgroup>
-            <optgroup label="🛠️ Track 2: Project Expo (Edusat Hall · Stalls 01–36)">
-              <option value="EXP-1" selected>EXP-1 · Suhail Afzal (Project Expo)</option>
-              <option value="EXP-2">EXP-2 · Dr. Mohammed Hafeez M.K. (Project Expo)</option>
+            <optgroup label="Paper Presentation">
+              <option value="PPR-1">Dr. Saleem Malik</option>
+              <option value="PPR-2">ROULATH SANI MOIDEEN</option>
             </optgroup>
-            <optgroup label="📄 Track 3: Paper Presentation (Multipurpose Hall · PP-01–12)">
-              <option value="PPR-1">PPR-1 · Dr. Saleem Malik (Paper Evaluator)</option>
-              <option value="PPR-2">PPR-2 · ROULATH SANI MOIDEEN (Paper Evaluator)</option>
-            </optgroup>
-            <optgroup label="🛡️ Administration">
-              <option value="ADMIN">ADMIN · Chief Coordinator</option>
+            <optgroup label="Admin">
+              <option value="ADMIN">Admin</option>
             </optgroup>
           </select>
         </div>
 
-        <!-- Security PIN (Masked, No Hints) -->
+        <!-- Security PIN -->
         <div>
           <div class="flex items-center justify-between mb-1">
             <label for="loginPinInput" class="text-xs font-bold text-[#1e293b] uppercase tracking-wide">
-              Security PIN
+              PIN
             </label>
-            <span class="text-[10px] text-[#64748b]">Confidential</span>
           </div>
-          <input type="password" id="loginPinInput" inputmode="numeric" maxlength="8" placeholder="••••" autofocus
+          <input type="password" id="loginPinInput" inputmode="numeric" maxlength="8" placeholder="1234" autofocus
                  class="w-full text-center text-xl font-mono font-black tracking-widest px-3 py-2 bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
         </div>
 

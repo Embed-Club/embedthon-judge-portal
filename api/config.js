@@ -4,16 +4,16 @@ const DEFAULT_CONFIG = {
   activePhase: 'PHASE_1', // 'PHASE_1', 'PHASE_2', 'BOTH'
   adminPin: '5012',
   internalJudges: [
-    { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor', pin: '1111' },
-    { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor', pin: '2222' }
+    { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor', pin: '1234' },
+    { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor', pin: '1234' }
   ],
   externalJudges: [
-    { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)', pin: '3333', eventId: 'EMBEDDATHON' },
-    { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)', pin: '4444', eventId: 'EMBEDDATHON' },
-    { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator', pin: '5555', eventId: 'PROJECT_EXPO' },
-    { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator', pin: '6666', eventId: 'PROJECT_EXPO' },
-    { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', pin: '7777', eventId: 'PAPER' },
-    { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '8888', eventId: 'PAPER' }
+    { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)', pin: '1234', eventId: 'EMBEDDATHON' },
+    { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)', pin: '1234', eventId: 'EMBEDDATHON' },
+    { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator', pin: '1234', eventId: 'PROJECT_EXPO' },
+    { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator', pin: '1234', eventId: 'PROJECT_EXPO' },
+    { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', pin: '1234', eventId: 'PAPER' },
+    { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '1234', eventId: 'PAPER' }
   ],
   // Judge deployment: event/track, venue and schedule slot.
   judgeAssignments: {
