@@ -58,6 +58,7 @@
   // -------------------------------------------------------------
   // Login Overlay
   const loginOverlay = document.getElementById('loginOverlay');
+  const loginJudgeIdSelect = document.getElementById('loginJudgeIdSelect');
   const loginPhaseNotice = document.getElementById('loginPhaseNotice');
   const loginActivePhaseTitle = document.getElementById('loginActivePhaseTitle');
   const loginActivePhaseSub = document.getElementById('loginActivePhaseSub');
@@ -360,7 +361,13 @@
     if (currentJudge && currentJudge.id === judgeId && currentJudge.assignment) {
       return currentJudge.assignment;
     }
-    return null;
+    const DEFAULT_ASSIGNMENTS = {
+      'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon' },
+      'INT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon' },
+      'EXT-1': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo' },
+      'EXT-2': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation' }
+    };
+    return DEFAULT_ASSIGNMENTS[judgeId] || null;
   }
 
   function getEventMap(eventId) {
@@ -887,103 +894,119 @@
   function renderLoginJudgeSlots() {
     updatePhaseNotice();
 
-    // Render Internal Judges
-    loginInternalSlotsContainer.innerHTML = '';
-    const internalList = juryConfig.internalJudges || [];
-    internalList.forEach((j) => {
-      const isSelected = selectedLoginJudgeId === j.id;
-      const assignment = getJudgeAssignment(j.id);
-      const assignmentLabel = assignment && assignment.eventId
-        ? `${EVENT_LIB.getEvent(assignment.eventId).shortLabel}${assignment.venue ? ' · ' + assignment.venue : ''}`
-        : 'No event assigned';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `p-2 rounded-xl border text-left transition flex flex-col justify-between active:scale-95 ${
-        isSelected
-          ? 'bg-[#ea580c] text-white border-[#ea580c] shadow-xs'
-          : 'bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6]'
-      }`;
+    if (loginJudgeIdSelect) {
+      if (!selectedLoginJudgeId) {
+        const path = (window.location.pathname || '').toLowerCase();
+        if (path.endsWith('expo.html')) selectedLoginJudgeId = 'EXT-1';
+        else if (path.endsWith('paper.html')) selectedLoginJudgeId = 'EXT-2';
+        else selectedLoginJudgeId = 'INT-1';
+      }
+      loginJudgeIdSelect.value = selectedLoginJudgeId;
+    }
 
-      btn.innerHTML = `
-        <span class="text-xs font-black tracking-wide">${j.id}</span>
-        <span class="text-[10px] font-bold truncate">${j.name}</span>
-        <span class="text-[8px] opacity-75 truncate">${j.role || 'Internal'}</span>
-        <span class="text-[8px] font-bold truncate ${isSelected ? 'text-orange-100' : 'text-[#ea580c]'}">${assignmentLabel}</span>
-      `;
+    // Render Internal Judges (if legacy grid is present)
+    if (loginInternalSlotsContainer) {
+      loginInternalSlotsContainer.innerHTML = '';
+      const internalList = juryConfig.internalJudges || [];
+      internalList.forEach((j) => {
+        const isSelected = selectedLoginJudgeId === j.id;
+        const assignment = getJudgeAssignment(j.id);
+        const assignmentLabel = assignment && assignment.eventId
+          ? `${EVENT_LIB.getEvent(assignment.eventId).shortLabel}${assignment.venue ? ' · ' + assignment.venue : ''}`
+          : 'Track 1: Embeddathon';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `p-2 rounded-xl border text-left transition flex flex-col justify-between active:scale-95 ${
+          isSelected
+            ? 'bg-[#ea580c] text-white border-[#ea580c] shadow-xs'
+            : 'bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6]'
+        }`;
 
-      btn.addEventListener('click', () => {
-        selectedLoginJudgeId = j.id;
-        loginPinInput.value = '';
-        if (loginNameInput) loginNameInput.value = j.name;
-        pinHintBadge.textContent = `PIN: ${j.pin}`;
-        const asgn = getJudgeAssignment(j.id);
-        if (asgn && asgn.eventId && EVENTS[asgn.eventId]) {
-          selectedLoginEventId = asgn.eventId;
-        }
-        renderLoginJudgeSlots();
-        if (loginPinInput) loginPinInput.focus();
+        btn.innerHTML = `
+          <span class="text-xs font-black tracking-wide">${j.id}</span>
+          <span class="text-[10px] font-bold truncate">${j.name}</span>
+          <span class="text-[8px] opacity-75 truncate">${j.role || 'Internal'}</span>
+          <span class="text-[8px] font-bold truncate ${isSelected ? 'text-orange-100' : 'text-[#ea580c]'}">${assignmentLabel}</span>
+        `;
+
+        btn.addEventListener('click', () => {
+          selectedLoginJudgeId = j.id;
+          if (loginJudgeIdSelect) loginJudgeIdSelect.value = j.id;
+          if (loginPinInput) {
+            loginPinInput.value = '';
+            loginPinInput.focus();
+          }
+          if (loginNameInput) loginNameInput.value = j.name;
+          const asgn = getJudgeAssignment(j.id);
+          if (asgn && asgn.eventId && EVENTS[asgn.eventId]) {
+            selectedLoginEventId = asgn.eventId;
+          }
+          renderLoginJudgeSlots();
+        });
+
+        loginInternalSlotsContainer.appendChild(btn);
       });
+    }
 
-      loginInternalSlotsContainer.appendChild(btn);
-    });
+    // Render External Judges (if legacy grid is present)
+    if (loginExternalSlotsContainer) {
+      loginExternalSlotsContainer.innerHTML = '';
+      const externalList = juryConfig.externalJudges || [];
+      externalList.forEach((j) => {
+        const isSelected = selectedLoginJudgeId === j.id;
+        const assignment = getJudgeAssignment(j.id);
+        const assignmentLabel = assignment && assignment.eventId
+          ? `${EVENT_LIB.getEvent(assignment.eventId).shortLabel}${assignment.venue ? ' · ' + assignment.venue : ''}`
+          : 'Assigned Track';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `p-2 rounded-xl border text-left transition flex flex-col justify-between active:scale-95 ${
+          isSelected
+            ? 'bg-[#ea580c] text-white border-[#ea580c] shadow-xs'
+            : 'bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6]'
+        }`;
 
-    // Render External Judges
-    loginExternalSlotsContainer.innerHTML = '';
-    const externalList = juryConfig.externalJudges || [];
-    externalList.forEach((j) => {
-      const isSelected = selectedLoginJudgeId === j.id;
-      const assignment = getJudgeAssignment(j.id);
-      const assignmentLabel = assignment && assignment.eventId
-        ? `${EVENT_LIB.getEvent(assignment.eventId).shortLabel}${assignment.venue ? ' · ' + assignment.venue : ''}`
-        : 'No event assigned';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `p-2 rounded-xl border text-left transition flex flex-col justify-between active:scale-95 ${
-        isSelected
-          ? 'bg-[#ea580c] text-white border-[#ea580c] shadow-xs'
-          : 'bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6]'
-      }`;
+        btn.innerHTML = `
+          <span class="text-xs font-black tracking-wide">${j.id}</span>
+          <span class="text-[10px] font-bold truncate">${j.name}</span>
+          <span class="text-[8px] opacity-75 truncate">${j.role || 'External'}</span>
+          <span class="text-[8px] font-bold truncate ${isSelected ? 'text-orange-100' : 'text-[#ea580c]'}">${assignmentLabel}</span>
+        `;
 
-      btn.innerHTML = `
-        <span class="text-xs font-black tracking-wide">${j.id}</span>
-        <span class="text-[10px] font-bold truncate">${j.name}</span>
-        <span class="text-[8px] opacity-75 truncate">${j.role || 'External'}</span>
-        <span class="text-[8px] font-bold truncate ${isSelected ? 'text-orange-100' : 'text-[#ea580c]'}">${assignmentLabel}</span>
-      `;
+        btn.addEventListener('click', () => {
+          selectedLoginJudgeId = j.id;
+          if (loginJudgeIdSelect) loginJudgeIdSelect.value = j.id;
+          if (loginPinInput) {
+            loginPinInput.value = '';
+            loginPinInput.focus();
+          }
+          if (loginNameInput) loginNameInput.value = j.name;
+          const asgn = getJudgeAssignment(j.id);
+          if (asgn && asgn.eventId && EVENTS[asgn.eventId]) {
+            selectedLoginEventId = asgn.eventId;
+          }
+          renderLoginJudgeSlots();
+        });
 
-      btn.addEventListener('click', () => {
-        selectedLoginJudgeId = j.id;
-        loginPinInput.value = '';
-        if (loginNameInput) loginNameInput.value = j.name;
-        pinHintBadge.textContent = `PIN: ${j.pin}`;
-        const asgn = getJudgeAssignment(j.id);
-        if (asgn && asgn.eventId && EVENTS[asgn.eventId]) {
-          selectedLoginEventId = asgn.eventId;
-        }
-        renderLoginJudgeSlots();
-        if (loginPinInput) loginPinInput.focus();
+        loginExternalSlotsContainer.appendChild(btn);
       });
-
-      loginExternalSlotsContainer.appendChild(btn);
-    });
+    }
 
     // Admin option styling & click handler
-    const isAdmin = selectedLoginJudgeId === 'ADMIN';
     if (btnSelectAdminLogin) {
-      if (isAdmin) {
-        btnSelectAdminLogin.className =
-          'w-full p-2 rounded-xl border text-left transition flex items-center justify-between bg-[#0f172a] text-white border-[#0f172a] shadow-xs cursor-pointer';
-      } else {
-        btnSelectAdminLogin.className =
-          'w-full p-2 rounded-xl border text-left transition flex items-center justify-between bg-[#f6f1e6] text-[#475569] border-[#e3dccd] hover:bg-[#efe8da] cursor-pointer';
-      }
+      const isAdmin = selectedLoginJudgeId === 'ADMIN';
+      btnSelectAdminLogin.className = isAdmin
+        ? 'w-full p-2 rounded-xl border text-left transition flex items-center justify-between bg-[#0f172a] text-white border-[#0f172a] shadow-xs cursor-pointer'
+        : 'w-full p-2 rounded-xl border text-left transition flex items-center justify-between bg-[#f6f1e6] text-[#475569] border-[#e3dccd] hover:bg-[#efe8da] cursor-pointer';
       btnSelectAdminLogin.onclick = () => {
         selectedLoginJudgeId = 'ADMIN';
-        loginPinInput.value = '';
+        if (loginJudgeIdSelect) loginJudgeIdSelect.value = 'ADMIN';
+        if (loginPinInput) {
+          loginPinInput.value = '';
+          loginPinInput.focus();
+        }
         if (loginNameInput) loginNameInput.value = 'Chief Coordinator';
-        pinHintBadge.textContent = 'PIN: 2026';
         renderLoginJudgeSlots();
-        if (loginPinInput) loginPinInput.focus();
       };
     }
 
@@ -1023,30 +1046,18 @@
       const activeEv = EVENT_LIB.getEvent(selectedLoginEventId);
       loginTrackDesc.textContent = `${activeEv.icon} ${activeEv.label} · ${activeEv.venue} (${activeEv.maxTotal} Marks Total)`;
     }
-
-    // Update active hint
-    const allJudges = [...internalList, ...externalList];
-    const match = allJudges.find((x) => x.id === selectedLoginJudgeId);
-    if (match) {
-      pinHintBadge.textContent = `PIN: ${match.pin}`;
-      if (loginNameInput && document.activeElement !== loginNameInput && !loginNameInput.value) {
-        loginNameInput.value = match.name;
-      }
-    } else if (selectedLoginJudgeId === 'ADMIN') {
-      pinHintBadge.textContent = 'PIN: 2026';
-      if (loginNameInput && document.activeElement !== loginNameInput && !loginNameInput.value) {
-        loginNameInput.value = 'Chief Coordinator';
-      }
-    }
   }
 
   async function handleLogin() {
-    loginErrorMessage.classList.add('hidden');
-    const pin = loginPinInput.value.trim();
+    if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
+    const judgeId = (loginJudgeIdSelect ? loginJudgeIdSelect.value : selectedLoginJudgeId) || 'INT-1';
+    selectedLoginJudgeId = judgeId;
+    const pin = loginPinInput ? loginPinInput.value.trim() : '';
     const customName = loginNameInput ? loginNameInput.value.trim() : '';
 
     if (!pin) {
-      showLoginError('Please enter your 4-digit security PIN.');
+      showLoginError('Please enter your security PIN.');
+      if (loginPinInput) loginPinInput.focus();
       return;
     }
 
@@ -1055,7 +1066,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          judgeId: selectedLoginJudgeId,
+          judgeId: judgeId,
           pin: pin,
           judgeName: customName
         })
@@ -2058,7 +2069,7 @@
   async function saveAdminJuryConfig() {
     const enteredPin = inputAdminPinForConfig.value.trim();
     if (!enteredPin) {
-      alert('Please enter Admin PIN (Default: 2026) to apply changes.');
+      alert('Please enter Admin PIN to apply changes.');
       return;
     }
 
@@ -2131,17 +2142,32 @@
   // -------------------------------------------------------------
   function bindEvents() {
     // Login
-    btnLoginSubmit.addEventListener('click', handleLogin);
-    loginPinInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleLogin();
-    });
+    if (loginJudgeIdSelect) {
+      loginJudgeIdSelect.addEventListener('change', (e) => {
+        selectedLoginJudgeId = e.target.value;
+        if (loginPinInput) {
+          loginPinInput.value = '';
+          loginPinInput.focus();
+        }
+      });
+    }
+
+    if (btnLoginSubmit) btnLoginSubmit.addEventListener('click', handleLogin);
+    if (loginPinInput) {
+      loginPinInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleLogin();
+      });
+    }
 
     if (btnSelectAdminLogin) {
       btnSelectAdminLogin.addEventListener('click', () => {
         selectedLoginJudgeId = 'ADMIN';
-        loginPinInput.value = '';
+        if (loginJudgeIdSelect) loginJudgeIdSelect.value = 'ADMIN';
+        if (loginPinInput) {
+          loginPinInput.value = '';
+          loginPinInput.focus();
+        }
         if (loginNameInput) loginNameInput.value = 'Chief Coordinator';
-        pinHintBadge.textContent = 'PIN: 2026';
         renderLoginJudgeSlots();
       });
     }
@@ -2415,7 +2441,7 @@
   }
 
   async function resetAllEvaluations() {
-    const pin = prompt('Enter Admin PIN (Default: 2026) to erase all team evaluations:');
+    const pin = prompt('Enter Admin PIN to erase all team evaluations:');
     if (!pin) return;
 
     try {

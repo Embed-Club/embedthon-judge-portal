@@ -36,126 +36,81 @@
   <!-- ========================================================= -->
   <!-- 1. DYNAMIC JUDGE LOGIN OVERLAY (Shows if not logged in)   -->
   <!-- ========================================================= -->
-  <div id="loginOverlay" class="fixed inset-0 z-50 bg-[#0f172a]/85 backdrop-blur-md flex items-center justify-center p-3.5 overflow-y-auto">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-5 border-2 border-[#fed7aa] shadow-2xl space-y-3.5 my-auto">
+  <div id="loginOverlay" class="fixed inset-0 z-50 bg-[#0f172a]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 border-2 border-[#fed7aa] shadow-2xl space-y-4 my-auto">
       
       <!-- Top Branding -->
-      <div class="text-center space-y-0.5">
-        <img src="assets/pace_crest.png" alt="PACE Crest" class="h-9 w-auto object-contain mx-auto mb-1">
+      <div class="text-center space-y-1">
+        <div class="flex items-center justify-center gap-2 mb-1">
+          <img src="assets/pace_crest.png" alt="PACE Crest" class="h-10 w-auto object-contain">
+          <img src="assets/embers_logo.png" alt="EMBERS Logo" class="h-10 w-auto object-contain rounded-lg">
+        </div>
         <h2 class="text-xs font-black tracking-wider uppercase text-[#0f172a]">
           P.A. College of Engineering
         </h2>
-        <p class="text-[10px] font-bold text-[#ea580c] uppercase tracking-wide">
-          EMBERS '26 · TRACK 3: PAPER PRESENTATION
+        <p class="text-[11px] font-bold text-[#ea580c] uppercase tracking-wide">
+          Official Judging Portal
         </p>
       </div>
 
-      <!-- Active Phase Banner -->
-      <div id="loginPhaseNotice" class="bg-[#f6f1e6] p-2 rounded-xl border border-[#e3dccd] text-center">
-        <span class="text-[10px] font-black uppercase text-[#0f172a] block" id="loginActivePhaseTitle">Phase 1: Mentoring Active</span>
-        <span class="text-[9px] text-[#64748b]" id="loginActivePhaseSub">Internal Judges score Phase 1 (30%) · External score Phase 2 (70%)</span>
-      </div>
-
-      <!-- Login Form -->
-      <form id="formLogin" onsubmit="return false;" class="space-y-3">
+      <!-- Login Form (Only ID and PIN) -->
+      <form id="formLogin" onsubmit="return false;" class="space-y-3.5">
         
-        <!-- Internal Judges Selection -->
+        <!-- Judge ID -->
         <div>
-          <label class="block text-[11px] font-extrabold text-[#1e293b] uppercase tracking-wide mb-1 flex items-center gap-1">
-            <span>🏛️ Internal Jury (Faculty)</span>
+          <label for="loginJudgeIdSelect" class="block text-xs font-bold text-[#1e293b] uppercase tracking-wide mb-1">
+            Judge ID
           </label>
-          <div id="loginInternalSlotsContainer" class="grid grid-cols-2 gap-1.5">
-            <!-- Dynamically populated: INT-1, INT-2... -->
-          </div>
+          <select id="loginJudgeIdSelect" class="w-full text-xs font-bold px-3 py-2.5 bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none cursor-pointer">
+            <optgroup label="⚡ Track 1: Embeddathon (Computer Labs 1 & 2)">
+              <option value="INT-1" selected>INT-1 · Internal Judge 1 (Faculty)</option>
+              <option value="INT-2">INT-2 · Internal Judge 2 (Faculty)</option>
+            </optgroup>
+            <optgroup label="🛠️ Track 2: Project Expo (Edusat Hall)">
+              <option value="EXT-1">EXT-1 · External Judge 1 (Industry Expert)</option>
+            </optgroup>
+            <optgroup label="📄 Track 3: Paper Presentation (Multipurpose Hall)">
+              <option value="EXT-2">EXT-2 · External Judge 2 (IEEE Jury)</option>
+            </optgroup>
+            <optgroup label="🛡️ Administration">
+              <option value="ADMIN">ADMIN · Chief Coordinator</option>
+            </optgroup>
+          </select>
         </div>
 
-        <!-- External Judges Selection -->
-        <div>
-          <label class="block text-[11px] font-extrabold text-[#1e293b] uppercase tracking-wide mb-1 flex items-center gap-1">
-            <span>🌟 External Jury (Industry / IEEE)</span>
-          </label>
-          <div id="loginExternalSlotsContainer" class="grid grid-cols-2 gap-1.5">
-            <!-- Dynamically populated: EXT-1, EXT-2... -->
-          </div>
-        </div>
-
-        <!-- Coordinator Option -->
-        <div class="space-y-1">
-          <button type="button" id="btnSelectAdminLogin" class="w-full p-2 rounded-xl border border-[#e3dccd] bg-[#f6f1e6] hover:bg-[#efe8da] text-left flex items-center justify-between text-xs font-bold text-[#475569] active:scale-95 transition">
-            <span>⚙️ Coordinator / Admin</span>
-            <span class="text-[10px] text-slate-400">Manage phases & judges</span>
-          </button>
-          <div class="flex items-center justify-between px-1 text-[10px]">
-            <a href="embers.html" target="_blank" class="font-extrabold text-[#ea580c] hover:underline flex items-center gap-0.5">
-              <span>🔥 EMBERS Hub</span>
-              <span>↗</span>
-            </a>
-            <a href="admin.html" class="font-extrabold text-[#0f172a] hover:underline flex items-center gap-0.5">
-              <span>Open Admin Page</span>
-              <span>↗</span>
-            </a>
-          </div>
-        </div>
-
-        <!-- Designated Event Track -->
-        <div class="space-y-1">
-          <div class="flex items-center justify-between">
-            <label class="block text-[11px] font-extrabold text-[#1e293b] uppercase tracking-wide flex items-center gap-1">
-              <span>🎯 Destination Event Track</span>
-            </label>
-            <span id="loginAssignedBadge" class="text-[9px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-[#ea580c]">Auto-Detected</span>
-          </div>
-          <div id="loginTrackPills" class="grid grid-cols-3 gap-1.5">
-            <button type="button" data-event="EMBEDDATHON" class="login-track-btn p-2 rounded-xl border text-center transition bg-[#0f172a] text-white border-[#0f172a] shadow-xs active:scale-95">
-              <span class="text-base block leading-none">⚡</span>
-              <span class="text-[10px] font-black block mt-1 truncate">Track 1</span>
-              <span class="text-[8px] opacity-80 block truncate">Labs 1 & 2</span>
-            </button>
-            <button type="button" data-event="PROJECT_EXPO" class="login-track-btn p-2 rounded-xl border text-center transition bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6] active:scale-95">
-              <span class="text-base block leading-none">🛠️</span>
-              <span class="text-[10px] font-black block mt-1 truncate">Track 2</span>
-              <span class="text-[8px] text-[#64748b] block truncate">Edusat Hall</span>
-            </button>
-            <button type="button" data-event="PAPER" class="login-track-btn p-2 rounded-xl border text-center transition bg-[#fdfbf7] text-[#1e293b] border-[#e3dccd] hover:bg-[#f6f1e6] active:scale-95">
-              <span class="text-base block leading-none">📄</span>
-              <span class="text-[10px] font-black block mt-1 truncate">Track 3</span>
-              <span class="text-[8px] text-[#64748b] block truncate">Multi. Hall</span>
-            </button>
-          </div>
-          <p id="loginTrackDesc" class="text-[9px] text-[#64748b] text-center font-semibold leading-tight pt-0.5">Track 1: Embeddathon · Computer Labs 1 & 2 (24-Hour Hackathon)</p>
-        </div>
-
-        <!-- Selected Judge PIN -->
+        <!-- Security PIN (Masked, No Hints) -->
         <div>
           <div class="flex items-center justify-between mb-1">
             <label for="loginPinInput" class="text-xs font-bold text-[#1e293b] uppercase tracking-wide">
               Security PIN
             </label>
-            <span id="pinHintBadge" class="text-[10px] font-mono text-[#ea580c] font-black">PIN: 1111</span>
+            <span class="text-[10px] text-[#64748b]">Confidential</span>
           </div>
-          <input type="password" id="loginPinInput" inputmode="numeric" maxlength="6" placeholder="Enter PIN"
-                 class="w-full text-center text-lg font-mono font-black tracking-widest px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+          <input type="password" id="loginPinInput" inputmode="numeric" maxlength="8" placeholder="••••" autofocus
+                 class="w-full text-center text-xl font-mono font-black tracking-widest px-3 py-2 bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
         </div>
 
-        <!-- Your Name / Designation Override -->
-        <div>
-          <label for="loginNameInput" class="block font-bold text-[#1e293b] mb-1 uppercase tracking-wide text-xs">
-            Your Name / Designation
-          </label>
-          <input type="text" id="loginNameInput" placeholder="e.g., Dr. A. Rahman (Internal)"
-                 class="w-full px-3 py-2 text-sm text-[#0f172a] bg-white border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
-        </div>
+        <div id="loginErrorMessage" class="hidden text-xs font-bold text-red-600 bg-red-50 border border-red-200 p-2.5 rounded-xl text-center"></div>
 
-        <div id="loginErrorMessage" class="hidden text-[11px] font-bold text-red-600 bg-red-50 border border-red-200 p-2 rounded-lg text-center"></div>
-
-        <button type="submit" id="btnLoginSubmit" class="w-full py-2.5 px-4 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-xs uppercase tracking-wider shadow-md transition active:scale-[0.98]">
-          Authenticate & Start Scoring
+        <button type="submit" id="btnLoginSubmit" class="w-full py-3 px-4 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-xs uppercase tracking-wider shadow-md transition active:scale-[0.98]">
+          Login & Start Scoring
         </button>
 
-        <p class="text-center text-[10px] text-[#64748b] leading-tight">
-          Supports multiple concurrent judges with live sync over local Wi-Fi.
-        </p>
+        <!-- Hidden input for script backward compatibility -->
+        <input type="hidden" id="loginNameInput" value="">
       </form>
+
+      <div class="pt-3 border-t border-[#e3dccd] flex items-center justify-between text-[10px]">
+        <a href="embers.html" class="font-extrabold text-[#ea580c] hover:underline flex items-center gap-0.5">
+          <span>🔥 Embers Hub</span>
+        </a>
+        <a href="admin.html" class="font-extrabold text-[#0f172a] hover:underline flex items-center gap-0.5">
+          <span>⚙️ Admin Matrix</span>
+        </a>
+        <a href="reveal.html" class="font-extrabold text-amber-600 hover:underline flex items-center gap-0.5">
+          <span>🏆 Reveal Ceremony</span>
+        </a>
+      </div>
 
     </div>
   </div>
@@ -878,9 +833,9 @@
         <!-- Admin PIN -->
         <div>
           <label class="block font-bold text-[#1e293b] mb-1 uppercase text-[10px]">
-            Admin PIN to Save (Default: 2026)
+            Admin PIN Required
           </label>
-          <input type="password" id="inputAdminPinForConfig" placeholder="2026"
+          <input type="password" id="inputAdminPinForConfig" placeholder="••••"
                  class="w-full px-3 py-1.5 text-xs text-[#0f172a] bg-white border border-[#cbd5e1] rounded-lg focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
         </div>
 

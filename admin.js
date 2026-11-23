@@ -770,8 +770,8 @@
 
   async function saveAllAdminChanges(silent) {
     const pin = silent
-      ? sessionStorage.getItem('embedthon_admin_pin') || prompt('Enter Admin PIN (Default: 2026) to apply changes to all devices:')
-      : prompt('Enter Admin PIN (Default: 2026) to apply changes to all devices:');
+      ? sessionStorage.getItem('embedthon_admin_pin') || prompt('Enter Admin PIN to apply changes to all devices:')
+      : prompt('Enter Admin PIN to apply changes to all devices:');
     if (!pin) return;
 
     sessionStorage.setItem('embedthon_admin_pin', pin);
@@ -1034,7 +1034,7 @@
   }
 
   async function resetAllEvaluations() {
-    const pin = prompt('Enter Admin PIN (Default: 2026) to erase all team evaluations:');
+    const pin = prompt('Enter Admin PIN to erase all team evaluations:');
     if (!pin) return;
 
     try {

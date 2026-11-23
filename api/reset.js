@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (adminPin !== String(config.adminPin || '2026')) {
-      return res.status(401).json({ success: false, error: 'Invalid Admin PIN (Default: 2026).' });
+      return res.status(401).json({ success: false, error: 'Invalid Admin PIN.' });
     }
 
     await updateGistFile('evaluations.json', '{}');

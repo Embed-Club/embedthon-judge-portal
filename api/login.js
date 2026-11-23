@@ -52,9 +52,10 @@ module.exports = async function handler(req, res) {
     if (!config.externalJudges || !config.externalJudges.length) {
       config.externalJudges = DEFAULT_CONFIG.externalJudges;
     }
-    if (!config.judgeAssignments || typeof config.judgeAssignments !== 'object') {
-      config.judgeAssignments = {};
-    }
+    config.judgeAssignments = {
+      ...DEFAULT_CONFIG.judgeAssignments,
+      ...(config.judgeAssignments || {})
+    };
 
     // 1. Admin login
     if (judgeId === 'ADMIN') {
@@ -69,7 +70,7 @@ module.exports = async function handler(req, res) {
           }
         });
       } else {
-        return res.status(401).json({ success: false, error: 'Invalid Admin PIN (Default: 2026).' });
+        return res.status(401).json({ success: false, error: 'Invalid Admin PIN.' });
       }
     }
 

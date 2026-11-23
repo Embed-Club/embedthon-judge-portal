@@ -44,9 +44,10 @@ module.exports = async function handler(req, res) {
     if (!config.internalJudges || !config.internalJudges.length) config.internalJudges = DEFAULT_CONFIG.internalJudges;
     if (!config.externalJudges || !config.externalJudges.length) config.externalJudges = DEFAULT_CONFIG.externalJudges;
     if (!config.activePhase) config.activePhase = 'PHASE_1';
-    if (!config.judgeAssignments || typeof config.judgeAssignments !== 'object') {
-      config.judgeAssignments = {};
-    }
+    config.judgeAssignments = {
+      ...DEFAULT_CONFIG.judgeAssignments,
+      ...(config.judgeAssignments || {})
+    };
 
     if (req.method === 'GET') {
       if (!gist.files || !gist.files['config.json'] || !JSON.parse(gist.files['config.json'].content).internalJudges) {
@@ -60,7 +61,7 @@ module.exports = async function handler(req, res) {
       const adminPin = String(body.adminPin || '').trim();
 
       if (adminPin !== String(config.adminPin || '2026')) {
-        return res.status(401).json({ success: false, error: 'Invalid Admin PIN (Default: 2026).' });
+        return res.status(401).json({ success: false, error: 'Invalid Admin PIN.' });
       }
 
       if (body.activePhase && ['PHASE_1', 'PHASE_2', 'BOTH'].includes(body.activePhase)) {
