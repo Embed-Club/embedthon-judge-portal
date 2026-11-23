@@ -91,7 +91,7 @@
     // Strictly require session PIN verification so the admin gate is always enforced
     const savedPin = sessionStorage.getItem('embers_admin_pin');
 
-    if (savedPin === '2026') {
+    if (savedPin === '5012') {
       unlockConsole(savedPin);
     } else {
       if (embersAuthGate) embersAuthGate.classList.remove('hidden');
@@ -134,7 +134,7 @@
       unlockConsole(pin);
     } catch (e) {
       // Local fallback
-      if (pin === '2026') {
+      if (pin === '5012') {
         unlockConsole(pin);
       } else {
         showGateError('Incorrect Admin PIN.');
@@ -168,7 +168,7 @@
 
   async function postEmbersApi(action, data = {}) {
     try {
-      const currentPin = sessionStorage.getItem('embers_admin_pin') || '2026';
+      const currentPin = sessionStorage.getItem('embers_admin_pin') || '5012';
       const payload = {
         action,
         token: EMBERS_SECRET_TOKEN,

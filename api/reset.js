@@ -18,14 +18,14 @@ module.exports = async function handler(req, res) {
     const adminPin = String(body.adminPin || '').trim();
 
     const gist = await fetchGist();
-    let config = { adminPin: '2026' };
+    let config = { adminPin: '5012' };
     if (gist.files && gist.files['config.json']) {
       try {
         config = JSON.parse(gist.files['config.json'].content);
       } catch (e) {}
     }
 
-    if (adminPin !== String(config.adminPin || '2026')) {
+    if (adminPin !== String(config.adminPin || '5012')) {
       return res.status(401).json({ success: false, error: 'Invalid Admin PIN.' });
     }
 

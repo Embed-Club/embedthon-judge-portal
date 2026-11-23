@@ -2,21 +2,29 @@ const { fetchGist, updateGistFile } = require('./_gist');
 
 const DEFAULT_CONFIG = {
   activePhase: 'PHASE_1', // 'PHASE_1', 'PHASE_2', 'BOTH'
-  adminPin: '2026',
+  adminPin: '5012',
   internalJudges: [
-    { id: 'INT-1', name: 'Internal Judge 1', role: 'CSE Faculty Mentor', pin: '1111' },
-    { id: 'INT-2', name: 'Internal Judge 2', role: 'CSE Faculty Mentor', pin: '2222' }
+    { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor', pin: '1111' },
+    { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor', pin: '2222' }
   ],
   externalJudges: [
-    { id: 'EXT-1', name: 'External Judge 1', role: 'Industry Expert', pin: '3333' },
-    { id: 'EXT-2', name: 'External Judge 2', role: 'IEEE Jury Member', pin: '4444' }
+    { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)', pin: '3333', eventId: 'EMBEDDATHON' },
+    { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)', pin: '4444', eventId: 'EMBEDDATHON' },
+    { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator', pin: '5555', eventId: 'PROJECT_EXPO' },
+    { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator', pin: '6666', eventId: 'PROJECT_EXPO' },
+    { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', pin: '7777', eventId: 'PAPER' },
+    { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '8888', eventId: 'PAPER' }
   ],
   // Judge deployment: event/track, venue and schedule slot.
   judgeAssignments: {
-    'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S3', day: 1, start: '10:30', end: '13:00', slotTitle: 'Track 1: Embeddathon Kickoff' },
-    'INT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S3', day: 1, start: '10:30', end: '13:00', slotTitle: 'Track 1: Embeddathon Kickoff' },
-    'EXT-1': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotId: 'S4', day: 1, start: '14:00', end: '17:00', slotTitle: 'Track 2: Project Expo Stalls 1–30' },
-    'EXT-2': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotId: 'S6', day: 2, start: '09:30', end: '12:30', slotTitle: 'Track 3: Technical Paper Presentations' }
+    'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S3', day: 1, start: '10:30', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 1 (Mentoring)' },
+    'INT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S3', day: 1, start: '10:30', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 1 (Mentoring)' },
+    'EXT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S5', day: 2, start: '10:00', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 2 (External Jury)' },
+    'EXT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S5', day: 2, start: '10:00', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 2 (External Jury)' },
+    'EXP-1': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotId: 'S8', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+    'EXP-2': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotId: 'S8', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+    'PPR-1': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotId: 'S9', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' },
+    'PPR-2': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotId: 'S9', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' }
   }
 };
 
@@ -60,7 +68,7 @@ module.exports = async function handler(req, res) {
       const body = req.body || {};
       const adminPin = String(body.adminPin || '').trim();
 
-      if (adminPin !== String(config.adminPin || '2026')) {
+      if (adminPin !== String(config.adminPin || '5012')) {
         return res.status(401).json({ success: false, error: 'Invalid Admin PIN.' });
       }
 

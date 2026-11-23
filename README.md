@@ -26,11 +26,15 @@ A mobile-first web portal built specifically for judges evaluating **EMBERS '26 
 - **Multi-Judge Consensus**: Configurable number of judges (2–10). Each judge evaluates independently. Real-time dynamic updates aggregate jury average scores per event.
 - **Event-aware Leaderboards**: Rank teams separately for Paper, Project Expo and Embeddathon, with event-specific score columns, CSV export and WhatsApp summaries.
 - **Unique Judge Login**:
-  - Internal Judge 1 (`INT-1`) | PIN: `1111`
-  - Internal Judge 2 (`INT-2`) | PIN: `2222`
-  - External Judge 1 (`EXT-1`) | PIN: `3333`
-  - External Judge 2 (`EXT-2`) | PIN: `4444`
-  - Coordinator (`ADMIN`) | PIN: `2026`
+  - Internal Embeddathon (`INT-1` Fizan) | PIN: `1111`
+  - Internal Embeddathon (`INT-2` Rafan) | PIN: `2222`
+  - External Embeddathon (`EXT-1` Muadh Bin Mohammed Ali) | PIN: `3333`
+  - External Embeddathon (`EXT-2` Mohammed Nouman) | PIN: `4444`
+  - Project Expo (`EXP-1` Suhail Afzal) | PIN: `5555`
+  - Project Expo (`EXP-2` Dr. Mohammed Hafeez M.K.) | PIN: `6666`
+  - Paper Presentation (`PPR-1` Dr. Saleem Malik) | PIN: `7777`
+  - Paper Presentation (`PPR-2` ROULATH SANI MOIDEEN) | PIN: `8888`
+  - Coordinator (`ADMIN`) | PIN: `5012`
 - **Dynamic Leaderboard**: Live ranked table with individual judge marks, average scores, and CSV export.
 
 ## Rubric Source of Truth

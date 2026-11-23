@@ -33,15 +33,29 @@
   // Config & Master Evaluations
   let juryConfig = {
     activePhase: 'PHASE_1',
-    adminPin: '2026',
+    adminPin: '5012',
     internalJudges: [
-      { id: 'INT-1', name: 'Internal Judge 1', role: 'CSE Faculty Mentor', pin: '1111' },
-      { id: 'INT-2', name: 'Internal Judge 2', role: 'CSE Faculty Mentor', pin: '2222' }
+      { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor', pin: '1111' },
+      { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor', pin: '2222' }
     ],
     externalJudges: [
-      { id: 'EXT-1', name: 'External Judge 1', role: 'Industry Expert', pin: '3333' },
-      { id: 'EXT-2', name: 'External Judge 2', role: 'IEEE Jury Member', pin: '4444' }
-    ]
+      { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)', pin: '3333' },
+      { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)', pin: '4444' },
+      { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator', pin: '5555' },
+      { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator', pin: '6666' },
+      { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', pin: '7777' },
+      { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '8888' }
+    ],
+    judgeAssignments: {
+      'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
+      'INT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
+      'EXT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
+      'EXT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
+      'EXP-1': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+      'EXP-2': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+      'PPR-1': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' },
+      'PPR-2': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' }
+    }
   };
 
   let masterEvaluations = {};
@@ -362,10 +376,14 @@
       return currentJudge.assignment;
     }
     const DEFAULT_ASSIGNMENTS = {
-      'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon' },
-      'INT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon' },
-      'EXT-1': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo' },
-      'EXT-2': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation' }
+      'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
+      'INT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
+      'EXT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
+      'EXT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
+      'EXP-1': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+      'EXP-2': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+      'PPR-1': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' },
+      'PPR-2': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' }
     };
     return DEFAULT_ASSIGNMENTS[judgeId] || null;
   }

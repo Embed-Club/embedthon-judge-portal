@@ -67,7 +67,7 @@ module.exports = async function handler(req, res) {
 
       // Security Check: Secret Webhook Token or Admin PIN Protection
       const SECRET_TOKEN = process.env.EMBERS_WEBHOOK_TOKEN || 'EMBERS_SYNC_2026';
-      const ADMIN_PIN = process.env.ADMIN_PIN || '2026';
+      const ADMIN_PIN = process.env.ADMIN_PIN || '5012';
       const providedAuth = req.headers['x-embers-token'] || body.token || body.adminPin;
 
       if (providedAuth !== SECRET_TOKEN && providedAuth !== ADMIN_PIN) {
