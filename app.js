@@ -148,7 +148,6 @@
   const btnResetEvaluations = document.getElementById('btnResetEvaluations');
 
   // Results Reveal Ceremony Elements
-  const btnLaunchCeremony = document.getElementById('btnLaunchCeremony');
   const revealCeremonyOverlay = document.getElementById('revealCeremonyOverlay');
   const ceremonyCanvas = document.getElementById('ceremonyCanvas');
   const btnCeremonyAudioToggle = document.getElementById('btnCeremonyAudioToggle');
@@ -1511,9 +1510,8 @@
     btnResetEvaluations.addEventListener('click', resetAllEvaluations);
 
     // Results Reveal Ceremony Bindings
-    if (btnLaunchCeremony) {
-      btnLaunchCeremony.addEventListener('click', openCeremonyModal);
-    }
+    // The leaderboard CTA is a normal link to the dedicated reveal.html stage.
+    // Keep the legacy overlay available only through its explicit #ceremony entry point.
     if (btnCloseCeremony) {
       btnCloseCeremony.addEventListener('click', closeCeremonyModal);
     }

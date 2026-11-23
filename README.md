@@ -20,3 +20,17 @@ A mobile-first web portal built specifically for judges evaluating **EMBEDTHON '
   - Judge 3 (`J3`) | PIN: `3333`
   - Coordinator (`ADMIN`) | PIN: `2026`
 - **Dynamic Leaderboard**: Live ranked table with individual judge marks, average scores, and CSV export.
+
+## Results Reveal Stage
+Open **`reveal.html`** (or use **Reveal Ceremony** on the leaderboard) for the projector ceremony.
+
+- **EMBERS '26 fire theme**: charcoal/smoke arena, ember orange/red/gold lighting, flame watermark and rising sparks.
+- Kahoot-inspired reveal: answer-tile shapes, chunky cards, drumroll suspense, confetti and crown drop.
+- Sequence: **2nd Runner-Up → 1st Runner-Up → Grand Champion → Final Podium**.
+- **Champion slot machine**: the final name spins through the field, fake-locks on a decoy team, holds it like the real winner for ~2 seconds, stamps **PSYCH!** with a comic womp, then snaps to the real winner at the last moment.
+- **Podium finale**: the three winners get avatar "seats" on gold/silver/bronze blocks, with animated stage spotlights.
+- **Auto-advance option** in the footer (Off / 6s / 10s / 15s / 20s / 30s). The countdown starts once the current winner is on screen, so it never skips a drumroll. It pauses while the standings modal is open.
+- **Fullscreen presentation mode** removes the header, footer, hints and secondary text, leaving only the rank, winner name, score, crown or podium.
+- Scores are held to the snapshot taken when the ceremony starts and count up on reveal. New live scores wait for a replay.
+- Presenter keys: `Space` / `→` / `↓` next (or reveal immediately during a drumroll), `←` / `↑` back, `1`–`3` jump to a rank, `A` toggle auto-advance, `R` restart, `F` fullscreen, `M` mute, `C` confetti.
+- `?category=OVERALL` (or `A`, `B`, `EMBEDTHON`, `HARDWARE`, `SOFTWARE`, `PAPER`) pre-selects the award category.

@@ -5,265 +5,210 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>EMBEDTHON '26 · Grand Results Reveal Ceremony</title>
   <meta name="description" content="Official Stage & Projector Results Reveal Ceremony for EmbedThon '26 and Embers '26, Department of Computer Science & Engineering, P.A. College of Engineering.">
+  <meta name="theme-color" content="#1a0a05">
   <link rel="icon" type="image/png" href="assets/embers_logo.png">
   <link rel="alternate icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="reveal-theme.css">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brandNavy: '#0f172a',
-            brandInk: '#1e293b',
-            brandSlate: '#475569',
-            brandMuted: '#64748b',
-            brandOrange: '#ea580c',
-            brandOrangeLight: '#fff7ed',
-            brandCream: '#fdfbf7',
-            brandCreamDark: '#f6f1e6',
-            brandBorder: '#e3dccd',
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    @keyframes pulseGlow {
-      0%, 100% { box-shadow: 0 0 25px rgba(234, 88, 12, 0.35); }
-      50% { box-shadow: 0 0 50px rgba(234, 88, 12, 0.65); }
-    }
-    @keyframes goldGlow {
-      0%, 100% { box-shadow: 0 0 35px rgba(245, 158, 11, 0.45); }
-      50% { box-shadow: 0 0 70px rgba(245, 158, 11, 0.85); }
-    }
-    .anim-gold-glow {
-      animation: goldGlow 3s ease-in-out infinite;
-    }
-    .anim-card-pop {
-      animation: cardPop 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    @keyframes cardPop {
-      0% { opacity: 0; transform: scale(0.92) translateY(24px); }
-      100% { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    .stage-canvas-bg {
-      background-color: #fdfbf7;
-      background-image: 
-        radial-gradient(circle at 50% 18%, rgba(254, 215, 170, 0.45) 0%, transparent 60%),
-        radial-gradient(circle at 50% 90%, rgba(241, 245, 249, 0.8) 0%, transparent 70%);
-    }
-  </style>
 </head>
-<body class="min-h-screen stage-canvas-bg text-[#1e293b] antialiased select-none flex flex-col justify-between overflow-x-hidden">
+<body class="ceremony-brand">
 
-  <!-- Confetti Overlay Canvas -->
-  <canvas id="ceremonyCanvas" class="pointer-events-none fixed inset-0 z-40 w-full h-full"></canvas>
+  <!-- Floating answer-tile shapes behind the stage -->
+  <div class="rv-bg" aria-hidden="true">
+    <span class="k-shape k-shape--triangle rv-bg-shape rv-bg-shape--a"></span>
+    <span class="k-shape k-shape--diamond rv-bg-shape rv-bg-shape--b"></span>
+    <span class="k-shape k-shape--circle rv-bg-shape rv-bg-shape--c"></span>
+    <span class="k-shape k-shape--square rv-bg-shape rv-bg-shape--d"></span>
+    <span class="k-shape k-shape--diamond rv-bg-shape rv-bg-shape--e"></span>
+    <span class="k-shape k-shape--triangle rv-bg-shape rv-bg-shape--f"></span>
+  </div>
+  <div class="rv-flame-mark" aria-hidden="true">
+    <img src="assets/embers_flame.png" alt="">
+  </div>
+  <div class="rv-embers" id="emberField" aria-hidden="true"></div>
 
   <!-- ========================================================= -->
-  <!-- 1. OFFICIAL STAGE BANNER & LETTERHEAD HEADER              -->
+  <!-- 1. OFFICIAL STAGE HEADER                                  -->
   <!-- ========================================================= -->
-  <header class="relative z-30 bg-white border-b-2 border-[#e3dccd] shadow-xs">
-    <div class="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
-      
-      <!-- Left: Official PACE Crest & Department Details -->
-      <div class="flex items-center gap-3 min-w-0">
-        <a href="index.html" class="flex-shrink-0" title="Back to Scoring Portal">
-          <img src="assets/pace_crest.png" alt="PACE Crest" class="h-10 sm:h-12 w-auto object-contain hover:scale-105 transition" onerror="this.style.display='none'">
-        </a>
-        <div class="truncate">
-          <h1 class="text-xs sm:text-sm font-black tracking-wider text-[#0f172a] uppercase leading-tight truncate">
-            P.A. College of Engineering, Mangaluru
-          </h1>
-          <p class="text-[10px] text-[#64748b] leading-tight truncate">
-            Autonomous Institution · Affiliated to VTU Belagavi · Approved by AICTE, New Delhi
-          </p>
-          <div class="flex items-center gap-2 mt-0.5 truncate">
-            <span class="text-[10px] font-extrabold text-[#ea580c] uppercase tracking-wide">
-              Dept. of Computer Science & Engineering
-            </span>
-            <span class="text-slate-300 hidden sm:inline">|</span>
-            <span class="text-[10px] font-bold text-[#0f172a] hidden sm:inline">
-              EMBED CLUB & IEEE CEDA
-            </span>
-          </div>
-        </div>
-      </div>
+  <header class="rv-header">
+    <div class="rv-header-inner">
+      <a href="index.html" class="rv-brand" title="Back to Scoring Portal">
+        <span class="rv-crest-chip">
+          <img src="assets/pace_crest.png" alt="PACE Crest" onerror="this.style.display='none'">
+        </span>
+        <span class="rv-crest-chip rv-crest-chip--embers">
+          <img src="assets/embers_logo.png" alt="EMBERS '26" onerror="this.style.display='none'">
+        </span>
+        <span class="rv-brand-copy">
+          <span class="rv-brand-college">P.A. College of Engineering, Mangaluru</span>
+          <span class="rv-brand-dept">Dept. of Computer Science &amp; Engineering</span>
+          <span class="rv-brand-club">Embed Club &middot; IEEE CEDA Student Branch</span>
+        </span>
+      </a>
 
-      <!-- Right: Ceremony Stage Controls -->
-      <div class="flex items-center gap-2 flex-shrink-0">
-        
-        <!-- Audio Synthesizer Toggle -->
-        <button id="btnAudioToggle" type="button" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#fff8f3] border border-[#fed7aa] text-xs font-black flex items-center gap-1.5 hover:bg-[#ffedd5] text-[#ea580c] transition active:scale-95 shadow-xs" title="Toggle Sound Engine (Shortcut: M)">
+      <div class="rv-tools">
+        <button id="btnAudioToggle" type="button" class="rv-tool-btn" title="Toggle Sound Engine (Shortcut: M)">
           <span id="audioIcon">🔊</span>
-          <span id="audioStatusText" class="text-[11px] hidden md:inline font-mono">SOUND ON</span>
+          <span id="audioStatusText" class="rv-tool-label">SOUND ON</span>
         </button>
 
-        <!-- Event Track & Category Selector -->
-        <select id="stageCategorySelect" class="bg-[#f6f1e6] border border-[#e3dccd] text-xs font-black text-[#0f172a] rounded-xl px-2.5 sm:px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#ea580c] cursor-pointer shadow-xs">
+        <select id="stageCategorySelect" class="rv-select" title="Choose the award category">
           <optgroup label="⚡ EMBEDTHON '26 (Internal Hackathon)">
             <option value="EMBEDTHON">⚡ Track 1: Embeddathon</option>
             <option value="A">Section A (Teams 01–11)</option>
             <option value="B">Section B (Teams 12–24)</option>
           </optgroup>
           <optgroup label="🔥 EMBERS '26 (National Symposium)">
-            <option value="OVERALL">🏆 Overall Champions (24 Teams)</option>
-            <option value="HARDWARE">🛠️ Track 2: Project Expo (Hardware)</option>
-            <option value="SOFTWARE">💻 Track 2: Project Expo (Software)</option>
-            <option value="PAPER">📄 Track 3: Technical Paper Competition</option>
+            <option value="OVERALL">🏆 Overall Champions (24)</option>
+            <option value="HARDWARE">🛠️ Track 2: Hardware Expo</option>
+            <option value="SOFTWARE">💻 Track 2: Software Expo</option>
+            <option value="PAPER">📄 Track 3: Paper Presentation</option>
           </optgroup>
         </select>
 
-        <!-- View Full Standings Button -->
-        <button id="btnOpenStandingsModal" type="button" class="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-[#f6f1e6] hover:bg-[#efe8da] border border-[#e3dccd] text-xs font-bold text-[#0f172a] items-center gap-1 shadow-xs transition active:scale-95" title="View Full 24-Team Standings">
+        <button id="btnOpenStandingsModal" type="button" class="rv-tool-btn" title="View Full 24-Team Standings">
           <span>📋</span>
-          <span class="hidden lg:inline text-[11px]">Standings</span>
+          <span class="rv-tool-label">Standings</span>
         </button>
 
-        <!-- Fullscreen Button -->
-        <button id="btnFullscreenToggle" type="button" class="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1 transition active:scale-95 shadow-xs" title="Toggle Fullscreen Projector Mode (Shortcut: F)">
+        <button id="btnFullscreenToggle" type="button" class="rv-tool-btn rv-tool-btn--solid" title="Toggle Fullscreen Projector Mode (Shortcut: F)">
           <span id="fsIcon">⛶</span>
-          <span class="hidden md:inline text-[11px]">Fullscreen</span>
+          <span class="rv-tool-label">Fullscreen</span>
         </button>
 
-        <!-- Return / Admin Links -->
-        <a href="admin.html" class="p-1.5 rounded-xl bg-[#f6f1e6] hover:bg-[#efe8da] border border-[#e3dccd] text-[#475569] active:scale-95 transition" title="Chief Coordinator Admin">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <a href="admin.html" class="rv-tool-btn rv-tool-btn--icon" title="Chief Coordinator Admin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
         </a>
       </div>
     </div>
 
-    <!-- Official Navy Banner Ribbon -->
-    <div class="navy-strip py-1.5 px-4 bg-[#0f172a] text-white">
-      <div class="max-w-6xl mx-auto flex items-center justify-between text-xs">
-        <div class="flex items-center gap-2">
-          <span id="revealBannerEvent" class="font-black tracking-wider text-amber-400">EMBEDTHON '26</span>
-          <span class="text-slate-400">·</span>
-          <span class="text-amber-200 font-bold uppercase tracking-wider">GRAND RESULTS REVEAL CEREMONY</span>
-          <span class="text-slate-400 hidden sm:inline">·</span>
-          <span id="revealBannerSub" class="text-slate-300 font-medium text-[11px] hidden sm:inline">24-Hour Internal Hackathon Valedictory</span>
-        </div>
-        <div class="flex items-center gap-3 text-[10px] font-mono">
-          <span id="liveSyncStatusBadge" class="flex items-center gap-1.5 text-emerald-400 font-bold">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>LIVE SYNC ACTIVE</span>
-          </span>
-        </div>
+    <div class="rv-ribbon">
+      <div class="rv-ribbon-left">
+        <span id="revealBannerEvent" class="rv-ribbon-event">EMBEDTHON '26</span>
+        <span class="rv-ribbon-sep">·</span>
+        <span class="rv-ribbon-title">GRAND RESULTS REVEAL</span>
+        <span class="rv-ribbon-sep rv-hide-sm">·</span>
+        <span id="revealBannerSub" class="rv-ribbon-sub rv-hide-sm">24-Hour Internal Hackathon Valedictory</span>
+      </div>
+      <div class="rv-ribbon-right">
+        <span id="liveSyncStatusBadge" class="rv-live">
+          <span class="rv-live-dot"></span>
+          <span>LIVE SYNC ACTIVE</span>
+        </span>
       </div>
     </div>
   </header>
 
-
   <!-- ========================================================= -->
-  <!-- 2. MAIN CENTER CEREMONY PRESENTATION STAGE                -->
+  <!-- 2. THE STAGE                                              -->
   <!-- ========================================================= -->
-  <main id="ceremonyStageArena" class="relative z-20 flex-1 flex flex-col items-center justify-center p-4 sm:p-6 text-center max-w-5xl mx-auto w-full">
-    <!-- Dynamically rendered by reveal.js -->
+  <main id="ceremonyStageArena" class="rv-stage" aria-live="polite">
+    <!-- Rendered by reveal.js -->
   </main>
 
-
   <!-- ========================================================= -->
-  <!-- 3. BOTTOM CEREMONY CONTROL BAR                            -->
+  <!-- 3. CEREMONY CONTROL BAR                                   -->
   <!-- ========================================================= -->
-  <footer class="relative z-30 bg-white border-t-2 border-[#e3dccd] shadow-lg p-3 sm:p-4">
-    <div class="max-w-5xl mx-auto flex items-center justify-between gap-3">
-      
-      <!-- Left: Step Back & Confetti -->
-      <div class="flex items-center gap-2">
-        <button id="btnPrevStep" type="button" class="px-3 sm:px-4 py-2 rounded-xl bg-[#f6f1e6] hover:bg-[#efe8da] border border-[#e3dccd] text-[#1e293b] text-xs font-bold disabled:opacity-30 disabled:pointer-events-none transition active:scale-95 shadow-xs flex items-center gap-1" title="Previous (Shortcut: Left Arrow)">
+  <footer class="rv-footer">
+    <div class="rv-footer-inner">
+      <div class="rv-footer-left">
+        <button id="btnPrevStep" type="button" class="rv-btn rv-btn--ghost" title="Previous (Shortcut: Left Arrow)">
           <span>◀</span>
-          <span class="hidden sm:inline">Back</span>
+          <span class="rv-btn-label">Back</span>
         </button>
-
-        <button id="btnConfettiBurst" type="button" class="px-3 sm:px-4 py-2 rounded-xl bg-[#fff8f3] border border-[#fed7aa] text-[#ea580c] text-xs font-black hover:bg-[#ffedd5] active:scale-95 transition flex items-center gap-1.5 shadow-xs" title="Launch Confetti Blast (Shortcut: C)">
+        <button id="btnConfettiBurst" type="button" class="rv-btn rv-btn--ghost" title="Launch Confetti Blast (Shortcut: C)">
           <span>🎉</span>
-          <span class="hidden sm:inline">Confetti</span>
+          <span class="rv-btn-label">Confetti</span>
         </button>
+
+        <label class="rv-auto" id="autoControl" title="Auto-advance timer — choose an interval (Shortcut: A)">
+          <span class="rv-auto-label">AUTO</span>
+          <select id="autoAdvanceSelect" class="rv-auto-select" aria-label="Auto-advance interval">
+            <option value="0">Off</option>
+            <option value="6">6s</option>
+            <option value="10">10s</option>
+            <option value="15">15s</option>
+            <option value="20">20s</option>
+            <option value="30">30s</option>
+          </select>
+          <span id="autoCountdown" class="rv-auto-count"></span>
+        </label>
       </div>
 
-      <!-- Center: Current Step Status Indicator -->
-      <div class="flex items-center gap-2 text-xs sm:text-sm font-black text-[#0f172a] text-center truncate">
-        <span class="w-2.5 h-2.5 rounded-full bg-[#ea580c] animate-pulse"></span>
-        <span id="stageStepIndicator">Stage Initializing...</span>
+      <div class="rv-step">
+        <span class="rv-step-dot"></span>
+        <span id="stageStepIndicator">Stage ready · Grand reveal</span>
       </div>
 
-      <!-- Right: Next Step Primary Action Button -->
-      <div>
-        <button id="btnNextStep" type="button" class="px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition flex items-center gap-2 tracking-wider uppercase">
-          <span id="btnNextLabel">Start Reveal ▶</span>
-        </button>
-      </div>
+      <button id="btnNextStep" type="button" class="rv-btn rv-btn--next">
+        <span id="btnNextLabel">Start the reveal ▶</span>
+      </button>
     </div>
   </footer>
 
-
   <!-- ========================================================= -->
-  <!-- 4. FULL 24-TEAM MERIT STANDINGS MODAL                     -->
+  <!-- 4. FULL MERIT STANDINGS MODAL                             -->
   <!-- ========================================================= -->
-  <div id="standingsModal" class="fixed inset-0 z-50 bg-[#0f172a]/85 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-5">
-    <div class="bg-white rounded-2xl max-w-4xl w-full p-4 sm:p-6 border-2 border-[#fed7aa] shadow-2xl space-y-4 my-auto max-h-[90vh] flex flex-col">
-      
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between border-b border-[#e3dccd] pb-3">
-        <div class="flex items-center gap-3">
-          <img src="assets/pace_crest.png" alt="PACE Crest" class="h-9 w-auto object-contain">
+  <div id="standingsModal" class="rv-modal" aria-hidden="true">
+    <div class="rv-modal-card" role="dialog" aria-modal="true" aria-labelledby="standingsTitle">
+      <div class="rv-modal-head">
+        <div class="rv-modal-heading">
+          <span class="rv-crest-chip rv-crest-chip--modal">
+            <img src="assets/pace_crest.png" alt="PACE Crest" onerror="this.style.display='none'">
+          </span>
           <div>
-            <h2 class="text-sm sm:text-base font-black tracking-wider uppercase text-[#0f172a]">
-              Official Merit Standings (24 Teams)
-            </h2>
-            <p class="text-[11px] text-[#64748b]">Phase 1 Mentoring (30%) + Phase 2 Final Expo (70%) = Total Score (100%)</p>
+            <h2 id="standingsTitle" class="rv-modal-title">Official Merit Standings</h2>
+            <p class="rv-modal-sub">Phase 1 Mentoring (30%) + Phase 2 Final Expo (70%) = Total Score (100%)</p>
           </div>
         </div>
-        <button id="btnCloseStandingsModal" type="button" class="w-8 h-8 rounded-xl bg-[#f6f1e6] hover:bg-[#efe8da] text-slate-700 font-black text-lg transition flex items-center justify-center">
-          &times;
-        </button>
+        <button id="btnCloseStandingsModal" type="button" class="rv-modal-close" aria-label="Close standings">&times;</button>
       </div>
 
-      <!-- Filter Bar -->
-      <div class="flex items-center justify-between gap-3 flex-wrap">
-        <div class="flex items-center gap-2">
-          <label class="text-xs font-bold text-[#64748b]">Filter Section:</label>
-          <select id="modalSectionFilter" class="text-xs font-bold bg-[#f6f1e6] border border-[#e3dccd] rounded-lg px-2.5 py-1 text-[#0f172a]">
+      <div class="rv-modal-controls">
+        <label class="rv-filter">
+          <span>Filter section</span>
+          <select id="modalSectionFilter" class="rv-select rv-select--light">
             <option value="ALL">All Sections (24 Teams)</option>
             <option value="A">Section A (01–11)</option>
             <option value="B">Section B (12–24)</option>
           </select>
-        </div>
+        </label>
 
-        <button type="button" onclick="window.print()" class="px-3 py-1.5 rounded-lg bg-[#fff8f3] border border-[#fed7aa] text-xs font-bold text-[#ea580c] hover:bg-[#ffedd5] flex items-center gap-1 transition">
+        <button type="button" onclick="window.print()" class="rv-btn rv-btn--ghost rv-btn--small">
           <span>🖨️</span>
           <span>Print / Save PDF</span>
         </button>
       </div>
 
-      <!-- Standings Table -->
-      <div class="flex-1 overflow-y-auto rounded-xl border border-[#e3dccd]">
-        <table class="w-full text-left border-collapse text-xs">
-          <thead class="sticky top-0 bg-[#f6f1e6] border-b border-[#e3dccd] text-[#64748b] font-bold uppercase text-[10px]">
+      <div class="rv-modal-scroll">
+        <table class="rv-table">
+          <thead>
             <tr>
-              <th class="py-2.5 px-3 text-center w-12">Rank</th>
-              <th class="py-2.5 px-3 text-[#ea580c] font-serif-pace">Team</th>
-              <th class="py-2.5 px-3">Team Name & Project</th>
-              <th class="py-2.5 px-2 text-center">Sec</th>
-              <th class="py-2.5 px-2.5 text-center">Phase 1 (/30)</th>
-              <th class="py-2.5 px-2.5 text-center">Phase 2 (/70)</th>
-              <th class="py-2.5 px-3 text-right font-black text-[#ea580c]">Grand Total (/100)</th>
+              <th class="is-center">Rank</th>
+              <th>Team</th>
+              <th>Team Name &amp; Project</th>
+              <th class="is-center">Sec</th>
+              <th class="is-center">Phase 1 (/30)</th>
+              <th class="is-center">Phase 2 (/70)</th>
+              <th class="is-right">Total (/100)</th>
             </tr>
           </thead>
-          <tbody id="standingsTableBody" class="divide-y divide-[#f0ebe0]">
-            <!-- Dynamically populated -->
+          <tbody id="standingsTableBody">
+            <!-- Rendered by reveal.js -->
           </tbody>
         </table>
       </div>
-
     </div>
   </div>
 
-  <!-- SCRIPTS -->
   <script src="teams.js"></script>
   <script src="reveal.js"></script>
 </body>

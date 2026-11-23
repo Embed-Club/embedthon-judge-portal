@@ -1,7 +1,9 @@
-// EMBEDTHON '26 · Grand Results Reveal Ceremony — v3 (five reveal styles + mix)
+// EMBEDTHON / EMBERS '26 · Grand Results Reveal Ceremony — Kahoot-style stage
 // Requires: teams.js (TEAMS_DATA), reveal-theme.css, and the /api/evaluations + /api/config endpoints.
-// Styles: reel · stamp · envelope · elimination · decrypt. Default "mix" picks three different styles per ceremony.
-// Presenter: keys 1–6 switch style, ?style=<name> in the URL sets it.
+// Flow: 2nd runner-up → 1st runner-up → Grand Champion (slot-machine fake-out) → final podium.
+// Presenter: Space / → / ↓ advances, Space during a drumroll reveals immediately,
+// 1–3 jump straight to a rank, A toggles the auto-advance timer, R restarts,
+// F fullscreen (all chrome hidden), M mute, C confetti.
 
 (function () {
   'use strict';
@@ -17,34 +19,54 @@
     B: 'Section B (Teams 12–24)'
   };
 
-  const EVENT_DEFAULT_STYLE = {
-    OVERALL: 'elimination',
-    EMBEDTHON: 'decrypt',
-    HARDWARE: 'stamp',
-    SOFTWARE: 'reel',
-    PAPER: 'envelope',
-    A: 'mix',
-    B: 'mix'
-  };
-
-  // Reveal order: 3rd → 2nd → 1st
+  // Reveal order: 2nd runner-up → 1st runner-up → champion.
   const RANKS = [
-    { place: 3, index: 2, label: '3rd Place · 2nd Runner-Up', color: '#7a6a58', next: 'Reveal 1st Runner-Up' },
-    { place: 2, index: 1, label: '2nd Place · 1st Runner-Up', color: '#4a5566', next: 'Reveal Grand Champion' },
-    { place: 1, index: 0, label: '1st Place · Grand Champion', color: '#f0561d', next: 'Show Final Podium' }
+    {
+      place: 3,
+      index: 2,
+      suffix: 'RD',
+      label: '2nd Runner-Up',
+      kicker: 'Taking third place…',
+      color: '#b91c1c',
+      deep: '#7f1d1d',
+      ink: '#ffffff',
+      shape: 'diamond',
+      next: 'Next · 1st Runner-Up'
+    },
+    {
+      place: 2,
+      index: 1,
+      suffix: 'ND',
+      label: '1st Runner-Up',
+      kicker: 'And the first runner-up is…',
+      color: '#e85d04',
+      deep: '#9a3412',
+      ink: '#ffffff',
+      shape: 'circle',
+      next: 'Now · Grand Champion'
+    },
+    {
+      place: 1,
+      index: 0,
+      suffix: 'ST',
+      label: 'Grand Champion',
+      kicker: 'And your champion is…',
+      color: '#ffb703',
+      deep: '#f97316',
+      ink: '#2b1200',
+      shape: 'triangle',
+      next: 'Show final podium'
+    }
   ];
-  const STYLES = {
-    mix: 'Mix · Different per rank',
-    decrypt: 'Decrypt · Matrix Hacker (Embeddathon)',
-    stamp: 'Countdown Stamp · 3-2-1 Slam (Hardware)',
-    reel: 'Slot Reel · Flicker & Lock (Software)',
-    envelope: 'Sealed Envelope · Wax Seal (Paper Presentation)',
-    elimination: 'Elimination · Tile Drop (Grand Finale)'
-  };
-  const KEY_ORDER = ['decrypt', 'stamp', 'reel', 'envelope', 'elimination', 'mix'];
-  const SINGLE_STYLES = ['reel', 'stamp', 'envelope', 'elimination', 'decrypt'];
+
   const STEP_WELCOME = 0;
   const STEP_PODIUM = 4;
+  const CONFETTI_COLORS = ['#ffd166', '#ffb703', '#f97316', '#e63946', '#fff4e0'];
+  const CROWN_SVG = `
+    <svg viewBox="0 0 64 52" fill="none" aria-hidden="true">
+      <path d="M5 42 3 12l14 10L32 3l15 19 14-10-2 30Z" fill="currentColor" stroke="#7a4a00" stroke-width="3" stroke-linejoin="round"/>
+      <rect x="5" y="42.5" width="54" height="7" rx="3.5" fill="currentColor" stroke="#7a4a00" stroke-width="3"/>
+    </svg>`;
 
   const $ = (id) => document.getElementById(id);
   const el = {
@@ -66,23 +88,30 @@
     closeModal: $('btnCloseStandingsModal'),
     modalFilter: $('modalSectionFilter'),
     modalBody: $('standingsTableBody'),
-    styleSelect: null
+    auto: $('autoControl'),
+    autoSelect: $('autoAdvanceSelect'),
+    autoCount: $('autoCountdown'),
+    emberField: $('emberField')
   };
 
-  const urlStyle = new URLSearchParams(location.search).get('style');
   const state = {
     category: 'OVERALL',
     step: STEP_WELCOME,
-    style: STYLES[urlStyle] ? urlStyle : 'mix',
-    mixPlan: [],     // styles for [3rd, 2nd, 1st] when style is "mix"
-    gate: null,      // pending presenter action (e.g. opening the envelope)
+    gate: null,      // pending presenter action: skip the drumroll and reveal now
     live: [],
     locked: [],
     pending: false,
     hasScores: false,
     muted: false,
     timers: [],
-    checksum: ''
+    checksum: '',
+    auto: {
+      seconds: 0,
+      last: 10,
+      remaining: 0,
+      timer: null,
+      hold: false
+    }
   };
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
@@ -91,20 +120,13 @@
 
   const later = (fn, ms) => { state.timers.push(setTimeout(fn, ms)); };
   const clearTimers = () => { state.timers.forEach(clearTimeout); state.timers = []; };
-  const shuffle = (arr) => {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  };
 
   // =============================================================
   // Sound (procedural Web Audio, no asset files)
   // =============================================================
   const audio = {
     ctx: null,
+    noise: null,
     get() {
       if (state.muted) return null;
       if (!this.ctx) {
@@ -124,9 +146,9 @@
       src.buffer = buf;
       return src;
     },
-    tone(freq, dur, vol, type = 'triangle', slide = 0) {
+    tone(freq, dur, vol, type = 'triangle', slide = 0, delay = 0) {
       const ctx = this.get(); if (!ctx) return;
-      const t = ctx.currentTime;
+      const t = ctx.currentTime + delay;
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.type = type;
@@ -137,26 +159,32 @@
       o.connect(g).connect(ctx.destination);
       o.start(t); o.stop(t + dur + 0.02);
     },
-    tick(freq = 2400) { this.tone(freq, 0.05, 0.3, 'triangle', 0.67); },
-    click() { this.tone(900, 0.03, 0.22, 'triangle'); },
-    // Final landing sound: a bell chime
+    tick(freq = 2200, delay = 0) { this.tone(freq, 0.05, 0.2, 'triangle', 0.67, delay); },
+    click() { this.tone(900, 0.03, 0.2, 'triangle'); },
     chime() {
-      [[880, 0.22], [1760, 0.1], [2640, 0.04]].forEach(([f, v]) => this.tone(f, 1.2, v, 'sine'));
+      [[880, 0.2], [1320, 0.12], [1760, 0.07], [2640, 0.03]].forEach(([f, v], i) => {
+        this.tone(f, 1.1, v, 'sine', 0, i * 0.04);
+      });
     },
-    // Paper rustle for the envelope
-    rustle() {
-      const ctx = this.get(); if (!ctx) return;
-      const t = ctx.currentTime, dur = 0.5;
-      const src = this.noiseSource(ctx, dur, (i) => (Math.random() * 2 - 1) * Math.exp(-i / 5000));
-      const f = ctx.createBiquadFilter();
-      f.type = 'highpass'; f.frequency.value = 1500;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.35, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      src.connect(f).connect(g).connect(ctx.destination);
-      src.start(t); src.stop(t + dur);
+    // Landing hit: low thump + sparkle
+    hit() {
+      this.tone(120, 0.45, 0.5, 'sine', 0.5);
+      this.tone(62, 0.6, 0.35, 'sine', 0.7);
+      this.chime();
     },
-    // Build-up for the slot reel
+    // Comedic "womp womp" for the champion fake-out
+    womp() {
+      [[392, 0.18], [370, 0.18], [349, 0.34]].forEach(([f, dur], i) => {
+        this.tone(f, dur, 0.15, 'sawtooth', 0, i * 0.17);
+      });
+    },
+    // Original victory fanfare (does not use any Kahoot music)
+    fanfare() {
+      [[523.25, 0.42], [659.25, 0.42], [783.99, 0.5], [1046.5, 0.7], [1318.5, 0.85]]
+        .forEach(([f, dur], i) => this.tone(f, dur, 0.18, 'triangle', 0, i * 0.13));
+      [1046.5, 1318.5, 1568].forEach((f, i) => this.tone(f, 1.5, 0.1, 'sine', 0, 0.62 + i * 0.02));
+    },
+    // Suspense drumroll
     drumroll(dur) {
       const ctx = this.get(); if (!ctx) return;
       const t = ctx.currentTime;
@@ -164,31 +192,61 @@
       const f = ctx.createBiquadFilter();
       f.type = 'bandpass'; f.Q.value = 2.4;
       f.frequency.setValueAtTime(600, t);
-      f.frequency.linearRampToValueAtTime(1250, t + dur);
+      f.frequency.linearRampToValueAtTime(1300, t + dur);
       const g = ctx.createGain();
-      g.gain.setValueAtTime(0.06, t);
-      g.gain.exponentialRampToValueAtTime(0.85, t + dur - 0.05);
+      g.gain.setValueAtTime(0.05, t);
+      g.gain.exponentialRampToValueAtTime(0.8, t + Math.max(0.1, dur - 0.05));
       g.gain.linearRampToValueAtTime(0.001, t + dur);
       src.connect(f).connect(g).connect(ctx.destination);
       src.start(t); src.stop(t + dur);
+      this.noise = src;
+      src.onended = () => { if (this.noise === src) this.noise = null; };
+    },
+    stopDrumroll() {
+      if (!this.noise) return;
+      try { this.noise.stop(); } catch (e) { /* already stopped */ }
+      this.noise = null;
     }
   };
 
   // =============================================================
   // Confetti
   // =============================================================
+  function resetConfetti() {
+    if (typeof confetti === 'function' && typeof confetti.reset === 'function') confetti.reset();
+  }
+
   function launchConfetti(type = 'standard') {
     if (typeof confetti !== 'function') return;
-    const colors = ['#ea580c', '#f59e0b', '#fbbf24', '#ffffff', '#cbd5e1'];
+    const colors = CONFETTI_COLORS;
+    const small = window.innerWidth < 700;
     if (type === 'mega') {
-      const end = Date.now() + 3500;
+      confetti({
+        particleCount: small ? 90 : 140,
+        spread: 105,
+        origin: { y: 0.62 },
+        colors,
+        scalar: small ? 0.9 : 1.05,
+        shapes: ['square', 'circle', 'star']
+      });
+      const end = Date.now() + (small ? 2200 : 2800);
       (function frame() {
-        confetti({ particleCount: 5, angle: 60, spread: 70, origin: { x: 0, y: 0.7 }, colors });
-        confetti({ particleCount: 5, angle: 120, spread: 70, origin: { x: 1, y: 0.7 }, colors });
+        confetti({ particleCount: small ? 3 : 4, angle: 60, spread: 65, origin: { x: 0, y: 0.72 }, colors });
+        confetti({ particleCount: small ? 3 : 4, angle: 120, spread: 65, origin: { x: 1, y: 0.72 }, colors });
         if (Date.now() < end) requestAnimationFrame(frame);
       })();
+    } else if (type === 'big') {
+      confetti({ particleCount: small ? 76 : 110, spread: 90, origin: { y: 0.62 }, colors, scalar: 0.95 });
+      confetti({
+        particleCount: small ? 24 : 32,
+        spread: 120,
+        origin: { y: 0.4 },
+        colors,
+        shapes: ['circle', 'square'],
+        scalar: 0.75
+      });
     } else {
-      confetti({ particleCount: 80, spread: 80, origin: { y: 0.65 }, colors });
+      confetti({ particleCount: small ? 50 : 70, spread: 78, origin: { y: 0.65 }, colors });
     }
   }
 
@@ -233,16 +291,16 @@
 
   function applyLive(rows) {
     state.live = rows;
-    state.hasScores = rows.some((r) => r.judges > 0);
     if (state.step === STEP_WELCOME) {
       state.locked = rows;
       state.pending = false;
+      state.hasScores = rows.some((r) => r.judges > 0);
       render();
     } else {
       state.pending = sig(rows) !== sig(state.locked);
       updateSyncBadge();
+      renderModal();
     }
-    renderModal();
   }
 
   function updateSyncBadge() {
@@ -250,6 +308,63 @@
     if (!label) return;
     label.textContent = state.pending ? 'NEW SCORES · HELD UNTIL REPLAY' : 'LIVE SYNC ACTIVE';
     el.syncBadge.classList.toggle('is-pending', state.pending);
+  }
+
+  // =============================================================
+  // Auto-advance timer (optional)
+  // =============================================================
+  function updateAutoUI() {
+    const on = state.auto.seconds > 0;
+    if (el.auto) el.auto.classList.toggle('is-on', on);
+    if (el.autoCount) {
+      el.autoCount.textContent = on && state.auto.remaining > 0 ? state.auto.remaining + 's' : '';
+    }
+  }
+
+  function clearAutoTimer() {
+    if (state.auto.timer) {
+      clearInterval(state.auto.timer);
+      state.auto.timer = null;
+    }
+    state.auto.remaining = 0;
+    updateAutoUI();
+  }
+
+  function scheduleAuto() {
+    clearAutoTimer();
+    if (!state.auto.seconds || state.auto.hold) return;
+    state.auto.remaining = state.auto.seconds;
+    updateAutoUI();
+    state.auto.timer = setInterval(() => {
+      if (!state.auto.seconds) { clearAutoTimer(); return; }
+      state.auto.remaining -= 1;
+      if (state.auto.remaining <= 0) {
+        clearAutoTimer();
+        next();
+        return;
+      }
+      updateAutoUI();
+    }, 1000);
+  }
+
+  function setAutoSeconds(value) {
+    const seconds = Number(value) || 0;
+    state.auto.seconds = seconds;
+    if (seconds) state.auto.last = seconds;
+    if (el.autoSelect) el.autoSelect.value = String(seconds);
+    clearAutoTimer();
+    if (seconds && !state.auto.hold) scheduleAuto();
+    if (seconds) audio.click();
+  }
+
+  function toggleAuto() {
+    if (state.auto.seconds) {
+      setAutoSeconds(0);
+    } else {
+      const value = state.auto.last || 10;
+      if (el.autoSelect) el.autoSelect.value = String(value);
+      setAutoSeconds(value);
+    }
   }
 
   const pool = () => {
@@ -283,11 +398,15 @@
   function setStep(step) {
     clearTimers();
     state.gate = null;
+    audio.stopDrumroll();
+    resetConfetti();
+    clearAutoTimer();
     state.step = step;
+    state.auto.hold = step > STEP_WELCOME && step < STEP_PODIUM;
     if (step === STEP_WELCOME) {
       state.locked = state.live;
       state.pending = false;
-      state.mixPlan = shuffle(SINGLE_STYLES).slice(0, 3);
+      state.hasScores = state.locked.some((r) => r.judges > 0);
       updateSyncBadge();
     }
     render();
@@ -295,9 +414,9 @@
 
   function next() {
     if (state.gate) {
-      const g = state.gate;
+      const revealNow = state.gate;
       state.gate = null;
-      g();
+      revealNow();
       return;
     }
     if (state.step < STEP_PODIUM) setStep(state.step + 1);
@@ -306,79 +425,155 @@
 
   const prev = () => { if (state.step > STEP_WELCOME) setStep(state.step - 1); };
 
-  function setStyle(style) {
-    state.style = style;
-    if (el.styleSelect) el.styleSelect.value = style;
-    setStep(STEP_WELCOME);
-  }
-
   // =============================================================
   // Rendering
   // =============================================================
   function render() {
     if (!el.stage) return;
+    el.stage.scrollTop = 0;
     el.prev.disabled = state.step === STEP_WELCOME;
     if (state.step === STEP_WELCOME) renderWelcome();
     else if (state.step === STEP_PODIUM) renderPodium();
     else renderRank(state.step - 1);
   }
 
+  const shapeTile = (color, shape, fg = '#ffffff') => `
+    <span class="rv-shape-tile" style="--c:${color};--fg:${fg}">
+      <span class="k-shape k-shape--${shape}" aria-hidden="true"></span>
+    </span>`;
+
+  const shapeRow = () => `
+    <div class="rv-shape-row" aria-hidden="true">
+      ${shapeTile('#d62828', 'triangle')}
+      ${shapeTile('#f77f00', 'diamond')}
+      ${shapeTile('#fcbf49', 'circle', '#3a1d0d')}
+      ${shapeTile('#f4ead5', 'square', '#3a1d0d')}
+    </div>`;
+
+  function getInitials(name) {
+    const parts = String(name || '').split(/[\s-]+/).filter(Boolean);
+    const initials = parts.length > 1
+      ? parts.slice(0, 2).map((part) => part[0]).join('')
+      : String(name || '').slice(0, 2);
+    return (initials || '?').toUpperCase();
+  }
+
   function renderWelcome() {
     el.indicator.textContent = 'Stage ready · Grand reveal';
-    el.nextLabel.textContent = 'Begin Announcement ▶';
+    el.nextLabel.textContent = 'Start the reveal ▶';
     const rehearsal = !state.hasScores;
 
     el.stage.innerHTML = `
       <section class="rv-welcome">
-        <img class="rv-crest" src="assets/pace_crest.png" alt="" onerror="this.style.display='none'">
-        <p class="rv-kicker">P.A. College of Engineering · Dept. of CSE</p>
-        <h1 class="rv-title">EMBEDTHON '26</h1>
-        <p class="rv-subtitle">&amp; EMBERS '26 · Grand Results Reveal</p>
-        <div class="rv-pill">${esc(CATEGORY_TITLES[state.category])}</div>
-        <p class="rv-status ${rehearsal ? 'is-warn' : 'is-ok'}">
-          ${rehearsal ? 'Rehearsal mode · no evaluation scores saved yet' : 'Verified jury evaluations loaded · results locked for reveal'}
-        </p>
-        <p class="rv-meta">Reveal style · ${esc(STYLES[state.style])}</p>
-        <p class="rv-hint">Press <kbd>Space</kbd> or <kbd>→</kbd> to begin · keys <kbd>1</kbd>–<kbd>6</kbd> change style</p>
+        <div class="rv-welcome-card">
+          <div class="rv-stripe" aria-hidden="true">
+            <span style="--c:#d62828"></span><span style="--c:#f77f00"></span>
+            <span style="--c:#fcbf49"></span><span style="--c:#7f1d1d"></span>
+          </div>
+          <div class="rv-welcome-body">
+            <div class="rv-welcome-logo">
+              <img src="assets/embers_logo.png" alt="EMBERS '26" onerror="this.style.display='none'">
+            </div>
+            <p class="rv-welcome-kicker">P.A. College of Engineering · Dept. of CSE</p>
+            <h1 class="rv-welcome-title">EMBEDTHON <span>'26</span></h1>
+            <p class="rv-welcome-sub">&amp; EMBERS '26 · Grand Results Reveal</p>
+            <div class="rv-welcome-pill">
+              <span class="k-shape k-shape--triangle" aria-hidden="true"></span>
+              ${esc(CATEGORY_TITLES[state.category])}
+            </div>
+            <p class="rv-welcome-status ${rehearsal ? 'is-warn' : 'is-ok'}">
+              ${rehearsal
+                ? 'Rehearsal mode · no evaluation scores saved yet'
+                : 'Verified jury evaluations loaded · results locked for reveal'}
+            </p>
+            <div class="rv-welcome-shapes">${shapeRow()}</div>
+            <p class="rv-welcome-hint">
+              <kbd>Space</kbd> / <kbd>→</kbd> begin · <kbd>1</kbd>–<kbd>3</kbd> jump ·
+              <kbd>A</kbd> auto-advance · <kbd>F</kbd> fullscreen · <kbd>R</kbd> restart
+            </p>
+          </div>
+        </div>
       </section>`;
+    state.auto.hold = false;
+    scheduleAuto();
   }
 
-  // The style for a given rank index (0 = 3rd, 1 = 2nd, 2 = 1st)
-  function styleFor(i) {
-    if (state.style === 'mix') return state.mixPlan[i] || 'reel';
-    return state.style;
-  }
+  function rankMarkup(row, rank) {
+    const members = row.team.members.map((m) => `
+      <span class="rv-player ${m.is_lead ? 'is-lead' : ''}">
+        ${m.is_lead ? '<span class="rv-player-star">★</span>' : ''}${esc(m.name)}
+      </span>`).join('');
 
-  function cardHtml(row, rank, fx) {
-    const members = row.team.members.map((m) =>
-      `<span class="rv-chip ${m.is_lead ? 'is-lead' : ''}">${m.is_lead ? '★ ' : ''}${esc(m.name)}</span>`
-    ).join('');
-
-    const box = (label, max, value, hero) => `
-      <div class="rv-score ${hero ? 'rv-score--hero' : ''}">
-        <span class="rv-score-label">${label}</span>
-        <span class="rv-score-value" data-count="${state.hasScores ? value : ''}">${state.hasScores ? '0.0' : '—'}</span>
-        <span class="rv-score-max">/ ${max}</span>
-      </div>`;
+    const show = (v) => (state.hasScores ? v.toFixed(1) : '—');
+    const note = state.hasScores ? '' : '<p class="rv-note">Rehearsal data · scores not yet saved</p>';
 
     return `
-      <section class="rv-rank" style="--accent:${rank.color}">
-        <div class="rv-rank-badge">${esc(rank.label)}</div>
-        <div class="rv-card">
-          ${fx.card}
-          <div class="rv-team-no">TEAM ${esc(row.team.number)} · SECTION ${esc(row.team.section)}</div>
-          <div class="rv-name-wrap">
-            <h2 class="rv-name">${esc(row.team.name)}</h2>
-            ${fx.name}
+      <section class="rv-act ${rank.place === 1 ? 'rv-act--champion' : ''}"
+        style="--rank:${rank.color};--rank-deep:${rank.deep};--rank-ink:${rank.ink}">
+        <span class="rv-act-watermark k-shape k-shape--${rank.shape}" aria-hidden="true"></span>
+
+        <div class="rv-act-top">
+          <span class="rv-place-badge"><b>${rank.place}</b><small>${rank.suffix}</small></span>
+          <div>
+            <h2 class="rv-rank-label">${rank.label}</h2>
+            <span class="rv-rank-sub">${esc(CATEGORY_TITLES[state.category])}</span>
           </div>
-          ${row.team.abstract_title ? `<p class="rv-project">“${esc(row.team.abstract_title)}”</p>` : ''}
-          <div class="rv-members">${members}</div>
-          <div class="rv-scores">
-            ${box('Phase 1', 30, row.p1)}
-            ${box('Phase 2', 70, row.p2)}
-            ${box('Grand Total', 100, row.total, true)}
+        </div>
+
+        <div class="rv-act-body">
+          <div class="rv-suspense ${rank.place === 1 ? 'rv-suspense--slot' : ''}">
+            <p class="rv-suspense-kicker">${rank.kicker}</p>
+            ${rank.place === 1 ? `
+              <div class="rv-slot-machine" id="slotMachine" aria-hidden="true">
+                <span class="rv-slot-bulb rv-slot-bulb--a" aria-hidden="true"></span>
+                <span class="rv-slot-bulb rv-slot-bulb--b" aria-hidden="true"></span>
+                <span class="rv-slot-bulb rv-slot-bulb--c" aria-hidden="true"></span>
+                <span class="rv-slot-bulb rv-slot-bulb--d" aria-hidden="true"></span>
+                <div class="rv-slot-window">
+                  <span class="rv-slot-reel" id="slotReel">—</span>
+                  <span class="rv-slot-psych" aria-hidden="true">PSYCH!</span>
+                </div>
+                <div class="rv-slot-leds" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+              <p class="rv-slot-tag" id="slotTag">Drumroll · press Space to lock it in</p>
+            ` : `
+              <div class="rv-suspense-shapes" aria-hidden="true">
+                <span class="k-shape k-shape--triangle"></span>
+                <span class="k-shape k-shape--diamond"></span>
+                <span class="k-shape k-shape--circle"></span>
+                <span class="k-shape k-shape--square"></span>
+              </div>
+              <div class="rv-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+              <p class="rv-suspense-hint">Drumroll · press Space to reveal now</p>
+            `}
           </div>
-          ${state.hasScores ? '' : '<p class="rv-note">Rehearsal data · scores not yet saved</p>'}
+
+          <div class="rv-reveal">
+            ${rank.place === 1 ? `<div class="rv-crown">${CROWN_SVG}</div>` : ''}
+            <div class="rv-card">
+              <div class="rv-card-top">
+                <span class="rv-team-tag">TEAM ${esc(row.team.number)}</span>
+                <span class="rv-sec-tag">SECTION ${esc(row.team.section)}</span>
+              </div>
+              <h3 class="rv-name">${esc(row.team.name)}</h3>
+              ${row.team.abstract_title ? `<p class="rv-project">“${esc(row.team.abstract_title)}”</p>` : ''}
+              <div class="rv-members">${members}</div>
+              <div class="rv-scoreboard">
+                <div class="rv-total">
+                  <span class="rv-total-label">Grand Total</span>
+                  <span class="rv-total-value ${state.hasScores ? '' : 'is-empty'}" data-count="${state.hasScores ? row.total : ''}">${state.hasScores ? '0.0' : '—'}</span>
+                  <span class="rv-total-max">/ 100</span>
+                </div>
+                <div class="rv-split">
+                  <div><span>Phase 1</span><strong>${show(row.p1)}</strong><small>/ 30</small></div>
+                  <div><span>Phase 2</span><strong>${show(row.p2)}</strong><small>/ 70</small></div>
+                </div>
+              </div>
+              ${note}
+            </div>
+          </div>
         </div>
       </section>`;
   }
@@ -386,32 +581,148 @@
   function renderRank(i) {
     const rank = RANKS[i];
     const row = pool()[rank.index];
-    if (!row) return;
-    const mode = styleFor(i);
-    const fx = FX[mode] || FX.reel;
+    if (!row) return renderEmptyRank(rank);
 
-    el.indicator.textContent = rank.label;
-    el.nextLabel.textContent = mode === 'envelope' ? 'Open envelope ▶' : rank.next + ' ▶';
+    el.stage.innerHTML = rankMarkup(row, rank);
+    const act = el.stage.querySelector('.rv-act');
+    const suspenseMs = rank.place === 2 ? 3500 : 2900;
 
-    el.stage.innerHTML = cardHtml(row, rank, fx.markup);
-    const root = el.stage.querySelector('.rv-rank');
-    root.classList.add('mode-' + mode);
+    state.auto.hold = true;
+    el.indicator.textContent = `${rank.label} · drumroll — press Space to reveal`;
+    el.nextLabel.textContent = 'Reveal now ▶';
+    audio.drumroll(rank.place === 1 ? 3.1 : suspenseMs / 1000);
 
-    const isChamp = rank.place === 1;
-    const api = { land: () => land(root, isChamp) };
-    fx.play(root, row, rank, api);
+    let landed = false;
+    let slotCancelled = false;
+    const reveal = () => {
+      if (landed) return;
+      landed = true;
+      if (state.gate === reveal || state.gate === skipRank) state.gate = null;
+      audio.stopDrumroll();
+      act.classList.add('is-revealed');
+
+      if (rank.place === 1) {
+        audio.fanfare();
+        launchConfetti('mega');
+      } else if (rank.place === 2) {
+        audio.hit();
+        launchConfetti('big');
+      } else {
+        audio.hit();
+        launchConfetti('standard');
+      }
+
+      el.indicator.textContent = `${rank.label} · revealed`;
+      el.nextLabel.textContent = rank.next + ' ▶';
+      state.auto.hold = false;
+      scheduleAuto();
+
+      later(() => {
+        act.querySelectorAll('[data-count]').forEach((node) => {
+          const target = parseFloat(node.dataset.count);
+          if (!Number.isNaN(target)) countUp(node, target, 1300);
+        });
+      }, 280);
+    };
+
+    const skipRank = () => {
+      slotCancelled = true;
+      reveal();
+    };
+
+    state.gate = skipRank;
+    if (rank.place === 1) {
+      runSlot(act, row, reveal, () => slotCancelled);
+    } else {
+      later(reveal, suspenseMs);
+    }
   }
 
-  // Shared finish for every style: name appears, chime, confetti, scores count up
-  function land(root, isChamp) {
-    root.classList.add('is-revealed');
-    audio.chime();
-    launchConfetti(isChamp ? 'mega' : 'standard');
-    later(() => {
-      root.querySelectorAll('[data-count]').forEach((node) => {
-        if (node.dataset.count !== '') countUp(node, parseFloat(node.dataset.count), 1400);
-      });
-    }, 250);
+  // Champion-only slot machine: spin through the field, fake out on a decoy,
+  // then snap to the real winner at the last moment.
+  function runSlot(act, row, reveal, isCancelled) {
+    const reel = act.querySelector('#slotReel');
+    const tag = act.querySelector('#slotTag');
+    const machine = act.querySelector('#slotMachine');
+    if (!reel || !tag || !machine) {
+      later(reveal, 3200);
+      return;
+    }
+
+    const names = pool().map((r) => r.team.name).filter((n) => n !== row.team.name);
+    const candidates = pool().filter((r) => r.team.name !== row.team.name);
+    const poolForFake = candidates.slice(Math.max(0, Math.floor(candidates.length * 0.55)));
+    const decoy = (poolForFake[Math.floor(Math.random() * poolForFake.length)] || candidates[0] || {}).team?.name || names[0] || '—';
+    const spinMs = 3000;
+    const started = performance.now();
+    let finished = false;
+
+    const finish = () => {
+      if (finished || isCancelled()) return;
+      finished = true;
+      reveal();
+    };
+
+    const step = () => {
+      if (isCancelled()) return;
+      const p = Math.min(1, (performance.now() - started) / spinMs);
+      reel.textContent = names[Math.floor(Math.random() * names.length)] || row.team.name;
+      audio.tick(1600 + Math.random() * 900);
+
+      if (p < 1) {
+        later(step, 55 + 420 * Math.pow(p, 2.6));
+        return;
+      }
+
+      // 1. Let the decoy name land and sit there like a real winner.
+      reel.classList.remove('is-spinning');
+      reel.textContent = decoy;
+      reel.classList.add('is-decoy');
+      machine.classList.add('is-decoy');
+      tag.textContent = 'And the winner is…';
+      audio.tick(900);
+
+      // 2. Hold the fake winner for two full seconds before the prank.
+      later(() => {
+        if (isCancelled()) return;
+        reel.classList.remove('is-decoy');
+        reel.classList.add('is-fake');
+        machine.classList.remove('is-decoy');
+        machine.classList.add('is-fake');
+        tag.textContent = 'PSYCH! · Just kidding…';
+        audio.womp();
+
+        // 3. Hold the PSYCH for a beat, then snap to the real winner.
+        later(() => {
+          if (isCancelled()) return;
+          reel.classList.remove('is-fake');
+          reel.classList.add('is-real');
+          reel.textContent = row.team.name;
+          machine.classList.remove('is-fake');
+          machine.classList.add('is-real');
+          tag.textContent = `WINNER · ${row.team.name}`;
+          audio.hit();
+          later(finish, 650);
+        }, 1000);
+      }, 2000);
+    };
+
+    reel.classList.add('is-spinning');
+    step();
+    later(finish, 9000);
+  }
+
+  function renderEmptyRank(rank) {
+    el.indicator.textContent = `${rank.label} · no entries`;
+    el.nextLabel.textContent = rank.next + ' ▶';
+    el.stage.innerHTML = `
+      <section class="rv-final">
+        <p class="rv-final-kicker">No teams in this category</p>
+        <h1 class="rv-final-title">${esc(CATEGORY_TITLES[state.category])}</h1>
+        <div class="rv-final-shapes">${shapeRow()}</div>
+      </section>`;
+    state.auto.hold = false;
+    scheduleAuto();
   }
 
   function countUp(node, target, ms) {
@@ -426,169 +737,66 @@
   }
 
   // =============================================================
-  // The five reveal styles. Each one builds its own markup and timeline.
-  // =============================================================
-  const FX = {
-
-    // 1. Slot reel: names flash past, slow down with near misses, then land
-    reel: {
-      markup: { name: '<div class="rv-reel" aria-hidden="true"></div>', card: '' },
-      play(root, row, rank, api) {
-        const spinMs = rank.place === 1 ? 6500 : 4800;
-        const reel = root.querySelector('.rv-reel');
-        audio.drumroll(spinMs / 1000);
-        spinReel(reel, row.team.name, spinMs, () => {
-          reel.classList.add('is-landed');
-          later(api.land, 1300);   // hold on the landed name
-        });
-      }
-    },
-
-    // 2. Countdown stamp: 3, 2, 1, then the name slams in
-    stamp: {
-      markup: { name: '<div class="rv-fx-count" aria-hidden="true"></div>', card: '' },
-      play(root, row, rank, api) {
-        const counter = root.querySelector('.rv-fx-count');
-        ['3', '2', '1'].forEach((n, k) => later(() => {
-          counter.textContent = n;
-          audio.tick(1800 + k * 300);
-        }, k * 900));
-        later(() => {
-          counter.textContent = '';
-          root.classList.add('is-stamped');
-          api.land();
-        }, 2700);
-      }
-    },
-
-    // 3. Sealed envelope: the presenter opens it with Next
-    envelope: {
-      markup: { name: '', card: '<div class="rv-seal" aria-hidden="true"><span>SEALED</span></div>' },
-      play(root, row, rank, api) {
-        state.gate = () => {
-          root.querySelector('.rv-seal').classList.add('is-open');
-          audio.rustle();
-          el.nextLabel.textContent = rank.next + ' ▶';
-          later(api.land, 700);
-        };
-      }
-    },
-
-    // 4. Elimination: all teams in the category, dropped one by one until the winner is left
-    elimination: {
-      markup: { name: '<div class="rv-grid" aria-hidden="true"></div>', card: '' },
-      play(root, row, rank, api) {
-        const grid = root.querySelector('.rv-grid');
-        const teams = pool().map((r) => r.team);
-        grid.innerHTML = teams.map((t) =>
-          `<span class="rv-tile" data-no="${esc(t.number)}">${esc(t.name)}</span>`
-        ).join('');
-
-        const order = shuffle(teams.filter((t) => t.number !== row.team.number));
-        const gap = Math.max(120, 4200 / Math.max(1, order.length));
-        order.forEach((t, k) => later(() => {
-          const tile = grid.querySelector(`[data-no="${t.number}"]`);
-          if (tile) tile.classList.add('is-out');
-          audio.tick(2200 - k * 15);
-        }, 400 + k * gap));
-
-        const endAt = 400 + order.length * gap + 300;
-        later(() => {
-          const win = grid.querySelector(`[data-no="${row.team.number}"]`);
-          if (win) win.classList.add('is-winner');
-          audio.tick(2600);
-        }, endAt);
-        later(api.land, endAt + 1000);
-      }
-    },
-
-    // 5. Decrypt: random characters lock in one letter at a time
-    decrypt: {
-      markup: { name: '<div class="rv-reel rv-decrypt" aria-hidden="true"></div>', card: '' },
-      play(root, row, rank, api) {
-        const reel = root.querySelector('.rv-decrypt');
-        const target = row.team.name.toUpperCase();
-        const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#@$%&*';
-        const totalMs = 2600;
-        const start = performance.now();
-        let lastLocked = -1;
-
-        const frame = () => {
-          const p = Math.min(1, (performance.now() - start) / totalMs);
-          const locked = Math.floor(p * target.length);
-          let out = '';
-          for (let i = 0; i < target.length; i++) {
-            out += (target[i] === ' ' || i < locked)
-              ? target[i]
-              : glyphs[Math.floor(Math.random() * glyphs.length)];
-          }
-          reel.textContent = out;
-          if (locked !== lastLocked) { lastLocked = locked; audio.click(); }
-          if (p < 1) state.timers.push(setTimeout(frame, 55));
-          else { reel.textContent = target; later(api.land, 900); }
-        };
-        frame();
-      }
-    }
-  };
-
-  // Slot reel engine: fast flicker that slows steadily, decoys near the end, then stops
-  function spinReel(reelEl, finalName, totalMs, onStop) {
-    const list = pool().map((r) => r.team.name);
-    if (!list.length) list.push(finalName);
-    const winnerAt = list.indexOf(finalName);
-    const decoy = () => {
-      if (list.length < 2) return finalName;
-      let i;
-      do { i = Math.floor(Math.random() * list.length); } while (i === winnerAt);
-      return list[i];
-    };
-    const start = performance.now();
-
-    const step = () => {
-      const p = (performance.now() - start) / totalMs;
-      if (p >= 1) {
-        reelEl.textContent = finalName;
-        onStop();
-        return;
-      }
-      reelEl.textContent = p > 0.86 ? decoy() : list[Math.floor(Math.random() * list.length)];
-      audio.tick();
-      state.timers.push(setTimeout(step, 50 + 520 * Math.pow(p, 2.6)));
-    };
-    step();
-  }
-
-  // =============================================================
-  // Podium
+  // Final podium
   // =============================================================
   function renderPodium() {
     el.indicator.textContent = 'Ceremony complete · Final podium';
-    el.nextLabel.textContent = 'Replay Ceremony';
+    el.nextLabel.textContent = 'Replay ceremony 🔄';
 
-    const [gold, silver, bronze] = [pool()[0], pool()[1], pool()[2]];
-    const slot = (row, place) => {
-      if (!row) return '';
+    const rows = pool();
+    const slot = (row, place, label) => {
+      const crown = place === 1 ? `<div class="rv-podium-crown">${CROWN_SVG}</div>` : '';
+      if (!row) {
+        return `
+          <div class="rv-podium-col rv-podium-col--${place}">
+            ${crown}
+            <div class="rv-podium-player">
+              <span class="rv-podium-avatar rv-podium-avatar--${place}" aria-hidden="true">?</span>
+              <span class="rv-podium-label">${label}</span>
+              <span class="rv-podium-name">Awaiting</span>
+              <span class="rv-podium-score">—<small>/ 100</small></span>
+            </div>
+            <div class="rv-podium-block rv-podium-block--${place}">${place}</div>
+          </div>`;
+      }
       return `
-        <div class="rv-slot rv-slot--${place}">
-          <div class="rv-slot-card">
-            <span class="rv-slot-no">${place === 1 ? 'CHAMPION' : place === 2 ? '2ND PLACE' : '3RD PLACE'}</span>
-            <span class="rv-slot-team">${esc(row.team.name)}</span>
-            <span class="rv-slot-no">TEAM ${esc(row.team.number)}</span>
-            <span class="rv-slot-score">${state.hasScores ? row.total.toFixed(1) : '—'}<small> / 100</small></span>
+        <div class="rv-podium-col rv-podium-col--${place}">
+          ${crown}
+          <div class="rv-podium-player">
+            <span class="rv-podium-avatar rv-podium-avatar--${place}" aria-hidden="true">${esc(getInitials(row.team.name))}</span>
+            <span class="rv-podium-label">${label}</span>
+            <span class="rv-podium-name">${esc(row.team.name)}</span>
+            <span class="rv-podium-team">TEAM ${esc(row.team.number)} · SEC ${esc(row.team.section)}</span>
+            <span class="rv-podium-score">
+              ${state.hasScores ? row.total.toFixed(1) : '—'}<small>/ 100</small>
+            </span>
           </div>
-          <div class="rv-block rv-block--${place}">${place}</div>
+          <div class="rv-podium-block rv-podium-block--${place}">${place}</div>
         </div>`;
     };
 
     el.stage.innerHTML = `
-      <section class="rv-podium-wrap">
-        <p class="rv-kicker">Official final honors</p>
-        <h1 class="rv-podium-title">${esc(CATEGORY_TITLES[state.category])}</h1>
-        <div class="rv-podium">${slot(silver, 2)}${slot(gold, 1)}${slot(bronze, 3)}</div>
+      <section class="rv-final">
+        <div class="rv-spotlights" aria-hidden="true">
+          <span class="rv-spot rv-spot--2"></span>
+          <span class="rv-spot rv-spot--1"></span>
+          <span class="rv-spot rv-spot--3"></span>
+        </div>
+        <p class="rv-final-kicker">That's a wrap · ${state.hasScores ? 'Verified final honors' : 'Rehearsal preview'}</p>
+        <h1 class="rv-final-title">${esc(CATEGORY_TITLES[state.category])}</h1>
+        <div class="rv-podium">
+          ${slot(rows[1], 2, '1st Runner-Up')}
+          ${slot(rows[0], 1, 'Grand Champion')}
+          ${slot(rows[2], 3, '2nd Runner-Up')}
+        </div>
+        <div class="rv-final-shapes">${shapeRow()}</div>
       </section>`;
 
-    launchConfetti('mega');
+    audio.fanfare();
+    launchConfetti('big');
+    later(() => launchConfetti('standard'), 900);
+    state.auto.hold = false;
+    scheduleAuto();
   }
 
   // =============================================================
@@ -601,22 +809,32 @@
     const show = (v) => (state.hasScores ? v.toFixed(1) : '—');
 
     el.modalBody.innerHTML = rows.map((r, i) => `
-      <tr class="${i === 0 ? 'bg-amber-50/70 font-semibold' : ''} hover:bg-[#f6f1e6]/60 transition">
-        <td class="py-2 px-3 text-center font-bold">#${i + 1}</td>
-        <td class="py-2 px-3 font-mono font-black text-[#ea580c]">T-${esc(r.team.number)}</td>
-        <td class="py-2 px-3">
-          <span class="font-bold text-[#0f172a] block">${esc(r.team.name)}</span>
-          <span class="text-[10px] text-[#64748b] block">${esc(r.team.abstract_title || '')}</span>
+      <tr class="${i === 0 ? 'is-leader' : ''}">
+        <td class="is-center"><strong>#${i + 1}</strong></td>
+        <td class="rv-table-num">T-${esc(r.team.number)}</td>
+        <td>
+          <span class="rv-table-team">${esc(r.team.name)}</span>
+          <span class="rv-table-sub">${esc(r.team.abstract_title || '')}</span>
         </td>
-        <td class="py-2 px-2 text-center text-[10px] font-bold">Sec ${esc(r.team.section)}</td>
-        <td class="py-2 px-2.5 text-center font-mono font-bold text-slate-700">${show(r.p1)}</td>
-        <td class="py-2 px-2.5 text-center font-mono font-bold text-slate-700">${show(r.p2)}</td>
-        <td class="py-2 px-3 text-right font-mono font-black text-sm text-[#ea580c]">${show(r.total)}</td>
+        <td class="is-center"><span class="rv-table-sec">${esc(r.team.section)}</span></td>
+        <td class="is-center">${show(r.p1)}</td>
+        <td class="is-center">${show(r.p2)}</td>
+        <td class="is-right"><span class="rv-table-total">${show(r.total)}</span></td>
       </tr>`).join('');
   }
 
-  const openModal = () => { el.modal.classList.remove('hidden'); renderModal(); };
-  const closeModal = () => el.modal.classList.add('hidden');
+  const openModal = () => {
+    clearAutoTimer();
+    resetConfetti();
+    el.modal.classList.add('is-open');
+    el.modal.setAttribute('aria-hidden', 'false');
+    renderModal();
+  };
+  const closeModal = () => {
+    el.modal.classList.remove('is-open');
+    el.modal.setAttribute('aria-hidden', 'true');
+    if (state.auto.seconds) scheduleAuto();
+  };
 
   // =============================================================
   // Controls
@@ -628,104 +846,133 @@
 
   function toggleAudio() {
     state.muted = !state.muted;
+    if (state.muted) audio.stopDrumroll();
     el.audioIcon.textContent = state.muted ? '🔇' : '🔊';
     el.audioText.textContent = state.muted ? 'MUTED' : 'SOUND ON';
   }
 
-  function buildStyleSelect() {
-    const sel = document.createElement('select');
-    sel.id = 'revealStyleSelect';
-    sel.className = 'bg-[#f6f1e6] border border-[#e3dccd] text-xs font-black text-[#0f172a] rounded-xl px-2.5 sm:px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#ea580c] cursor-pointer shadow-xs';
-    sel.title = 'Reveal animation style (keys 1–6)';
-    sel.innerHTML = KEY_ORDER.map((k) => `<option value="${k}">${esc(STYLES[k])}</option>`).join('');
-    sel.value = state.style;
-    sel.addEventListener('change', (e) => setStyle(e.target.value));
-    el.openModal.parentNode.insertBefore(sel, el.openModal);
-    el.styleSelect = sel;
+  function updateBannerForCategory() {
+    const bannerEvent = $('revealBannerEvent');
+    const bannerSub = $('revealBannerSub');
+    if (!bannerEvent || !bannerSub) return;
+    const isEmbedthon = ['EMBEDTHON', 'A', 'B'].includes(state.category);
+    if (isEmbedthon) {
+      bannerEvent.textContent = "EMBEDTHON '26";
+      bannerEvent.style.color = '';
+      bannerSub.textContent = "24-Hour Internal Hackathon Valedictory";
+    } else {
+      bannerEvent.textContent = "EMBERS '26";
+      bannerEvent.style.color = '#ff9f43';
+      bannerSub.textContent = "National Level Technical Symposium Valedictory";
+    }
   }
 
   function bind() {
-    // Blur buttons after click so Space/Enter don't double-fire them
     el.next.addEventListener('click', () => { next(); el.next.blur(); });
     el.prev.addEventListener('click', () => { prev(); el.prev.blur(); });
-    el.confetti.addEventListener('click', () => { audio.tick(1800); launchConfetti('standard'); el.confetti.blur(); });
+    el.confetti.addEventListener('click', () => {
+      audio.tick(1800);
+      launchConfetti('standard');
+      el.confetti.blur();
+    });
     el.audioBtn.addEventListener('click', toggleAudio);
     el.fsBtn.addEventListener('click', toggleFullscreen);
-    document.addEventListener('fullscreenchange', () => {
-      el.fsIcon.textContent = document.fullscreenElement ? '✕' : '⛶';
-    });
+    if (el.autoSelect) {
+      el.autoSelect.addEventListener('change', (e) => setAutoSeconds(e.target.value));
+    }
 
-    const updateBannerForCategory = () => {
-      const bannerEvent = $('revealBannerEvent');
-      const bannerSub = $('revealBannerSub');
-      if (!bannerEvent || !bannerSub) return;
-      const isEmbedthon = ['EMBEDTHON', 'A', 'B'].includes(state.category);
-      if (isEmbedthon) {
-        bannerEvent.textContent = "EMBEDTHON '26";
-        bannerEvent.className = "font-black tracking-wider text-amber-400";
-        bannerSub.textContent = "24-Hour Internal Hackathon Valedictory";
-      } else {
-        bannerEvent.textContent = "EMBERS '26";
-        bannerEvent.className = "font-black tracking-wider text-orange-400";
-        bannerSub.textContent = "National Level Technical Symposium Valedictory";
-      }
-    };
+    document.addEventListener('fullscreenchange', () => {
+      const isFullscreen = !!document.fullscreenElement;
+      document.body.classList.toggle('is-fullscreen', isFullscreen);
+      el.fsIcon.textContent = isFullscreen ? '✕' : '⛶';
+    });
 
     el.category.addEventListener('change', (e) => {
       state.category = e.target.value;
       updateBannerForCategory();
-      const targetStyle = EVENT_DEFAULT_STYLE[state.category];
-      if (targetStyle) {
-        setStyle(targetStyle);
-      } else {
-        setStep(STEP_WELCOME);
-      }
+      setStep(STEP_WELCOME);
     });
 
     el.openModal.addEventListener('click', openModal);
     el.closeModal.addEventListener('click', closeModal);
     el.modalFilter.addEventListener('change', renderModal);
+    el.modal.addEventListener('click', (e) => { if (e.target === el.modal) closeModal(); });
 
     window.addEventListener('keydown', (e) => {
-      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
       if (e.key === 'Escape') { closeModal(); return; }
-      if (!el.modal.classList.contains('hidden')) return;
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      if (el.modal.classList.contains('is-open')) return;
 
-      const k = e.key.toLowerCase();
-      if (/^[1-6]$/.test(e.key)) { e.preventDefault(); setStyle(KEY_ORDER[Number(e.key) - 1]); }
-      else if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); next(); }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
-      else if (k === 'f') { e.preventDefault(); toggleFullscreen(); }
-      else if (k === 'm') { e.preventDefault(); toggleAudio(); }
-      else if (k === 'c') { e.preventDefault(); launchConfetti('standard'); }
+      const key = e.key.toLowerCase();
+      if (/^[1-3]$/.test(e.key)) {
+        e.preventDefault();
+        setStep(Number(e.key));
+      } else if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'Enter') {
+        e.preventDefault();
+        next();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        prev();
+      } else if (key === 'a') {
+        e.preventDefault();
+        toggleAuto();
+      } else if (key === 'r') {
+        e.preventDefault();
+        setStep(STEP_WELCOME);
+      } else if (key === 'f') {
+        e.preventDefault();
+        toggleFullscreen();
+      } else if (key === 'm') {
+        e.preventDefault();
+        toggleAudio();
+      } else if (key === 'c') {
+        e.preventDefault();
+        launchConfetti('standard');
+      }
     });
   }
 
   // =============================================================
   // Init
   // =============================================================
+  function seedEmbers() {
+    if (!el.emberField) return;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < 28; i++) {
+      const spark = document.createElement('span');
+      const size = (1.4 + Math.random() * 3.6).toFixed(1);
+      spark.style.cssText = [
+        `--x:${(Math.random() * 100).toFixed(2)}%`,
+        `--s:${size}px`,
+        `--d:${(6 + Math.random() * 8).toFixed(2)}s`,
+        `--delay:${(-Math.random() * 12).toFixed(2)}s`,
+        `--o:${(0.25 + Math.random() * 0.55).toFixed(2)}`,
+        `--drift:${((Math.random() * 2 - 1) * 70).toFixed(0)}px`
+      ].join(';');
+      frag.appendChild(spark);
+    }
+    el.emberField.appendChild(frag);
+  }
+
   async function init() {
     document.body.classList.add('ceremony-brand');
 
-    // 1. Sync category from DOM or URL parameter
-    const urlCategory = new URLSearchParams(location.search).get('category') || new URLSearchParams(location.search).get('track');
+    seedEmbers();
+    updateAutoUI();
+    if (document.fullscreenElement) document.body.classList.add('is-fullscreen');
+
+    const params = new URLSearchParams(location.search);
+    const urlCategory = (params.get('category') || params.get('track') || '').toUpperCase();
     if (urlCategory && el.category) {
-      el.category.value = urlCategory.toUpperCase();
+      const exists = Array.from(el.category.options).some((o) => o.value === urlCategory);
+      if (exists) el.category.value = urlCategory;
     }
-    if (el.category && el.category.value) {
-      state.category = el.category.value;
-    }
+    if (el.category && el.category.value) state.category = el.category.value;
 
-    // 2. Set default animation style mapped to the active category
-    const defaultEventStyle = EVENT_DEFAULT_STYLE[state.category] || 'decrypt';
-    state.style = STYLES[urlStyle] ? urlStyle : defaultEventStyle;
-
-    buildStyleSelect();
     bind();
     updateBannerForCategory();
 
-    state.mixPlan = shuffle(SINGLE_STYLES).slice(0, 3);
-    applyLive(computeStandings({}));   // rehearsal view immediately, no fake scores
+    applyLive(computeStandings({}));  // rehearsal view immediately, no fake scores
     await syncData();
     setInterval(syncData, POLL_MS);
   }
