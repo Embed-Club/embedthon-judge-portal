@@ -198,13 +198,65 @@
     await loadEmbersData();
   }
 
+  function normalizeRegistration(r) {
+    if (!r) return null;
+    const lead = (r.members && r.members.length) ? (r.members.find(m => m.is_lead) || r.members[0]) : null;
+    const leadDept = (lead && lead.dept) ? lead.dept : (r.dept || '');
+    const title = r.title || r.project_title || r.paper_title || r.team_name || 'Project Prototype';
+    const leaderName = r.leaderName || r.lead_name || (lead ? lead.name : '') || 'Team Leader';
+    const phone = r.phone || r.lead_phone || (lead ? lead.phone : '') || '';
+    const email = r.email || r.lead_email || (lead ? lead.email : '') || '';
+    const usn = r.usn || r.lead_usn || (lead ? lead.usn : '') || '';
+    const college = r.college || 'P.A. College of Engineering, Mangaluru';
+    const dept = r.dept || leadDept || 'Engineering';
+    const membersCount = r.membersCount || r.member_count || (r.members ? r.members.length : 1);
+    const feePaid = (r.feePaid !== undefined) ? r.feePaid : (r.fee_paid !== undefined ? r.fee_paid : true);
+    const verified = (r.verified !== undefined) ? r.verified : true;
+    const domain = r.domain || r.paper_domain || r.project_type || 'Engineering Innovation';
+    
+    let track = r.track || '';
+    if (!track && r.event_choice) {
+      const ec = String(r.event_choice).toLowerCase();
+      if (ec.includes('embed') || ec.includes('hackathon')) {
+        track = 'Track 1: Embeddathon';
+      } else if (ec.includes('both')) {
+        track = 'Track 2: Project Expo & Track 3: Paper';
+      } else if (ec.includes('expo') || ec.includes('exhibition') || ec.includes('project')) {
+        track = 'Track 2: Project Expo';
+      } else if (ec.includes('paper')) {
+        track = 'Track 3: Paper Presentation';
+      } else {
+        track = r.event_choice;
+      }
+    }
+
+    return {
+      ...r,
+      id: r.id || 'REG',
+      title,
+      leaderName,
+      phone,
+      email,
+      usn,
+      college,
+      dept,
+      membersCount,
+      feePaid,
+      verified,
+      domain,
+      track: track || 'Track 2: Project Expo',
+      assignedStall: r.assignedStall || r.assigned_stall || ''
+    };
+  }
+
   async function loadEmbersData() {
     try {
       const res = await fetch('/api/embers', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         schedule = data.schedule || [];
-        registrations = data.registrations || [];
+        const rawRegs = data.registrations || [];
+        registrations = rawRegs.map(normalizeRegistration).filter(Boolean);
         googleSheetConfig = data.googleSheetConfig || googleSheetConfig;
       }
     } catch (e) {
@@ -654,13 +706,17 @@
   }
 
   function trackBadgeShort(track) {
-    if ((track || '').includes('Embeddathon') || (track || '').includes('Track 1')) {
-      return '<span class="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-orange-100 text-[#ea580c]">Track 1</span>';
+    const t = String(track || '');
+    if (t.includes('Embeddathon') || t.includes('Track 1')) {
+      return '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-orange-100 text-[#ea580c]">Track 1</span>';
     }
-    if ((track || '').includes('Expo') || (track || '').includes('Track 2')) {
-      return '<span class="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-800">Track 2</span>';
+    if (t.includes('both') || (t.includes('Track 2') && t.includes('Track 3'))) {
+      return '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-purple-100 text-purple-800">Track 2 & 3</span>';
     }
-    return '<span class="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-indigo-100 text-indigo-800">Track 3</span>';
+    if (t.includes('Expo') || t.includes('Exhibition') || t.includes('Track 2')) {
+      return '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-800">Track 2</span>';
+    }
+    return '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-indigo-100 text-indigo-800">Track 3</span>';
   }
 
   window.updateStall = async function (id, value) {

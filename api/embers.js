@@ -35,6 +35,57 @@ const DEFAULT_EMBERS_DATA = {
   }
 };
 
+function normalizeReg(r) {
+  if (!r) return null;
+  const lead = (r.members && r.members.length) ? (r.members.find(m => m.is_lead) || r.members[0]) : null;
+  const leadDept = (lead && lead.dept) ? lead.dept : (r.dept || '');
+  const title = r.title || r.project_title || r.paper_title || r.team_name || 'Project Prototype';
+  const leaderName = r.leaderName || r.lead_name || (lead ? lead.name : '') || 'Team Leader';
+  const phone = r.phone || r.lead_phone || (lead ? lead.phone : '') || '';
+  const email = r.email || r.lead_email || (lead ? lead.email : '') || '';
+  const usn = r.usn || r.lead_usn || (lead ? lead.usn : '') || '';
+  const college = r.college || 'P.A. College of Engineering, Mangaluru';
+  const dept = r.dept || leadDept || 'Engineering';
+  const membersCount = r.membersCount || r.member_count || (r.members ? r.members.length : 1);
+  const feePaid = (r.feePaid !== undefined) ? r.feePaid : (r.fee_paid !== undefined ? r.fee_paid : true);
+  const verified = (r.verified !== undefined) ? r.verified : true;
+  const domain = r.domain || r.paper_domain || r.project_type || 'Engineering Innovation';
+  
+  let track = r.track || '';
+  if (!track && r.event_choice) {
+    const ec = String(r.event_choice).toLowerCase();
+    if (ec.includes('embed') || ec.includes('hackathon')) {
+      track = 'Track 1: Embeddathon';
+    } else if (ec.includes('both')) {
+      track = 'Track 2: Project Expo & Track 3: Paper';
+    } else if (ec.includes('expo') || ec.includes('exhibition') || ec.includes('project')) {
+      track = 'Track 2: Project Expo';
+    } else if (ec.includes('paper')) {
+      track = 'Track 3: Paper Presentation';
+    } else {
+      track = r.event_choice;
+    }
+  }
+
+  return {
+    ...r,
+    id: r.id || 'REG',
+    title,
+    leaderName,
+    phone,
+    email,
+    usn,
+    college,
+    dept,
+    membersCount,
+    feePaid,
+    verified,
+    domain,
+    track: track || 'Track 2: Project Expo',
+    assignedStall: r.assignedStall || r.assigned_stall || ''
+  };
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -58,6 +109,9 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
+      if (Array.isArray(embersData.registrations)) {
+        embersData.registrations = embersData.registrations.map(normalizeReg).filter(Boolean);
+      }
       return res.status(200).json(embersData);
     }
 
