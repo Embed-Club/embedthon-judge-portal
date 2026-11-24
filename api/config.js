@@ -15,16 +15,16 @@ const DEFAULT_CONFIG = {
     { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', pin: '7777', eventId: 'PAPER' },
     { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '8888', eventId: 'PAPER' }
   ],
-  // Judge deployment: event/track, venue and schedule slot.
+  // Judge deployment: event/track (supports multiple events), venue and schedule slot.
   judgeAssignments: {
-    'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S3', day: 1, start: '10:30', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 1 (Mentoring)' },
-    'INT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S3', day: 1, start: '10:30', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 1 (Mentoring)' },
-    'EXT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S5', day: 2, start: '10:00', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 2 (External Jury)' },
-    'EXT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S5', day: 2, start: '10:00', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 2 (External Jury)' },
-    'EXP-1': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotId: 'S8', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
-    'EXP-2': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotId: 'S8', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
-    'PPR-1': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotId: 'S9', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' },
-    'PPR-2': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotId: 'S9', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' }
+    'INT-1': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S3', day: 1, start: '10:30', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 1 (Mentoring)' },
+    'INT-2': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S3', day: 1, start: '10:30', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 1 (Mentoring)' },
+    'EXT-1': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S5', day: 2, start: '10:00', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 2 (External Jury)' },
+    'EXT-2': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S5', day: 2, start: '10:00', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 2 (External Jury)' },
+    'EXP-1': { events: ['PROJECT_EXPO'], eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotId: 'S8', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+    'EXP-2': { events: ['PROJECT_EXPO'], eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotId: 'S8', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+    'PPR-1': { events: ['PAPER'], eventId: 'PAPER', venue: 'Multipurpose Hall', slotId: 'S9', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' },
+    'PPR-2': { events: ['PAPER'], eventId: 'PAPER', venue: 'Multipurpose Hall', slotId: 'S9', day: 2, start: '09:30', end: '12:45', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' }
   }
 };
 
@@ -93,9 +93,28 @@ module.exports = async function handler(req, res) {
         Object.keys(body.judgeAssignments).forEach((judgeId) => {
           const assignment = body.judgeAssignments[judgeId];
           if (!assignment || typeof assignment !== 'object') return;
-          const eventId = String(assignment.eventId || assignment.event || '').trim().toUpperCase();
-          if (!['PAPER', 'PROJECT_EXPO', 'EMBEDDATHON'].includes(eventId)) return;
+
+          let events = [];
+          if (Array.isArray(assignment.events)) {
+            events = assignment.events.map(e => String(e || '').trim().toUpperCase()).filter(e => ['PAPER', 'PROJECT_EXPO', 'EMBEDDATHON'].includes(e));
+          } else if (Array.isArray(assignment.eventIds)) {
+            events = assignment.eventIds.map(e => String(e || '').trim().toUpperCase()).filter(e => ['PAPER', 'PROJECT_EXPO', 'EMBEDDATHON'].includes(e));
+          }
+
+          let eventId = String(assignment.eventId || assignment.event || '').trim().toUpperCase();
+          if (eventId === 'ALL') {
+            events = ['EMBEDDATHON', 'PROJECT_EXPO', 'PAPER'];
+          } else if (eventId && ['PAPER', 'PROJECT_EXPO', 'EMBEDDATHON'].includes(eventId)) {
+            if (!events.includes(eventId)) events.push(eventId);
+          }
+
+          if (events.length === 0) return;
+          if (!eventId || !['PAPER', 'PROJECT_EXPO', 'EMBEDDATHON'].includes(eventId)) {
+            eventId = events[0];
+          }
+
           cleanAssignments[judgeId] = {
+            events: events,
             eventId: eventId,
             venue: String(assignment.venue || '').trim(),
             slotId: String(assignment.slotId || '').trim(),

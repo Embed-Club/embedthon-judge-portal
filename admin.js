@@ -31,14 +31,14 @@
       { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '1794' }
     ],
     judgeAssignments: {
-      'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
-      'INT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
-      'EXT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
-      'EXT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
-      'EXP-1': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
-      'EXP-2': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
-      'PPR-1': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' },
-      'PPR-2': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' }
+      'INT-1': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
+      'INT-2': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
+      'EXT-1': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
+      'EXT-2': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
+      'EXP-1': { events: ['PROJECT_EXPO'], eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+      'EXP-2': { events: ['PROJECT_EXPO'], eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+      'PPR-1': { events: ['PAPER'], eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' },
+      'PPR-2': { events: ['PAPER'], eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' }
     }
   };
 
@@ -279,6 +279,22 @@
     return getEventMap(eventId)[teamNumber] || {};
   }
 
+  function getAssignmentEvents(assignment) {
+    if (!assignment) return [];
+    if (Array.isArray(assignment.events) && assignment.events.length) {
+      return assignment.events.map(e => String(e || '').trim().toUpperCase()).filter(Boolean);
+    }
+    if (Array.isArray(assignment.eventIds) && assignment.eventIds.length) {
+      return assignment.eventIds.map(e => String(e || '').trim().toUpperCase()).filter(Boolean);
+    }
+    if (assignment.eventId) {
+      const eid = String(assignment.eventId).trim().toUpperCase();
+      if (eid === 'ALL') return ['EMBEDDATHON', 'PROJECT_EXPO', 'PAPER'];
+      return [eid];
+    }
+    return [];
+  }
+
   function getJudgeAssignments() {
     if (!draftConfig) return masterConfig.judgeAssignments || {};
     if (!draftConfig.judgeAssignments || typeof draftConfig.judgeAssignments !== 'object') {
@@ -436,13 +452,11 @@
     // 1. Internal Judges (Phase 1)
     adminInternalRosterList.innerHTML = '';
     (draftConfig.internalJudges || []).forEach((j, idx) => {
-      // Calculate how many scores this judge has submitted across events
       const scoredCount = countJudgeScores(j.id);
-
       const assigned = (draftConfig.judgeAssignments || {})[j.id];
-      const assignedEvent = assigned && EVENTS[assigned.eventId] ? EVENTS[assigned.eventId] : null;
-      const assignmentText = assignedEvent
-        ? `${assignedEvent.icon} ${assignedEvent.shortLabel}${assigned.venue ? ' · ' + assigned.venue : ''}${assigned.start ? ' · ' + assigned.start + (assigned.end ? '–' + assigned.end : '') : ''}`
+      const evs = getAssignmentEvents(assigned);
+      const assignmentText = evs.length
+        ? `${evs.map(eid => EVENTS[eid] ? `${EVENTS[eid].icon} ${EVENTS[eid].shortLabel}` : eid).join(' + ')}${assigned.venue ? ' · ' + assigned.venue : ''}${assigned.start ? ' · ' + assigned.start + (assigned.end ? '–' + assigned.end : '') : ''}`
         : 'No event / venue assigned';
 
       const card = document.createElement('div');
@@ -473,7 +487,30 @@
           <input type="text" value="${j.role || ''}" placeholder="e.g. CSE Faculty Mentor" class="input-int-role w-full px-2.5 py-1 text-[11px] text-[#475569] bg-white border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#ea580c]" data-idx="${idx}">
         </div>
 
-        <div class="text-[10px] font-bold ${assignedEvent ? 'text-[#ea580c]' : 'text-[#94a3b8]'} truncate">📍 ${assignmentText}</div>
+        <div class="pt-1.5 border-t border-[#fed7aa]/60">
+          <div class="flex items-center justify-between gap-1 flex-wrap mb-1">
+            <span class="text-[9px] font-bold text-[#64748b] uppercase">Deploy To Track(s):</span>
+            <div class="flex items-center gap-1 flex-wrap">
+              ${['EMBEDDATHON', 'PROJECT_EXPO', 'PAPER'].map((trackId) => {
+                const ev = EVENTS[trackId] || { icon: '🎯', shortLabel: trackId };
+                const isAssigned = evs.includes(trackId);
+                return `
+                  <button type="button" class="btn-roster-toggle-track px-2 py-0.5 rounded text-[10px] font-black transition active:scale-95 ${
+                    isAssigned
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-white border border-[#cbd5e1] text-slate-600 hover:border-slate-400'
+                  }" data-judge="${j.id}" data-event="${trackId}">
+                    ${ev.icon} ${ev.shortLabel} ${isAssigned ? '✓' : '+'}
+                  </button>
+                `;
+              }).join('')}
+              <button type="button" class="btn-roster-toggle-all px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition" data-judge="${j.id}">
+                ${evs.length === 3 ? 'Clear' : 'All 3'}
+              </button>
+            </div>
+          </div>
+          <div class="text-[10px] font-bold ${evs.length ? 'text-[#ea580c]' : 'text-[#94a3b8]'} truncate">📍 ${assignmentText}</div>
+        </div>
       `;
 
       adminInternalRosterList.appendChild(card);
@@ -483,11 +520,10 @@
     adminExternalRosterList.innerHTML = '';
     (draftConfig.externalJudges || []).forEach((j, idx) => {
       const scoredCount = countJudgeScores(j.id);
-
       const assigned = (draftConfig.judgeAssignments || {})[j.id];
-      const assignedEvent = assigned && EVENTS[assigned.eventId] ? EVENTS[assigned.eventId] : null;
-      const assignmentText = assignedEvent
-        ? `${assignedEvent.icon} ${assignedEvent.shortLabel}${assigned.venue ? ' · ' + assigned.venue : ''}${assigned.start ? ' · ' + assigned.start + (assigned.end ? '–' + assigned.end : '') : ''}`
+      const evs = getAssignmentEvents(assigned);
+      const assignmentText = evs.length
+        ? `${evs.map(eid => EVENTS[eid] ? `${EVENTS[eid].icon} ${EVENTS[eid].shortLabel}` : eid).join(' + ')}${assigned.venue ? ' · ' + assigned.venue : ''}${assigned.start ? ' · ' + assigned.start + (assigned.end ? '–' + assigned.end : '') : ''}`
         : 'No event / venue assigned';
 
       const card = document.createElement('div');
@@ -518,13 +554,78 @@
           <input type="text" value="${j.role || ''}" placeholder="e.g. Industry Expert / IEEE Jury" class="input-ext-role w-full px-2.5 py-1 text-[11px] text-[#475569] bg-white border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-600" data-idx="${idx}">
         </div>
 
-        <div class="text-[10px] font-bold ${assignedEvent ? 'text-indigo-700' : 'text-[#94a3b8]'} truncate">📍 ${assignmentText}</div>
+        <div class="pt-1.5 border-t border-indigo-200">
+          <div class="flex items-center justify-between gap-1 flex-wrap mb-1">
+            <span class="text-[9px] font-bold text-[#64748b] uppercase">Deploy To Track(s):</span>
+            <div class="flex items-center gap-1 flex-wrap">
+              ${['EMBEDDATHON', 'PROJECT_EXPO', 'PAPER'].map((trackId) => {
+                const ev = EVENTS[trackId] || { icon: '🎯', shortLabel: trackId };
+                const isAssigned = evs.includes(trackId);
+                return `
+                  <button type="button" class="btn-roster-toggle-track px-2 py-0.5 rounded text-[10px] font-black transition active:scale-95 ${
+                    isAssigned
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-white border border-[#cbd5e1] text-slate-600 hover:border-slate-400'
+                  }" data-judge="${j.id}" data-event="${trackId}">
+                    ${ev.icon} ${ev.shortLabel} ${isAssigned ? '✓' : '+'}
+                  </button>
+                `;
+              }).join('')}
+              <button type="button" class="btn-roster-toggle-all px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition" data-judge="${j.id}">
+                ${evs.length === 3 ? 'Clear' : 'All 3'}
+              </button>
+            </div>
+          </div>
+          <div class="text-[10px] font-bold ${evs.length ? 'text-indigo-700' : 'text-[#94a3b8]'} truncate">📍 ${assignmentText}</div>
+        </div>
       `;
 
       adminExternalRosterList.appendChild(card);
     });
 
     bindJudgeInputs();
+  }
+
+  function toggleJudgeTrack(judgeId, trackId) {
+    const liveAssignments = getJudgeAssignments();
+    const assignment = { ...(liveAssignments[judgeId] || {}) };
+    let evs = getAssignmentEvents(assignment);
+    if (evs.includes(trackId)) {
+      evs = evs.filter((e) => e !== trackId);
+    } else {
+      evs.push(trackId);
+    }
+    if (evs.length > 0) {
+      assignment.events = evs;
+      assignment.eventId = evs[0];
+      if (!assignment.venue) {
+        assignment.venue = evs.map((e) => EVENTS[e] ? EVENTS[e].venue : '').filter(Boolean).join(' & ');
+      }
+      liveAssignments[judgeId] = assignment;
+    } else {
+      delete liveAssignments[judgeId];
+    }
+    renderJudgeRosters();
+    renderJudgeAllocations();
+    renderVenueBoard();
+  }
+
+  function toggleAllJudgeTracks(judgeId) {
+    const liveAssignments = getJudgeAssignments();
+    const assignment = { ...(liveAssignments[judgeId] || {}) };
+    let evs = getAssignmentEvents(assignment);
+    const allTracks = ['EMBEDDATHON', 'PROJECT_EXPO', 'PAPER'];
+    if (evs.length === 3) {
+      delete liveAssignments[judgeId];
+    } else {
+      assignment.events = allTracks;
+      assignment.eventId = 'EMBEDDATHON';
+      if (!assignment.venue) assignment.venue = 'All Campus Tracks & Venues';
+      liveAssignments[judgeId] = assignment;
+    }
+    renderJudgeRosters();
+    renderJudgeAllocations();
+    renderVenueBoard();
   }
 
   function bindJudgeInputs() {
@@ -589,6 +690,23 @@
         renderVenueBoard();
       };
     });
+
+    // Roster Track Toggle Buttons
+    document.querySelectorAll('.btn-roster-toggle-track').forEach((btn) => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        const judgeId = btn.dataset.judge;
+        const trackId = btn.dataset.event;
+        toggleJudgeTrack(judgeId, trackId);
+      };
+    });
+    document.querySelectorAll('.btn-roster-toggle-all').forEach((btn) => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        const judgeId = btn.dataset.judge;
+        toggleAllJudgeTracks(judgeId);
+      };
+    });
   }
 
   // -------------------------------------------------------------
@@ -612,6 +730,7 @@
 
     judges.forEach((judge) => {
       const assignment = {
+        events: [],
         eventId: '',
         venue: '',
         slotId: '',
@@ -622,19 +741,12 @@
         ...(assignments[judge.id] || {})
       };
 
-      const event = EVENTS[assignment.eventId] || null;
-      const venues = getVenuesForEvent(assignment.eventId);
-      if (assignment.venue && !venues.includes(assignment.venue)) venues.push(assignment.venue);
-
-      const slots = getScheduleForEvent(assignment.eventId);
-      const currentSlot = getSlotById(assignment.slotId);
-      if (currentSlot && !slots.some((slot) => slot.id === currentSlot.id)) {
-        slots.push(currentSlot);
-      }
-
+      const assignedEvents = getAssignmentEvents(assignment);
       const isInternal = judge.type === 'INTERNAL';
+      const slots = embersSchedule || [];
+
       const card = document.createElement('div');
-      card.className = `p-3 rounded-xl border space-y-2 text-xs ${
+      card.className = `p-3.5 rounded-2xl border space-y-2.5 text-xs ${
         isInternal ? 'bg-[#fff8f3] border-[#fed7aa]' : 'bg-indigo-50/40 border-indigo-200'
       }`;
 
@@ -643,98 +755,134 @@
           <div class="flex items-center gap-2 min-w-0">
             <span class="px-2 py-0.5 rounded ${isInternal ? 'bg-[#ea580c]' : 'bg-indigo-600'} text-white font-mono font-black text-[10px]">${judge.id}</span>
             <span class="text-xs font-black text-[#0f172a] truncate">${judge.name}</span>
+            <span class="text-[10px] text-[#64748b] truncate hidden sm:inline">(${judge.role || 'Jury'})</span>
           </div>
-          <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${isInternal ? 'bg-orange-100 text-[#ea580c]' : 'bg-indigo-100 text-indigo-700'}">${judge.type}</span>
+          <div class="flex items-center gap-1">
+            ${assignedEvents.map(evId => `<span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">${EVENTS[evId] ? EVENTS[evId].icon + ' ' + EVENTS[evId].shortLabel : evId}</span>`).join('')}
+            <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${isInternal ? 'bg-orange-100 text-[#ea580c]' : 'bg-indigo-100 text-indigo-700'}">${judge.type}</span>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div class="space-y-2">
           <div>
-            <label class="block text-[9px] font-bold text-[#64748b] uppercase mb-0.5">Event / Track</label>
-            <select class="alloc-event w-full px-2 py-1.5 text-[11px] font-bold bg-white border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#ea580c]" data-judge="${judge.id}">
-              <option value="">— Unassigned —</option>
-              ${((EVENT_LIB.EVENT_ORDER && EVENT_LIB.EVENT_ORDER.length) ? EVENT_LIB.EVENT_ORDER : Object.keys(EVENTS)).map((eventId) => {
+            <div class="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+              <label class="text-[9px] font-bold text-[#64748b] uppercase">Assigned Events & Tracks (Select all that apply):</label>
+              <button type="button" class="btn-alloc-toggle-all text-[10px] font-bold text-indigo-600 hover:underline cursor-pointer" data-judge="${judge.id}">
+                ${assignedEvents.length === 3 ? 'Clear all tracks' : '⚡ Deploy to All 3 Tracks'}
+              </button>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${((EVENT_LIB.EVENT_ORDER && EVENT_LIB.EVENT_ORDER.length) ? EVENT_LIB.EVENT_ORDER : ['EMBEDDATHON', 'PROJECT_EXPO', 'PAPER']).map((eventId) => {
                 const ev = EVENTS[eventId];
-                return ev ? `<option value="${eventId}" ${assignment.eventId === eventId ? 'selected' : ''}>${ev.icon} ${ev.label}</option>` : '';
+                if (!ev) return '';
+                const isChecked = assignedEvents.includes(eventId);
+                return `
+                  <button type="button" class="btn-alloc-event-pill px-2.5 py-1 rounded-lg text-xs font-black transition active:scale-95 cursor-pointer flex items-center gap-1.5 ${
+                    isChecked
+                      ? 'bg-[#0f172a] text-white shadow-xs border-2 border-[#0f172a]'
+                      : 'bg-white text-slate-600 border border-[#cbd5e1] hover:bg-slate-50'
+                  }" data-judge="${judge.id}" data-event="${eventId}">
+                    <span>${ev.icon}</span>
+                    <span>${ev.shortLabel}</span>
+                    <span class="text-[9px] px-1.5 py-0.2 rounded font-black ${isChecked ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'}">${isChecked ? 'ASSIGNED ✓' : '+'}</span>
+                  </button>
+                `;
               }).join('')}
-            </select>
+            </div>
           </div>
 
-          <div>
-            <label class="block text-[9px] font-bold text-[#64748b] uppercase mb-0.5">Venue</label>
-            <select class="alloc-venue w-full px-2 py-1.5 text-[11px] font-bold bg-white border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#ea580c]" data-judge="${judge.id}">
-              <option value="">— No venue —</option>
-              ${venues.map((venue) => `<option value="${venue}" ${assignment.venue === venue ? 'selected' : ''}>${venue}</option>`).join('')}
-            </select>
-          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[9px] font-bold text-[#64748b] uppercase mb-0.5">Assigned Venue / Location</label>
+              <input type="text" list="venuePresetsList" value="${assignment.venue || ''}" placeholder="e.g. Edusat Hall & Multi Hall" class="alloc-venue-input w-full px-2.5 py-1.5 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#ea580c]" data-judge="${judge.id}">
+            </div>
 
-          <div>
-            <label class="block text-[9px] font-bold text-[#64748b] uppercase mb-0.5">Schedule Slot</label>
-            <select class="alloc-slot w-full px-2 py-1.5 text-[11px] font-bold bg-white border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#ea580c]" data-judge="${judge.id}">
-              <option value="">— No specific slot —</option>
-              ${slots.map((slot) => `<option value="${slot.id}" ${assignment.slotId === slot.id ? 'selected' : ''}>${buildSlotLabel(slot)}</option>`).join('')}
-            </select>
+            <div>
+              <label class="block text-[9px] font-bold text-[#64748b] uppercase mb-0.5">Schedule Slot (Optional)</label>
+              <select class="alloc-slot-select w-full px-2 py-1.5 text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#ea580c]" data-judge="${judge.id}">
+                <option value="">— Flexible across all slots —</option>
+                ${slots.map((slot) => `<option value="${slot.id}" ${assignment.slotId === slot.id ? 'selected' : ''}>${buildSlotLabel(slot)}</option>`).join('')}
+              </select>
+            </div>
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-2 pt-1 border-t ${isInternal ? 'border-[#fed7aa]' : 'border-indigo-200'}">
-          <span class="text-[10px] font-bold ${event ? 'text-[#0f172a]' : 'text-[#94a3b8]'} truncate">
-            ${event ? (assignment.slotId ? '📍 ' + (assignment.venue || event.venue) + ' · ' + (assignment.start || '') + (assignment.end ? '–' + assignment.end : '') : '📍 ' + (assignment.venue || event.venue) + ' · No slot') : 'Not deployed to an event'}
+        <div class="flex items-center justify-between gap-2 pt-1.5 border-t ${isInternal ? 'border-[#fed7aa]' : 'border-indigo-200'}">
+          <span class="text-[10px] font-bold ${assignedEvents.length ? 'text-[#0f172a]' : 'text-[#94a3b8]'} truncate">
+            ${assignedEvents.length ? '📍 ' + (assignment.venue || 'Campus Venue') + ' · ' + assignedEvents.map(e => EVENTS[e] ? EVENTS[e].shortLabel : e).join(', ') : 'Not deployed to an event'}
           </span>
-          <button type="button" class="alloc-clear px-2 py-0.5 rounded text-[9px] font-black text-rose-600 hover:bg-rose-50 transition" data-judge="${judge.id}">Clear</button>
+          <button type="button" class="alloc-clear px-2 py-0.5 rounded text-[9px] font-black text-rose-600 hover:bg-rose-50 transition cursor-pointer" data-judge="${judge.id}">Clear Allocation</button>
         </div>
       `;
 
       judgeAllocationList.appendChild(card);
     });
 
-    judgeAllocationList.onchange = function (event_) {
-      const target = event_.target;
+    judgeAllocationList.onclick = function (e) {
+      const clearBtn = e.target.closest('.alloc-clear');
+      if (clearBtn) {
+        const judgeId = clearBtn.dataset.judge;
+        const liveAssignments = getJudgeAssignments();
+        delete liveAssignments[judgeId];
+        renderJudgeAllocations();
+        renderVenueBoard();
+        renderJudgeRosters();
+        return;
+      }
+
+      const pillBtn = e.target.closest('.btn-alloc-event-pill');
+      if (pillBtn) {
+        const judgeId = pillBtn.dataset.judge;
+        const eventId = pillBtn.dataset.event;
+        toggleJudgeTrack(judgeId, eventId);
+        return;
+      }
+
+      const toggleAllBtn = e.target.closest('.btn-alloc-toggle-all');
+      if (toggleAllBtn) {
+        const judgeId = toggleAllBtn.dataset.judge;
+        toggleAllJudgeTracks(judgeId);
+        return;
+      }
+    };
+
+    judgeAllocationList.oninput = function (e) {
+      const target = e.target;
       const judgeId = target.dataset.judge;
       if (!judgeId) return;
-
       const liveAssignments = getJudgeAssignments();
-      const assignment = { ...(liveAssignments[judgeId] || {}) };
+      const assignment = liveAssignments[judgeId] || { events: [], eventId: '' };
 
-      if (target.classList.contains('alloc-event')) {
-        assignment.eventId = target.value;
-        assignment.slotId = '';
-        assignment.day = '';
-        assignment.start = '';
-        assignment.end = '';
-        assignment.slotTitle = '';
-        assignment.venue = EVENTS[target.value] ? EVENTS[target.value].venue : '';
-      } else if (target.classList.contains('alloc-venue')) {
+      if (target.classList.contains('alloc-venue-input')) {
         assignment.venue = target.value;
-      } else if (target.classList.contains('alloc-slot')) {
+        liveAssignments[judgeId] = assignment;
+      }
+    };
+
+    judgeAllocationList.onchange = function (e) {
+      const target = e.target;
+      const judgeId = target.dataset.judge;
+      if (!judgeId) return;
+      const liveAssignments = getJudgeAssignments();
+      const assignment = liveAssignments[judgeId] || { events: [], eventId: '' };
+
+      if (target.classList.contains('alloc-venue-input')) {
+        assignment.venue = target.value;
+        liveAssignments[judgeId] = assignment;
+        renderVenueBoard();
+        renderJudgeRosters();
+      } else if (target.classList.contains('alloc-slot-select')) {
         const slot = getSlotById(target.value);
         assignment.slotId = slot ? slot.id : '';
         assignment.day = slot ? String(slot.day || '') : '';
         assignment.start = slot ? slot.start || '' : '';
         assignment.end = slot ? slot.end || '' : '';
         assignment.slotTitle = slot ? slot.title || '' : '';
-        if (slot && slot.venue) assignment.venue = slot.venue;
-      }
-
-      if (assignment.eventId) {
+        if (slot && slot.venue && !assignment.venue) assignment.venue = slot.venue;
         liveAssignments[judgeId] = assignment;
-      } else {
-        delete liveAssignments[judgeId];
+        renderVenueBoard();
+        renderJudgeRosters();
       }
-
-      renderJudgeAllocations();
-      renderVenueBoard();
-      renderJudgeRosters();
-    };
-
-    judgeAllocationList.onclick = function (event_) {
-      const target = event_.target.closest('.alloc-clear');
-      if (!target) return;
-      const judgeId = target.dataset.judge;
-      const liveAssignments = getJudgeAssignments();
-      delete liveAssignments[judgeId];
-      renderJudgeAllocations();
-      renderVenueBoard();
-      renderJudgeRosters();
     };
   }
 
@@ -752,10 +900,17 @@
       const event = EVENTS[eventId];
       if (!event) return '';
 
-      const deployed = judges.filter((judge) => assignments[judge.id] && assignments[judge.id].eventId === eventId);
+      const deployed = judges.filter((judge) => {
+        const a = assignments[judge.id];
+        if (!a) return false;
+        const evs = getAssignmentEvents(a);
+        return evs.includes(eventId);
+      });
+
       const venueSet = [];
       deployed.forEach((judge) => {
-        const venue = assignments[judge.id].venue || event.venue;
+        const a = assignments[judge.id];
+        const venue = a.venue || event.venue;
         if (venue && !venueSet.includes(venue)) venueSet.push(venue);
       });
       const venueLabel = venueSet.length ? venueSet.join(' / ') : event.venue;
@@ -763,8 +918,18 @@
       const judgeLines = deployed.length
         ? deployed.map((judge) => {
             const a = assignments[judge.id];
+            const evs = getAssignmentEvents(a);
+            const isMulti = evs.length > 1;
             const time = a.start ? `${a.start}${a.end ? '–' + a.end : ''}` : '';
-            return `<div class="flex justify-between gap-1 text-[10px]"><span class="font-bold truncate">${judge.id} · ${judge.name}</span><span class="font-mono text-[#64748b] whitespace-nowrap">${time || 'No slot'}</span></div>`;
+            return `
+              <div class="flex items-center justify-between gap-1 text-[10px] py-0.5">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="font-bold truncate text-[#0f172a]">${judge.id} · ${judge.name}</span>
+                  ${isMulti ? '<span class="text-[8px] font-black px-1 rounded bg-purple-100 text-purple-700">MULTI</span>' : ''}
+                </div>
+                <span class="font-mono text-[#64748b] whitespace-nowrap text-[9px]">${time || 'Active'}</span>
+              </div>
+            `;
           }).join('')
         : '<div class="text-[10px] text-[#94a3b8]">No judges deployed yet.</div>';
 
@@ -1114,32 +1279,64 @@
       });
     });
 
+    function generateUniquePin() {
+      const existing = new Set([
+        '5012',
+        ...(draftConfig.internalJudges || []).map(j => String(j.pin)),
+        ...(draftConfig.externalJudges || []).map(j => String(j.pin))
+      ]);
+      let pin = '';
+      for (let attempt = 0; attempt < 1000; attempt++) {
+        pin = String(Math.floor(1000 + Math.random() * 9000));
+        if (!existing.has(pin)) return pin;
+      }
+      return String(Math.floor(1000 + Math.random() * 9000));
+    }
+
     // Add Judges
     if (btnAdminAddInternal) {
       btnAdminAddInternal.addEventListener('click', () => {
         const nextNum = (draftConfig.internalJudges || []).length + 1;
-        draftConfig.internalJudges.push({
+        const newJudge = {
           id: `INT-${nextNum}`,
           name: `Internal Judge ${nextNum}`,
           role: 'CSE Faculty Mentor',
-          pin: `${nextNum}${nextNum}${nextNum}${nextNum}`
-        });
+          pin: generateUniquePin()
+        };
+        draftConfig.internalJudges.push(newJudge);
+        // Default to Embeddathon
+        draftConfig.judgeAssignments[newJudge.id] = {
+          events: ['EMBEDDATHON'],
+          eventId: 'EMBEDDATHON',
+          venue: 'Computer Labs 1 & 2',
+          slotTitle: 'Track 1: Embeddathon'
+        };
         renderJudgeRosters();
         renderJudgeAllocations();
+        renderVenueBoard();
       });
     }
 
     if (btnAdminAddExternal) {
       btnAdminAddExternal.addEventListener('click', () => {
         const nextNum = (draftConfig.externalJudges || []).length + 1;
-        draftConfig.externalJudges.push({
+        const newJudge = {
           id: `EXT-${nextNum}`,
           name: `External Judge ${nextNum}`,
           role: 'Industry / IEEE Jury',
-          pin: `${nextNum + 2}${nextNum + 2}${nextNum + 2}${nextNum + 2}`
-        });
+          pin: generateUniquePin()
+        };
+        draftConfig.externalJudges.push(newJudge);
+        // Default to Project Expo or Embeddathon
+        draftConfig.judgeAssignments[newJudge.id] = {
+          events: ['PROJECT_EXPO'],
+          eventId: 'PROJECT_EXPO',
+          venue: 'Edusat Hall',
+          slotTitle: 'Track 2: Project Expo'
+        };
         renderJudgeRosters();
         renderJudgeAllocations();
+        renderVenueBoard();
       });
     }
 

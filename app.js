@@ -47,14 +47,14 @@
       { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '1794' }
     ],
     judgeAssignments: {
-      'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
-      'INT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
-      'EXT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
-      'EXT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
-      'EXP-1': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
-      'EXP-2': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
-      'PPR-1': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' },
-      'PPR-2': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' }
+      'INT-1': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
+      'INT-2': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
+      'EXT-1': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
+      'EXT-2': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
+      'EXP-1': { events: ['PROJECT_EXPO'], eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+      'EXP-2': { events: ['PROJECT_EXPO'], eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+      'PPR-1': { events: ['PAPER'], eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' },
+      'PPR-2': { events: ['PAPER'], eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' }
     }
   };
 
@@ -369,6 +369,22 @@
     } catch (e) {}
   }
 
+  function getJudgeEvents(assignment) {
+    if (!assignment) return [];
+    if (Array.isArray(assignment.events) && assignment.events.length) {
+      return assignment.events.map(e => String(e || '').trim().toUpperCase()).filter(Boolean);
+    }
+    if (Array.isArray(assignment.eventIds) && assignment.eventIds.length) {
+      return assignment.eventIds.map(e => String(e || '').trim().toUpperCase()).filter(Boolean);
+    }
+    if (assignment.eventId) {
+      const eid = String(assignment.eventId).trim().toUpperCase();
+      if (eid === 'ALL') return ['EMBEDDATHON', 'PROJECT_EXPO', 'PAPER'];
+      return [eid];
+    }
+    return [];
+  }
+
   function getJudgeAssignment(judgeId) {
     const configured = (juryConfig.judgeAssignments || {})[judgeId];
     if (configured) return configured;
@@ -376,14 +392,14 @@
       return currentJudge.assignment;
     }
     const DEFAULT_ASSIGNMENTS = {
-      'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
-      'INT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
-      'EXT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
-      'EXT-2': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
-      'EXP-1': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
-      'EXP-2': { eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
-      'PPR-1': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' },
-      'PPR-2': { eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' }
+      'INT-1': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
+      'INT-2': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
+      'EXT-1': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
+      'EXT-2': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 2' },
+      'EXP-1': { events: ['PROJECT_EXPO'], eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+      'EXP-2': { events: ['PROJECT_EXPO'], eventId: 'PROJECT_EXPO', venue: 'Edusat Hall', slotTitle: 'Track 2: Project Expo Stalls 01–36' },
+      'PPR-1': { events: ['PAPER'], eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' },
+      'PPR-2': { events: ['PAPER'], eventId: 'PAPER', venue: 'Multipurpose Hall', slotTitle: 'Track 3: Paper Presentation PP-01 to PP-12' }
     };
     return DEFAULT_ASSIGNMENTS[judgeId] || null;
   }
@@ -482,7 +498,8 @@
     if (!eventTabsRow) return;
 
     const assignment = currentJudge ? getJudgeAssignment(currentJudge.id) : null;
-    const isLockedToAssignment = Boolean(currentJudge && !currentJudge.isAdmin && assignment && assignment.eventId);
+    const assignedEvents = getJudgeEvents(assignment);
+    const isLockedToAssignment = Boolean(currentJudge && !currentJudge.isAdmin && assignedEvents.length > 0);
 
     const order = EVENT_LIB.EVENT_ORDER && EVENT_LIB.EVENT_ORDER.length
       ? EVENT_LIB.EVENT_ORDER
@@ -493,7 +510,7 @@
       const event = EVENTS[eventId];
       if (!event) return;
       const isActive = eventId === activeEventId;
-      const isAssigned = assignment && assignment.eventId === eventId;
+      const isAssigned = assignedEvents.includes(eventId) || assignedEvents.includes('ALL');
       const isBlocked = isLockedToAssignment && !isAssigned;
 
       const btn = document.createElement('button');
@@ -514,9 +531,10 @@
       `;
 
       if (isBlocked) {
-        btn.title = `Your login is assigned to ${EVENT_LIB.getEvent(assignment.eventId).label}. Switch judge to change event.`;
+        const assignedLabels = assignedEvents.map(e => EVENT_LIB.getEvent(e).shortLabel).join(' & ');
+        btn.title = `Your login is assigned to ${assignedLabels}. Switch judge to change event.`;
         btn.addEventListener('click', () => {
-          alert(`Your jury assignment (${currentJudge.id}) is locked to ${EVENT_LIB.getEvent(assignment.eventId).label} (${assignment.venue || ''}). Switch judge or log out to evaluate another track.`);
+          alert(`Your jury assignment (${currentJudge.id}) is designated for: ${assignedLabels} (${assignment.venue || ''}). Switch judge or log out to evaluate another track.`);
         });
       } else {
         btn.addEventListener('click', () => {
@@ -550,12 +568,16 @@
     }
 
     if (judgeAssignmentBadge) {
-      if (assignment && assignment.eventId) {
-        const assignedEvent = EVENT_LIB.getEvent(assignment.eventId);
+      const assignedEvs = getJudgeEvents(assignment);
+      if (assignedEvs.length > 1) {
+        judgeAssignmentBadge.textContent = `🎯 Multi-Track: ${assignedEvs.map(e => EVENT_LIB.getEvent(e).shortLabel).join(' & ')}`;
+        judgeAssignmentBadge.className = 'text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200';
+      } else if (assignedEvs.length === 1) {
+        const assignedEvent = EVENT_LIB.getEvent(assignedEvs[0]);
         judgeAssignmentBadge.textContent = `${assignedEvent.icon} Assigned · ${assignedEvent.shortLabel}`;
         judgeAssignmentBadge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200';
       } else if (currentJudge) {
-        judgeAssignmentBadge.textContent = 'Open allocation';
+        judgeAssignmentBadge.textContent = 'All Tracks (Open)';
         judgeAssignmentBadge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200';
       } else {
         judgeAssignmentBadge.textContent = 'Not assigned';
@@ -929,8 +951,9 @@
       internalList.forEach((j) => {
         const isSelected = selectedLoginJudgeId === j.id;
         const assignment = getJudgeAssignment(j.id);
-        const assignmentLabel = assignment && assignment.eventId
-          ? `${EVENT_LIB.getEvent(assignment.eventId).shortLabel}${assignment.venue ? ' · ' + assignment.venue : ''}`
+        const evs = getJudgeEvents(assignment);
+        const assignmentLabel = evs.length
+          ? `${evs.map(e => EVENT_LIB.getEvent(e).shortLabel).join(' + ')}${assignment.venue ? ' · ' + assignment.venue : ''}`
           : 'Track 1: Embeddathon';
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -956,8 +979,9 @@
           }
           if (loginNameInput) loginNameInput.value = j.name;
           const asgn = getJudgeAssignment(j.id);
-          if (asgn && asgn.eventId && EVENTS[asgn.eventId]) {
-            selectedLoginEventId = asgn.eventId;
+          const asgnEvents = getJudgeEvents(asgn);
+          if (asgnEvents.length) {
+            selectedLoginEventId = asgnEvents.includes(activeEventId) ? activeEventId : asgnEvents[0];
           }
           renderLoginJudgeSlots();
         });
@@ -973,8 +997,9 @@
       externalList.forEach((j) => {
         const isSelected = selectedLoginJudgeId === j.id;
         const assignment = getJudgeAssignment(j.id);
-        const assignmentLabel = assignment && assignment.eventId
-          ? `${EVENT_LIB.getEvent(assignment.eventId).shortLabel}${assignment.venue ? ' · ' + assignment.venue : ''}`
+        const evs = getJudgeEvents(assignment);
+        const assignmentLabel = evs.length
+          ? `${evs.map(e => EVENT_LIB.getEvent(e).shortLabel).join(' + ')}${assignment.venue ? ' · ' + assignment.venue : ''}`
           : 'Assigned Track';
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -1000,8 +1025,9 @@
           }
           if (loginNameInput) loginNameInput.value = j.name;
           const asgn = getJudgeAssignment(j.id);
-          if (asgn && asgn.eventId && EVENTS[asgn.eventId]) {
-            selectedLoginEventId = asgn.eventId;
+          const asgnEvents = getJudgeEvents(asgn);
+          if (asgnEvents.length) {
+            selectedLoginEventId = asgnEvents.includes(activeEventId) ? activeEventId : asgnEvents[0];
           }
           renderLoginJudgeSlots();
         });
@@ -1030,10 +1056,15 @@
 
     // Auto-sync or configure assigned event track in modal
     const selectedAssignment = getJudgeAssignment(selectedLoginJudgeId);
-    if (selectedAssignment && selectedAssignment.eventId && EVENTS[selectedAssignment.eventId]) {
-      selectedLoginEventId = selectedAssignment.eventId;
+    const selectedEvs = getJudgeEvents(selectedAssignment);
+    if (selectedEvs.length) {
+      if (!selectedEvs.includes(selectedLoginEventId)) {
+        selectedLoginEventId = selectedEvs[0];
+      }
       if (loginAssignedBadge) {
-        loginAssignedBadge.textContent = `Assigned: ${EVENT_LIB.getEvent(selectedAssignment.eventId).shortLabel}`;
+        loginAssignedBadge.textContent = selectedEvs.length > 1
+          ? `Multi-Track: ${selectedEvs.map(e => EVENT_LIB.getEvent(e).shortLabel).join(' & ')}`
+          : `Assigned: ${EVENT_LIB.getEvent(selectedEvs[0]).shortLabel}`;
         loginAssignedBadge.className = 'text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
       }
     } else {
@@ -1105,28 +1136,41 @@
         return;
       }
 
-      // Route judge strictly to their designated event
-      const targetEventId = (currentJudge.assignment && currentJudge.assignment.eventId)
-        || selectedLoginEventId
-        || activeEventId
-        || 'EMBEDDATHON';
+      // Route judge smoothly to their designated event
+      const judgeEvs = getJudgeEvents(currentJudge.assignment);
+      const currentPath = (window.location.pathname || '').toLowerCase();
+      const onExpo = currentPath.endsWith('expo.html');
+      const onPaper = currentPath.endsWith('paper.html');
+      const onHack = currentPath.endsWith('hackathon.html');
+
+      let targetEventId = selectedLoginEventId;
+      if (onExpo && (judgeEvs.includes('PROJECT_EXPO') || judgeEvs.length === 0)) {
+        targetEventId = 'PROJECT_EXPO';
+      } else if (onPaper && (judgeEvs.includes('PAPER') || judgeEvs.length === 0)) {
+        targetEventId = 'PAPER';
+      } else if (onHack && (judgeEvs.includes('EMBEDDATHON') || judgeEvs.length === 0)) {
+        targetEventId = 'EMBEDDATHON';
+      } else if (judgeEvs.length && !judgeEvs.includes(targetEventId)) {
+        targetEventId = judgeEvs[0];
+      } else if (!targetEventId) {
+        targetEventId = (currentJudge.assignment && currentJudge.assignment.eventId) || activeEventId || 'EMBEDDATHON';
+      }
 
       setActiveEvent(targetEventId);
 
-      // Route judge strictly to their designated page!
-      const currentPath = (window.location.pathname || '').toLowerCase();
+      // Route judge to the appropriate page
       if (targetEventId === 'PROJECT_EXPO') {
-        if (!currentPath.endsWith('expo.html')) {
+        if (!onExpo) {
           window.location.href = 'expo.html';
           return;
         }
       } else if (targetEventId === 'PAPER') {
-        if (!currentPath.endsWith('paper.html')) {
+        if (!onPaper) {
           window.location.href = 'paper.html';
           return;
         }
       } else {
-        if (!currentPath.endsWith('hackathon.html')) {
+        if (!onHack) {
           window.location.href = 'hackathon.html';
           return;
         }
@@ -1410,7 +1454,8 @@
       const judgeMap = {};
       getAllJudges().forEach((j) => {
         const assignment = getJudgeAssignment(j.id);
-        const isAssignedHere = assignment && assignment.eventId === activeEventId;
+        const assignedEvs = getJudgeEvents(assignment);
+        const isAssignedHere = assignedEvs.length === 0 || assignedEvs.includes(activeEventId) || assignedEvs.includes('ALL');
         const isCurrent = currentJudge && currentJudge.id === j.id;
         if (isAssignedHere || isCurrent) judgeMap[j.id] = j;
       });
