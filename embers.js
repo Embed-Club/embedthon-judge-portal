@@ -198,41 +198,92 @@
     await loadEmbersData();
   }
 
+  function cleanStr(val, fallback = '') {
+    if (val === undefined || val === null) return fallback;
+    const s = String(val).trim();
+    const lower = s.toLowerCase();
+    if (lower === '' || lower === 'undefined' || lower === 'null' || lower === 'none' || lower === 'n/a') {
+      return fallback;
+    }
+    return s;
+  }
+
   function normalizeRegistration(r) {
     if (!r) return null;
     const lead = (r.members && r.members.length) ? (r.members.find(m => m.is_lead) || r.members[0]) : null;
     const leadDept = (lead && lead.dept) ? lead.dept : (r.dept || '');
-    const title = r.title || r.project_title || r.paper_title || r.team_name || 'Project Prototype';
-    const leaderName = r.leaderName || r.lead_name || (lead ? lead.name : '') || 'Team Leader';
-    const phone = r.phone || r.lead_phone || (lead ? lead.phone : '') || '';
-    const email = r.email || r.lead_email || (lead ? lead.email : '') || '';
-    const usn = r.usn || r.lead_usn || (lead ? lead.usn : '') || '';
-    const college = r.college || 'P.A. College of Engineering, Mangaluru';
-    const dept = r.dept || leadDept || 'Engineering';
-    const membersCount = r.membersCount || r.member_count || (r.members ? r.members.length : 1);
-    const feePaid = (r.feePaid !== undefined) ? r.feePaid : (r.fee_paid !== undefined ? r.fee_paid : true);
-    const verified = (r.verified !== undefined) ? r.verified : true;
-    const domain = r.domain || r.paper_domain || r.project_type || 'Engineering Innovation';
+
+    let title = cleanStr(r.title) || cleanStr(r.project_title) || cleanStr(r.paper_title) || cleanStr(r.name) || cleanStr(r.team_name) || 'Project Prototype';
+    let leaderName = cleanStr(r.leaderName) || cleanStr(r.lead_name) || cleanStr(r.lead) || (lead ? cleanStr(lead.name) : '') || 'Team Leader';
+    let phone = cleanStr(r.phone) || cleanStr(r.lead_phone) || (lead ? cleanStr(lead.phone) : '') || '';
+    let email = cleanStr(r.email) || cleanStr(r.lead_email) || (lead ? cleanStr(lead.email) : '') || '';
+    let usn = cleanStr(r.usn) || cleanStr(r.lead_usn) || (lead ? cleanStr(lead.usn) : '') || '--';
+    let college = cleanStr(r.college) || cleanStr(r.institution) || 'P.A. College of Engineering, Mangaluru';
+    let dept = cleanStr(r.dept) || cleanStr(r.department) || cleanStr(leadDept) || 'Engineering';
+    let membersCount = parseInt(r.membersCount) || parseInt(r.member_count) || (r.members && r.members.length ? r.members.length : 1);
+    let feePaid = (r.feePaid !== false && r.fee_paid !== false);
+    let verified = (r.verified !== false);
+    let domain = cleanStr(r.domain) || cleanStr(r.paper_domain) || cleanStr(r.project_type) || 'Engineering Innovation';
+    let assignedStall = cleanStr(r.assignedStall) || cleanStr(r.assigned_stall) || cleanStr(r.stall) || cleanStr(r.slot) || '';
     
-    let track = r.track || '';
-    if (!track && r.event_choice) {
-      const ec = String(r.event_choice).toLowerCase();
-      if (ec.includes('embed') || ec.includes('hackathon')) {
-        track = 'Track 1: Embeddathon';
-      } else if (ec.includes('both')) {
-        track = 'Track 2: Project Expo & Track 3: Paper';
-      } else if (ec.includes('expo') || ec.includes('exhibition') || ec.includes('project')) {
-        track = 'Track 2: Project Expo';
-      } else if (ec.includes('paper')) {
-        track = 'Track 3: Paper Presentation';
-      } else {
-        track = r.event_choice;
+    // Resolve Track
+    let track = cleanStr(r.track) || cleanStr(r.event) || cleanStr(r.event_choice) || '';
+    const trackLower = track.toLowerCase();
+    const idLower = cleanStr(r.id).toLowerCase();
+
+    if (idLower.startsWith('emb-') || trackLower.includes('embed') || trackLower.includes('hackathon') || trackLower === 'track 1') {
+      track = 'Track 1: Embeddathon';
+    } else if (trackLower.includes('both') || (trackLower.includes('expo') && trackLower.includes('paper')) || trackLower.includes('dual')) {
+      track = 'Track 2: Project Expo & Track 3: Paper';
+    } else if (idLower.startsWith('ppr-') || idLower.startsWith('pp-') || trackLower.includes('paper') || trackLower.includes('research') || trackLower === 'track 3') {
+      track = 'Track 3: Paper Presentation';
+    } else if (idLower.startsWith('exp-') || trackLower.includes('expo') || trackLower.includes('exhibition') || trackLower.includes('hardware') || trackLower.includes('software') || trackLower.includes('project') || trackLower === 'track 2') {
+      track = 'Track 2: Project Expo';
+    } else if (!track) {
+      track = 'Track 2: Project Expo';
+    }
+
+    // Smart Roster Healer: if title or leader are missing, restore from master teams data
+    if (typeof PROJECT_EXPO_TEAMS !== 'undefined' || typeof PAPER_TEAMS !== 'undefined' || typeof TEAMS_DATA !== 'undefined') {
+      const allMaster = [
+        ...(typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA : []),
+        ...(typeof PROJECT_EXPO_TEAMS !== 'undefined' ? PROJECT_EXPO_TEAMS : []),
+        ...(typeof PAPER_TEAMS !== 'undefined' ? PAPER_TEAMS : [])
+      ];
+
+      const rId = cleanStr(r.id);
+      const matched = allMaster.find(t => {
+        if (rId && t.slot && t.slot === rId) return true;
+        if (rId && t.number && (t.number === rId || `EXP-${t.number}` === rId || `PPR-${t.number}` === rId || `EMB-${t.number}` === rId)) return true;
+        if (college && t.college && college.length >= 3) {
+          const c1 = college.toLowerCase();
+          const c2 = (t.college || '').toLowerCase();
+          if ((c1.includes('shree devi') && c2.includes('shree devi')) ||
+              (c1.includes('rit') && c2.includes('rit')) ||
+              (c1 === 'bit' && (c2.includes('bearys') || c2.includes('bit'))) ||
+              (c1 === 'pace' && (c2.includes('p.a.') || c2.includes('pace')))) {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      if (matched) {
+        if (title === 'Project Prototype') title = matched.name || matched.abstract_title || title;
+        if (leaderName === 'Team Leader') leaderName = matched.lead || (matched.members && matched.members[0] ? matched.members[0].name : leaderName);
+        if (dept === 'Engineering') dept = matched.dept || (matched.section ? `CSE (Section ${matched.section})` : dept);
+        if (college === 'P.A. College of Engineering, Mangaluru' && matched.college) college = matched.college;
+        if (!assignedStall) assignedStall = matched.stall || matched.slot || '';
+        if (usn === '--' && matched.members && matched.members[0] && matched.members[0].usn) usn = matched.members[0].usn;
+        if (!phone && matched.phone) phone = matched.phone;
+        if (!email && matched.email) email = matched.email;
+        if (matched.project_type) domain = `${matched.project_type} Track`;
       }
     }
 
     return {
       ...r,
-      id: r.id || 'REG',
+      id: cleanStr(r.id) || 'REG',
       title,
       leaderName,
       phone,
@@ -244,8 +295,8 @@
       feePaid,
       verified,
       domain,
-      track: track || 'Track 2: Project Expo',
-      assignedStall: r.assignedStall || r.assigned_stall || ''
+      track,
+      assignedStall
     };
   }
 
@@ -571,67 +622,130 @@
     }
   }
 
+  function parseCSVToRows(text) {
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      const next = text[i + 1];
+
+      if (inQuotes) {
+        if (c === '"') {
+          if (next === '"') {
+            field += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          field += c;
+        }
+      } else {
+        if (c === '"') {
+          inQuotes = true;
+        } else if (c === ',') {
+          row.push(field.trim());
+          field = '';
+        } else if (c === '\r') {
+          // ignore
+        } else if (c === '\n') {
+          row.push(field.trim());
+          if (row.some(cell => cell.length > 0)) {
+            rows.push(row);
+          }
+          row = [];
+          field = '';
+        } else {
+          field += c;
+        }
+      }
+    }
+    if (field || row.length > 0) {
+      row.push(field.trim());
+      if (row.some(cell => cell.length > 0)) {
+        rows.push(row);
+      }
+    }
+    return rows;
+  }
+
   function parseAndImportCsv(csvText, sourceUrl = '') {
-    const lines = csvText.trim().split(/\r?\n/).filter(Boolean);
-    if (lines.length < 2) {
-      alert('CSV file appears empty or missing rows.');
+    const rows = parseCSVToRows(csvText);
+    if (rows.length < 2) {
+      alert('CSV file appears empty or missing data rows.');
       return;
     }
 
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+    const headers = rows[0].map(h => cleanStr(h).toLowerCase());
     
-    // Fuzzy column detection
-    const findCol = (keywords) => {
-      return headers.findIndex(h => keywords.some(k => h.includes(k.toLowerCase())));
+    // Exact or priority fuzzy column detection
+    const findExactOrFuzzyCol = (priorityKeywords) => {
+      for (const kw of priorityKeywords) {
+        const idx = headers.findIndex(h => h.includes(kw.toLowerCase()));
+        if (idx >= 0) return idx;
+      }
+      return -1;
     };
 
-    const colTimestamp = findCol(['timestamp', 'date', 'time']);
-    const colTrack = findCol(['track', 'event', 'select track']);
-    const colTitle = findCol(['title', 'project', 'paper']);
-    const colCollege = findCol(['college', 'institution']);
-    const colDept = findCol(['dept', 'department', 'semester', 'year']);
-    const colName = findCol(['leader', 'name', 'full name']);
-    const colEmail = findCol(['email']);
-    const colPhone = findCol(['phone', 'whatsapp', 'mobile', 'contact']);
-    const colUsn = findCol(['usn', 'roll']);
-    const colCount = findCol(['members', 'size', 'total number']);
-    const colAbstract = findCol(['abstract', 'description', 'synopsis']);
-    const colDomain = findCol(['domain', 'category']);
-    const colHw = findCol(['hardware', 'power', 'requirement']);
+    const colTimestamp = findExactOrFuzzyCol(['timestamp', 'date', 'time']);
+    const colTrack = findExactOrFuzzyCol(['select event', 'track', 'event']);
+    const colTitle = findExactOrFuzzyCol(['project title', 'paper title', 'title of project', 'title']);
+    const colTeamName = findExactOrFuzzyCol(['team name', 'team']);
+    const colCollege = findExactOrFuzzyCol(['college/institution', 'institution', 'college']);
+    const colDept = findExactOrFuzzyCol(['department', 'dept', 'branch']);
+    const colLeaderName = findExactOrFuzzyCol(['full name', 'leader name', 'lead name', 'team leader', 'name']);
+    const colEmail = findExactOrFuzzyCol(['email', 'email address']);
+    const colPhone = findExactOrFuzzyCol(['phone/whatsapp', 'whatsapp', 'phone', 'mobile', 'contact']);
+    const colUsn = findExactOrFuzzyCol(['usn', 'roll number', 'roll no']);
+    const colCount = findExactOrFuzzyCol(['members count', 'team size', 'total number', 'members']);
+    const colAbstract = findExactOrFuzzyCol(['brief summary / abstract', 'abstract', 'description', 'synopsis']);
+    const colDomain = findExactOrFuzzyCol(['paper topic / domain', 'domain', 'category', 'project type']);
+    const colHw = findExactOrFuzzyCol(['hardware', 'power', 'requirement']);
 
     const newRecords = [];
 
-    for (let i = 1; i < lines.length; i++) {
-      // Regex split to handle quotes
-      const row = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
-      const clean = row.map(v => (v || '').trim().replace(/^"|"$/g, ''));
+    for (let i = 1; i < rows.length; i++) {
+      const clean = rows[i];
+      const getVal = (idx) => (idx >= 0 && idx < clean.length ? cleanStr(clean[idx]) : '');
 
-      const rec = {
+      const parsedTitle = getVal(colTitle) || getVal(colTeamName) || 'Project Prototype';
+      const parsedLead = getVal(colLeaderName) || 'Team Leader';
+      const parsedColl = getVal(colCollege) || 'P.A. College of Engineering, Mangaluru';
+      const parsedDept = getVal(colDept) || 'Engineering';
+
+      const rawRec = {
         id: `GOOGLE-${Date.now()}-${i}`,
-        timestamp: colTimestamp >= 0 ? clean[colTimestamp] : new Date().toISOString(),
-        track: colTrack >= 0 && clean[colTrack] ? clean[colTrack] : 'Track 1: Embeddathon',
-        title: colTitle >= 0 && clean[colTitle] ? clean[colTitle] : 'Untitled Innovation',
-        college: colCollege >= 0 && clean[colCollege] ? clean[colCollege] : 'P.A. College of Engineering',
-        dept: colDept >= 0 && clean[colDept] ? clean[colDept] : 'CSE',
-        leaderName: colName >= 0 && clean[colName] ? clean[colName] : 'Lead Participant',
-        email: colEmail >= 0 && clean[colEmail] ? clean[colEmail] : '',
-        phone: colPhone >= 0 && clean[colPhone] ? clean[colPhone] : '',
-        usn: colUsn >= 0 && clean[colUsn] ? clean[colUsn] : '',
-        membersCount: colCount >= 0 && parseInt(clean[colCount]) ? parseInt(clean[colCount]) : 1,
-        abstract: colAbstract >= 0 && clean[colAbstract] ? clean[colAbstract] : '',
-        domain: colDomain >= 0 && clean[colDomain] ? clean[colDomain] : 'Embedded Systems',
-        hardwareReq: colHw >= 0 && clean[colHw] ? clean[colHw] : 'Standard 230V',
+        timestamp: getVal(colTimestamp) || new Date().toISOString(),
+        track: getVal(colTrack) || 'Track 2: Project Expo',
+        title: parsedTitle,
+        team_name: getVal(colTeamName) || parsedTitle,
+        college: parsedColl,
+        dept: parsedDept,
+        leaderName: parsedLead,
+        email: getVal(colEmail),
+        phone: getVal(colPhone),
+        usn: getVal(colUsn),
+        membersCount: parseInt(getVal(colCount)) || 1,
+        abstract: getVal(colAbstract),
+        domain: getVal(colDomain) || 'Engineering Innovation',
+        hardwareReq: getVal(colHw) || 'Standard Table Space & Power',
         feePaid: true,
         verified: true,
         assignedStall: ''
       };
 
-      newRecords.push(rec);
+      const normalized = normalizeRegistration(rawRec);
+      if (normalized) {
+        newRecords.push(normalized);
+      }
     }
 
     // Merge or push to registrations
     newRecords.forEach(nr => {
-      const existingIdx = registrations.findIndex(r => r.email && r.email.toLowerCase() === nr.email.toLowerCase());
+      const existingIdx = registrations.findIndex(r => (r.email && nr.email && r.email.toLowerCase() === nr.email.toLowerCase()) || (r.id && nr.id && r.id === nr.id));
       if (existingIdx >= 0) {
         registrations[existingIdx] = { ...registrations[existingIdx], ...nr };
       } else {
@@ -686,11 +800,17 @@
     }
 
     registrationsTableBody.innerHTML = filtered.map((r, idx) => {
-      const trackShort = (r.track || '').includes('Embeddathon')
-        ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-orange-100 text-[#ea580c]">Track 1</span>'
-        : (r.track || '').includes('Expo') || (r.track || '').includes('Exhibition')
-        ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-800">Track 2</span>'
-        : '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-indigo-100 text-indigo-800">Track 3</span>';
+      const displayTitle = cleanStr(r.title) || cleanStr(r.project_title) || cleanStr(r.paper_title) || cleanStr(r.name) || cleanStr(r.team_name) || 'Project Prototype';
+      const displayLeader = cleanStr(r.leaderName) || cleanStr(r.lead_name) || cleanStr(r.lead) || (r.members && r.members[0] ? cleanStr(r.members[0].name) : '') || 'Team Leader';
+      const displayCollege = cleanStr(r.college) || cleanStr(r.institution) || 'P.A. College of Engineering, Mangaluru';
+      const displayDept = cleanStr(r.dept) || cleanStr(r.department) || (r.members && r.members[0] ? cleanStr(r.members[0].dept) : '') || 'Engineering';
+      const displayUsn = cleanStr(r.usn) || cleanStr(r.lead_usn) || (r.members && r.members[0] ? cleanStr(r.members[0].usn) : '') || '--';
+      const displayDomain = cleanStr(r.domain) || cleanStr(r.paper_domain) || cleanStr(r.project_type) || 'Engineering Innovation';
+      const displayPhone = cleanStr(r.phone) || cleanStr(r.lead_phone) || (r.members && r.members[0] ? cleanStr(r.members[0].phone) : '');
+      const displayEmail = cleanStr(r.email) || cleanStr(r.lead_email) || (r.members && r.members[0] ? cleanStr(r.members[0].email) : '');
+      const displayStall = cleanStr(r.assignedStall) || cleanStr(r.assigned_stall) || cleanStr(r.stall) || cleanStr(r.slot) || '';
+      const displayId = cleanStr(r.id) || `REG-${idx + 1}`;
+      const isFeePaid = (r.feePaid !== false && r.fee_paid !== false);
 
       return `
         <tr class="hover:bg-[#f6f1e6]/60 transition text-xs">
@@ -700,53 +820,53 @@
           <td class="py-2.5 px-3">
             <div class="flex items-center gap-1.5 mb-0.5">
               ${trackBadgeShort(r.track)}
-              <span class="text-[10px] text-[#64748b] font-mono">${r.id}</span>
+              <span class="text-[10px] text-[#64748b] font-mono">${displayId}</span>
             </div>
-            <span class="font-extrabold text-[#0f172a] block font-serif-pace text-sm leading-tight">${r.title}</span>
-            <span class="text-[10px] text-[#64748b] block italic truncate max-w-xs">${r.domain || 'Engineering Innovation'}</span>
+            <span class="font-extrabold text-[#0f172a] block font-serif-pace text-sm leading-tight">${displayTitle}</span>
+            <span class="text-[10px] text-[#64748b] block italic truncate max-w-xs">${displayDomain}</span>
           </td>
 
           <!-- Team Leader & Contact -->
           <td class="py-2.5 px-3">
-            <span class="font-bold text-[#0f172a] block">${r.leaderName}</span>
-            <span class="text-[10px] text-[#64748b] font-mono block">${r.usn || '--'}</span>
+            <span class="font-bold text-[#0f172a] block">${displayLeader}</span>
+            <span class="text-[10px] text-[#64748b] font-mono block">${displayUsn}</span>
             <div class="flex items-center gap-2 pt-0.5 text-[10px]">
-              ${r.phone ? `<a href="https://wa.me/${r.phone.replace(/[^0-9]/g, '')}" target="_blank" class="text-emerald-600 font-bold hover:underline flex items-center gap-0.5"><span>📱</span><span>${r.phone}</span></a>` : ''}
-              ${r.email ? `<a href="mailto:${r.email}" class="text-blue-600 font-bold hover:underline">✉️</a>` : ''}
+              ${displayPhone ? `<a href="https://wa.me/${displayPhone.replace(/[^0-9]/g, '')}" target="_blank" class="text-emerald-600 font-bold hover:underline flex items-center gap-0.5"><span>📱</span><span>${displayPhone}</span></a>` : ''}
+              ${displayEmail ? `<a href="mailto:${displayEmail}" class="text-blue-600 font-bold hover:underline">✉️</a>` : ''}
             </div>
           </td>
 
           <!-- College & Dept -->
           <td class="py-2.5 px-3">
-            <span class="font-bold text-[#0f172a] block truncate max-w-[180px]">${r.college}</span>
-            <span class="text-[10px] text-[#64748b] block truncate max-w-[180px]">${r.dept}</span>
+            <span class="font-bold text-[#0f172a] block truncate max-w-[180px]">${displayCollege}</span>
+            <span class="text-[10px] text-[#64748b] block truncate max-w-[180px]">${displayDept}</span>
           </td>
 
           <!-- Team Size -->
           <td class="py-2.5 px-2 text-center">
             <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f6f1e6] text-[#0f172a] border border-[#e3dccd]">
-              ${r.membersCount || 1} pax
+              ${r.membersCount || (r.members && r.members.length) || 1} pax
             </span>
           </td>
 
           <!-- Stall / Presentation Slot -->
           <td class="py-2.5 px-2.5 text-center">
-            <input type="text" value="${r.assignedStall || ''}" placeholder="Assign..." 
+            <input type="text" value="${displayStall}" placeholder="Assign..." 
                    class="w-20 text-center font-mono text-xs font-bold bg-white border border-[#cbd5e1] rounded-lg px-1 py-0.5 focus:ring-1 focus:ring-[#ea580c]"
-                   onchange="window.updateStall('${r.id}', this.value)">
+                   onchange="window.updateStall('${displayId}', this.value)">
           </td>
 
           <!-- Fee Status Toggle -->
           <td class="py-2.5 px-2 text-center">
-            <button type="button" class="px-2 py-0.5 rounded text-[10px] font-black uppercase transition ${r.feePaid ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'}"
-                    onclick="window.toggleFeeStatus('${r.id}')">
-              ${r.feePaid ? 'PAID ✓' : 'UNPAID ✕'}
+            <button type="button" class="px-2 py-0.5 rounded text-[10px] font-black uppercase transition ${isFeePaid ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'}"
+                    onclick="window.toggleFeeStatus('${displayId}')">
+              ${isFeePaid ? 'PAID ✓' : 'UNPAID ✕'}
             </button>
           </td>
 
           <!-- Actions -->
           <td class="py-2.5 px-3 text-right">
-            <button type="button" class="p-1 rounded hover:bg-rose-50 text-rose-600 font-bold transition text-xs" onclick="window.deleteRegistration('${r.id}')" title="Delete Team">
+            <button type="button" class="p-1 rounded hover:bg-rose-50 text-rose-600 font-bold transition text-xs" onclick="window.deleteRegistration('${displayId}')" title="Delete Team">
               🗑️
             </button>
           </td>
@@ -756,17 +876,17 @@
   }
 
   function trackBadgeShort(track) {
-    const t = String(track || '');
-    if (t.includes('Embeddathon') || t.includes('Track 1')) {
+    const t = String(track || '').toLowerCase();
+    if (t.includes('embed') || t.includes('hackathon') || t.includes('track 1')) {
       return '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-orange-100 text-[#ea580c]">Track 1</span>';
     }
-    if (t.includes('both') || (t.includes('Track 2') && t.includes('Track 3'))) {
+    if (t.includes('both') || (t.includes('track 2') && t.includes('track 3')) || t.includes('dual')) {
       return '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-purple-100 text-purple-800">Track 2 & 3</span>';
     }
-    if (t.includes('Expo') || t.includes('Exhibition') || t.includes('Track 2')) {
-      return '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-800">Track 2</span>';
+    if (t.includes('paper') || t.includes('research') || t.includes('track 3')) {
+      return '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-indigo-100 text-indigo-800">Track 3</span>';
     }
-    return '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-indigo-100 text-indigo-800">Track 3</span>';
+    return '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-800">Track 2</span>';
   }
 
   window.updateStall = async function (id, value) {

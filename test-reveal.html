@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>EMBERS '26 · Rehearsal & Test Reveal Stage (Direct URL Only)</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#1a0a05">
+  <link rel="icon" type="image/png" href="assets/embers_logo.png">
+  <link rel="alternate icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="reveal-theme.css">
+  <style>
+    /* Dedicated Rehearsal Test Deck Styling */
+    .rv-test-deck {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 2px solid #ea580c;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+      padding: 6px 12px;
+      font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .rv-test-deck.is-minimized {
+      transform: translateY(-82%);
+    }
+    .rv-test-deck-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .rv-test-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .rv-test-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #ea580c;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      box-shadow: 0 0 12px rgba(234, 88, 12, 0.5);
+    }
+    .rv-test-btn {
+      padding: 4px 9px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .rv-test-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px);
+    }
+    .rv-test-btn:active {
+      transform: translateY(1px);
+    }
+    .rv-test-btn--active {
+      background: #ea580c !important;
+      border-color: #f97316 !important;
+      color: #fff !important;
+      box-shadow: 0 0 10px rgba(234, 88, 12, 0.6);
+    }
+    .rv-test-btn--emerald {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+    }
+    .rv-test-btn--emerald:hover {
+      background: rgba(16, 185, 129, 0.35);
+      color: #fff;
+    }
+    .rv-test-btn--amber {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fde68a;
+    }
+    .rv-test-btn--amber:hover {
+      background: rgba(245, 158, 11, 0.35);
+      color: #fff;
+    }
+    .rv-test-toggle-deck {
+      background: #334155;
+      color: #cbd5e1;
+      border: 1px solid #475569;
+      font-size: 10px;
+      padding: 3px 8px;
+    }
+    /* Shift header down when test deck is visible */
+    body.has-test-deck .rv-header {
+      margin-top: 48px;
+    }
+    @media (max-width: 768px) {
+      body.has-test-deck .rv-header {
+        margin-top: 86px;
+      }
+    }
+  </style>
+</head>
+<body class="ceremony-brand has-test-deck">
+
+  <!-- ========================================================= -->
+  <!-- 0. FLOATING REHEARSAL & TEST CONTROL DECK (URL ONLY)      -->
+  <!-- ========================================================= -->
+  <aside id="testControlDeck" class="rv-test-deck" aria-label="Rehearsal & Test Controls">
+    <div class="rv-test-deck-inner">
+      <div class="rv-test-group">
+        <span class="rv-test-badge">🧪 Rehearsal Mode</span>
+        
+        <!-- Dataset Source Toggle -->
+        <button id="btnToggleDataset" type="button" class="rv-test-btn rv-test-btn--active" title="Toggle Simulated Demo Scores vs Live Sync">
+          <span id="txtDatasetSource">✨ Mock Demo Scores</span>
+        </button>
+
+        <!-- Shuffle Winners -->
+        <button id="btnShuffleDemo" type="button" class="rv-test-btn rv-test-btn--amber" title="Randomize Demo Winners with Real Team Lineups (Shortcut: S)">
+          <span>🎲 Shuffle Winners</span>
+        </button>
+      </div>
+
+      <!-- Quick Step Jumper -->
+      <div class="rv-test-group">
+        <span style="font-size: 10px; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Step:</span>
+        <button type="button" class="rv-test-btn btn-teleport-step" data-step="0" title="Welcome Screen (Key: 0)">0: 👋 Welcome</button>
+        <button type="button" class="rv-test-btn btn-teleport-step" data-step="3" title="3rd Place Reveal (Key: 3)">3: 🥉 3rd</button>
+        <button type="button" class="rv-test-btn btn-teleport-step" data-step="2" title="2nd Place Reveal (Key: 2)">2: 🥈 2nd</button>
+        <button type="button" class="rv-test-btn btn-teleport-step" data-step="1" title="1st Place Champion Reveal (Key: 1)">1: 🥇 1st</button>
+        <button type="button" class="rv-test-btn btn-teleport-step" data-step="4" title="Full Grand Olympic Podium (Key: 4)">4: 🏆 Podium</button>
+      </div>
+
+      <!-- SFX & FX Trigger -->
+      <div class="rv-test-group">
+        <button id="btnTestDrumroll" type="button" class="rv-test-btn rv-test-btn--emerald" title="Test Drumroll Sound">🥁 Drumroll</button>
+        <button id="btnTestFanfare" type="button" class="rv-test-btn rv-test-btn--emerald" title="Test Brass Fanfare">🎺 Fanfare</button>
+        <button id="btnTestConfetti" type="button" class="rv-test-btn rv-test-btn--emerald" title="Test Confetti Burst (Key: C)">🎉 Confetti</button>
+        <button id="btnTestApplause" type="button" class="rv-test-btn rv-test-btn--emerald" title="Test Crowd Applause">👏 Applause</button>
+
+        <!-- Minimize/Expand Deck -->
+        <button id="btnToggleDeckVisibility" type="button" class="rv-test-btn rv-test-toggle-deck" title="Hide/Show Test Bar (Shortcut: T)">
+          <span id="txtToggleDeck">Hide Deck ▲</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Floating answer-tile shapes behind the stage -->
+  <div class="rv-bg" aria-hidden="true">
+    <span class="k-shape k-shape--triangle rv-bg-shape rv-bg-shape--a"></span>
+    <span class="k-shape k-shape--diamond rv-bg-shape rv-bg-shape--b"></span>
+    <span class="k-shape k-shape--circle rv-bg-shape rv-bg-shape--c"></span>
+    <span class="k-shape k-shape--square rv-bg-shape rv-bg-shape--d"></span>
+    <span class="k-shape k-shape--diamond rv-bg-shape rv-bg-shape--e"></span>
+    <span class="k-shape k-shape--triangle rv-bg-shape rv-bg-shape--f"></span>
+  </div>
+  <div class="rv-flame-mark" aria-hidden="true">
+    <img src="assets/embers_flame.png" alt="">
+  </div>
+  <div class="rv-embers" id="emberField" aria-hidden="true"></div>
+
+  <!-- ========================================================= -->
+  <!-- 1. OFFICIAL STAGE HEADER                                  -->
+  <!-- ========================================================= -->
+  <header class="rv-header">
+    <div class="rv-header-inner">
+      <div class="rv-brand">
+        <span class="rv-crest-chip">
+          <img src="assets/pace_crest.png" alt="PACE Crest" onerror="this.style.display='none'">
+        </span>
+        <span class="rv-crest-chip rv-crest-chip--embers">
+          <img src="assets/embers_logo.png" alt="EMBERS '26" onerror="this.style.display='none'">
+        </span>
+        <span class="rv-brand-copy">
+          <span class="rv-brand-college">P.A. College of Engineering, Mangaluru</span>
+          <span class="rv-brand-dept">Dept. of Computer Science &amp; Engineering</span>
+          <span class="rv-brand-club">Embed Club &middot; IEEE CEDA Student Branch</span>
+        </span>
+      </div>
+
+      <div class="rv-tools">
+        <button id="btnAudioToggle" type="button" class="rv-tool-btn" title="Toggle Sound Engine (Shortcut: M)">
+          <span id="audioIcon">🔊</span>
+          <span id="audioStatusText" class="rv-tool-label">SOUND ON</span>
+        </button>
+
+        <select id="stageCategorySelect" class="rv-select" title="Choose the award category">
+          <optgroup label="⚡ EMBERS '26 · Three Events">
+            <option value="PAPER">📄 Paper Presentation</option>
+            <option value="PROJECT_EXPO">🛠️ Project Expo</option>
+            <option value="EMBEDDATHON">⚡ Embeddathon</option>
+          </optgroup>
+          <optgroup label="🏫 Section Awards (Embeddathon)">
+            <option value="A">Section A (Teams 01–11)</option>
+            <option value="B">Section B (Teams 12–24)</option>
+          </optgroup>
+          <optgroup label="🏆 Combined">
+            <option value="OVERALL" selected>🏆 Overall Champions (24)</option>
+          </optgroup>
+        </select>
+
+        <button id="btnOpenStandingsModal" type="button" class="rv-tool-btn" title="View Full Event Standings">
+          <span>📋</span>
+          <span class="rv-tool-label">Standings</span>
+        </button>
+
+        <button id="btnFullscreenToggle" type="button" class="rv-tool-btn rv-tool-btn--solid" title="Toggle Fullscreen Projector Mode (Shortcut: F)">
+          <span id="fsIcon">⛶</span>
+          <span class="rv-tool-label">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="rv-ribbon">
+      <div class="rv-ribbon-left">
+        <span id="revealBannerEvent" class="rv-ribbon-event">EMBEDTHON '26</span>
+        <span class="rv-ribbon-sep">·</span>
+        <span class="rv-ribbon-title">GRAND RESULTS REVEAL</span>
+        <span class="rv-ribbon-sep rv-hide-sm">·</span>
+        <span id="revealBannerSub" class="rv-ribbon-sub rv-hide-sm">Rehearsal &amp; Projector Test Simulator</span>
+      </div>
+      <div class="rv-ribbon-right">
+        <span id="liveSyncStatusBadge" class="rv-live" style="background: rgba(234,88,12,0.2); color: #fed7aa; border: 1px solid rgba(234,88,12,0.4);">
+          <span class="rv-live-dot" style="background: #ea580c; box-shadow: 0 0 8px #ea580c;"></span>
+          <span id="txtStageDataBadge">MOCK DEMO MODE</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================= -->
+  <!-- 2. THE STAGE                                              -->
+  <!-- ========================================================= -->
+  <main id="ceremonyStageArena" class="rv-stage" aria-live="polite">
+    <!-- Rendered dynamically by test-reveal.js -->
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- 3. CEREMONY CONTROL BAR                                   -->
+  <!-- ========================================================= -->
+  <footer class="rv-footer">
+    <div class="rv-footer-inner">
+      <div class="rv-footer-left">
+        <button id="btnPrevStep" type="button" class="rv-btn rv-btn--ghost" title="Previous (Shortcut: Left Arrow)">
+          <span>◀</span>
+          <span class="rv-btn-label">Back</span>
+        </button>
+        <button id="btnConfettiBurst" type="button" class="rv-btn rv-btn--ghost" title="Launch Confetti Blast (Shortcut: C)">
+          <span>🎉</span>
+          <span class="rv-btn-label">Confetti</span>
+        </button>
+
+        <label class="rv-auto" id="autoControl" title="Auto-advance timer — choose an interval (Shortcut: A)">
+          <span class="rv-auto-label">AUTO</span>
+          <select id="autoAdvanceSelect" class="rv-auto-select" aria-label="Auto-advance interval">
+            <option value="0">Off</option>
+            <option value="6">6s</option>
+            <option value="10">10s</option>
+            <option value="15">15s</option>
+            <option value="20">20s</option>
+            <option value="30">30s</option>
+          </select>
+          <span id="autoCountdown" class="rv-auto-count"></span>
+        </label>
+      </div>
+
+      <div class="rv-step">
+        <span class="rv-step-dot"></span>
+        <span id="stageStepIndicator">Stage ready · Test &amp; Rehearsal</span>
+      </div>
+
+      <button id="btnNextStep" type="button" class="rv-btn rv-btn--next">
+        <span id="btnNextLabel">Start the reveal ▶</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- ========================================================= -->
+  <!-- 4. FULL MERIT STANDINGS MODAL                             -->
+  <!-- ========================================================= -->
+  <div id="standingsModal" class="rv-modal" aria-hidden="true">
+    <div class="rv-modal-card" role="dialog" aria-modal="true" aria-labelledby="standingsTitle">
+      <div class="rv-modal-head">
+        <div class="rv-modal-heading">
+          <span class="rv-crest-chip rv-crest-chip--modal">
+            <img src="assets/pace_crest.png" alt="PACE Crest" onerror="this.style.display='none'">
+          </span>
+          <div>
+            <h2 id="standingsTitle" class="rv-modal-title">Official Merit Standings (Simulated)</h2>
+            <p id="standingsModalSub" class="rv-modal-sub">Phase 1 Mentoring (30%) + Phase 2 Final Expo (70%) = Total Score (100%)</p>
+          </div>
+        </div>
+        <button id="btnCloseStandingsModal" type="button" class="rv-modal-close" aria-label="Close standings">&times;</button>
+      </div>
+
+      <div class="rv-modal-controls">
+        <label class="rv-filter">
+          <span>Filter section</span>
+          <select id="modalSectionFilter" class="rv-select rv-select--light">
+            <option value="ALL">All Sections</option>
+            <option value="A">Section A</option>
+            <option value="B">Section B</option>
+          </select>
+        </label>
+
+        <button type="button" onclick="window.print()" class="rv-btn rv-btn--ghost rv-btn--small">
+          <span>🖨️</span>
+          <span>Print / Save PDF</span>
+        </button>
+      </div>
+
+      <div class="rv-modal-scroll">
+        <table class="rv-table">
+          <thead>
+            <tr id="standingsTheadRow">
+              <th class="is-center">Rank</th>
+              <th>Team</th>
+              <th>Team Name &amp; Project</th>
+              <th class="is-center">Sec / Track</th>
+              <th class="is-center">Phase 1 (/30)</th>
+              <th class="is-center">Phase 2 (/70)</th>
+              <th class="is-right">Total (/100)</th>
+            </tr>
+          </thead>
+          <tbody id="standingsTableBody">
+            <!-- Rendered by test-reveal.js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="rubrics.js"></script>
+  <script src="teams.js"></script>
+  <script src="test-reveal.js"></script>
+</body>
+</html>

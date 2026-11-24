@@ -35,41 +35,86 @@ const DEFAULT_EMBERS_DATA = {
   }
 };
 
+function cleanStr(val, fallback = '') {
+  if (val === undefined || val === null) return fallback;
+  const s = String(val).trim();
+  const lower = s.toLowerCase();
+  if (lower === '' || lower === 'undefined' || lower === 'null' || lower === 'none' || lower === 'n/a') {
+    return fallback;
+  }
+  return s;
+}
+
 function normalizeReg(r) {
   if (!r) return null;
   const lead = (r.members && r.members.length) ? (r.members.find(m => m.is_lead) || r.members[0]) : null;
   const leadDept = (lead && lead.dept) ? lead.dept : (r.dept || '');
-  const title = r.title || r.project_title || r.paper_title || r.team_name || 'Project Prototype';
-  const leaderName = r.leaderName || r.lead_name || (lead ? lead.name : '') || 'Team Leader';
-  const phone = r.phone || r.lead_phone || (lead ? lead.phone : '') || '';
-  const email = r.email || r.lead_email || (lead ? lead.email : '') || '';
-  const usn = r.usn || r.lead_usn || (lead ? lead.usn : '') || '';
-  const college = r.college || 'P.A. College of Engineering, Mangaluru';
-  const dept = r.dept || leadDept || 'Engineering';
-  const membersCount = r.membersCount || r.member_count || (r.members ? r.members.length : 1);
-  const feePaid = (r.feePaid !== undefined) ? r.feePaid : (r.fee_paid !== undefined ? r.fee_paid : true);
-  const verified = (r.verified !== undefined) ? r.verified : true;
-  const domain = r.domain || r.paper_domain || r.project_type || 'Engineering Innovation';
+
+  let title = cleanStr(r.title) || cleanStr(r.project_title) || cleanStr(r.paper_title) || cleanStr(r.name) || cleanStr(r.team_name) || 'Project Prototype';
+  let leaderName = cleanStr(r.leaderName) || cleanStr(r.lead_name) || cleanStr(r.lead) || (lead ? cleanStr(lead.name) : '') || 'Team Leader';
+  let phone = cleanStr(r.phone) || cleanStr(r.lead_phone) || (lead ? cleanStr(lead.phone) : '') || '';
+  let email = cleanStr(r.email) || cleanStr(r.lead_email) || (lead ? cleanStr(lead.email) : '') || '';
+  let usn = cleanStr(r.usn) || cleanStr(r.lead_usn) || (lead ? cleanStr(lead.usn) : '') || '--';
+  let college = cleanStr(r.college) || cleanStr(r.institution) || 'P.A. College of Engineering, Mangaluru';
+  let dept = cleanStr(r.dept) || cleanStr(r.department) || cleanStr(leadDept) || 'Engineering';
+  let membersCount = parseInt(r.membersCount) || parseInt(r.member_count) || (r.members && r.members.length ? r.members.length : 1);
+  let feePaid = (r.feePaid !== false && r.fee_paid !== false);
+  let verified = (r.verified !== false);
+  let domain = cleanStr(r.domain) || cleanStr(r.paper_domain) || cleanStr(r.project_type) || 'Engineering Innovation';
+  let assignedStall = cleanStr(r.assignedStall) || cleanStr(r.assigned_stall) || cleanStr(r.stall) || cleanStr(r.slot) || '';
   
-  let track = r.track || '';
-  if (!track && r.event_choice) {
-    const ec = String(r.event_choice).toLowerCase();
-    if (ec.includes('embed') || ec.includes('hackathon')) {
-      track = 'Track 1: Embeddathon';
-    } else if (ec.includes('both')) {
-      track = 'Track 2: Project Expo & Track 3: Paper';
-    } else if (ec.includes('expo') || ec.includes('exhibition') || ec.includes('project')) {
-      track = 'Track 2: Project Expo';
-    } else if (ec.includes('paper')) {
-      track = 'Track 3: Paper Presentation';
-    } else {
-      track = r.event_choice;
+  // Resolve Track
+  let track = cleanStr(r.track) || cleanStr(r.event) || cleanStr(r.event_choice) || '';
+  const trackLower = track.toLowerCase();
+  const idLower = cleanStr(r.id).toLowerCase();
+
+  if (idLower.startsWith('emb-') || trackLower.includes('embed') || trackLower.includes('hackathon') || trackLower === 'track 1') {
+    track = 'Track 1: Embeddathon';
+  } else if (trackLower.includes('both') || (trackLower.includes('expo') && trackLower.includes('paper')) || trackLower.includes('dual')) {
+    track = 'Track 2: Project Expo & Track 3: Paper';
+  } else if (idLower.startsWith('ppr-') || idLower.startsWith('pp-') || trackLower.includes('paper') || trackLower.includes('research') || trackLower === 'track 3') {
+    track = 'Track 3: Paper Presentation';
+  } else if (idLower.startsWith('exp-') || trackLower.includes('expo') || trackLower.includes('exhibition') || trackLower.includes('hardware') || trackLower.includes('software') || trackLower.includes('project') || trackLower === 'track 2') {
+    track = 'Track 2: Project Expo';
+  } else if (!track) {
+    track = 'Track 2: Project Expo';
+  }
+
+  // Master Roster Lookup & Healer
+  if (Array.isArray(OFFICIAL_REGISTRATIONS) && OFFICIAL_REGISTRATIONS.length > 0) {
+    const rId = cleanStr(r.id);
+    const matched = OFFICIAL_REGISTRATIONS.find(t => {
+      if (rId && t.id && (t.id === rId || t.id.toLowerCase() === rId.toLowerCase())) return true;
+      if (college && t.college && college.length >= 3) {
+        const c1 = college.toLowerCase();
+        const c2 = (t.college || '').toLowerCase();
+        if ((c1.includes('shree devi') && c2.includes('shree devi')) ||
+            (c1.includes('rit') && c2.includes('rit')) ||
+            (c1 === 'bit' && (c2.includes('bearys') || c2.includes('bit'))) ||
+            (c1 === 'pace' && (c2.includes('p.a.') || c2.includes('pace')))) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (matched) {
+      if (title === 'Project Prototype') title = matched.title || matched.team_name || title;
+      if (leaderName === 'Team Leader') leaderName = matched.leaderName || matched.lead_name || leaderName;
+      if (dept === 'Engineering') dept = matched.dept || dept;
+      if (college === 'P.A. College of Engineering, Mangaluru' && matched.college) college = matched.college;
+      if (!assignedStall) assignedStall = matched.assignedStall || '';
+      if (usn === '--' && matched.usn) usn = matched.usn;
+      if (!phone && matched.phone) phone = matched.phone;
+      if (!email && matched.email) email = matched.email;
+      if (matched.track) track = matched.track;
+      if (matched.membersCount) membersCount = matched.membersCount;
     }
   }
 
   return {
     ...r,
-    id: r.id || 'REG',
+    id: cleanStr(r.id) || 'REG',
     title,
     leaderName,
     phone,
@@ -81,8 +126,8 @@ function normalizeReg(r) {
     feePaid,
     verified,
     domain,
-    track: track || 'Track 2: Project Expo',
-    assignedStall: r.assignedStall || r.assigned_stall || ''
+    track,
+    assignedStall
   };
 }
 
@@ -104,15 +149,17 @@ module.exports = async function handler(req, res) {
       if (gist.files && gist.files['embers_data.json']) {
         const parsed = JSON.parse(gist.files['embers_data.json'].content);
         if (parsed.registrations && Array.isArray(parsed.registrations)) {
-          const clean = parsed.registrations.filter(r => {
-            const title = r.title || r.project_title || '';
-            const name = r.leaderName || r.lead_name || '';
-            return title !== 'Untitled Innovation' && name !== 'Lead Participant' && (title.length > 2 || name.length > 2);
+          const clean = parsed.registrations.map(normalizeReg).filter(Boolean).filter(r => {
+            const title = r.title || '';
+            const name = r.leaderName || '';
+            return title !== 'undefined' && name !== 'undefined' && title !== 'Untitled Innovation' && (title.length > 2 || name.length > 2);
           });
-          if (clean.length >= 40) {
+          if (clean.length >= OFFICIAL_REGISTRATIONS.length) {
             parsed.registrations = clean;
           } else {
-            parsed.registrations = OFFICIAL_REGISTRATIONS;
+            // Merge all official registrations with any valid spot registrations
+            const spotRegs = clean.filter(r => (r.id || '').startsWith('SPOT-') || r.is_spot);
+            parsed.registrations = [...OFFICIAL_REGISTRATIONS, ...spotRegs];
           }
         }
         embersData = { ...embersData, ...parsed };

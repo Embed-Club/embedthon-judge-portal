@@ -4746,6 +4746,20 @@ const PAPER_TEAMS = [
   }
 ];
 
+// Enrich TEAMS_DATA with standard top-level fields
+if (typeof TEAMS_DATA !== 'undefined' && Array.isArray(TEAMS_DATA)) {
+  TEAMS_DATA.forEach(t => {
+    const lead = t.members && t.members.length ? (t.members.find(m => m.is_lead) || t.members[0]) : null;
+    if (!t.college) t.college = 'P.A. College of Engineering, Mangaluru';
+    if (!t.dept) t.dept = `CSE (Section ${t.section || 'A'})`;
+    if (!t.lead && lead) t.lead = lead.name;
+    if (!t.phone && lead) t.phone = lead.phone;
+    if (!t.email && lead) t.email = lead.email;
+    if (!t.usn && lead) t.usn = lead.usn;
+    if (!t.project_title) t.project_title = t.abstract_title || `${t.name} Prototype`;
+  });
+}
+
 function getEventTeams(eventId) {
   if (eventId === 'PROJECT_EXPO') return PROJECT_EXPO_TEAMS;
   if (eventId === 'PAPER') return PAPER_TEAMS;
