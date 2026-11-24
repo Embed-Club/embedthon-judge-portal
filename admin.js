@@ -861,8 +861,8 @@
     const filteredTeams = eventTeams.filter((t) => {
       if (filterSec === 'ALL') return true;
       if (eventId === 'PROJECT_EXPO') {
-        if (filterSec === '3rd Year') return (t.category === '3rd Year' || parseInt(t.number, 10) <= 25);
-        if (filterSec === 'Final Year') return (t.category === 'Final Year' || parseInt(t.number, 10) >= 26);
+        if (filterSec === 'HARDWARE' || filterSec === 'Hardware') return (t.section === 'HARDWARE' || t.project_type === 'Hardware');
+        if (filterSec === 'SOFTWARE' || filterSec === 'Software') return (t.section === 'SOFTWARE' || t.project_type === 'Software');
       }
       return t.section === filterSec || event.mode === 'SINGLE';
     });
@@ -1165,9 +1165,9 @@
         if (matrixSectionFilter) {
           if (evId === 'PROJECT_EXPO') {
             matrixSectionFilter.innerHTML = `
-              <option value="ALL">All Stalls (36 Teams)</option>
-              <option value="3rd Year">3rd Year (Stalls 01–25)</option>
-              <option value="Final Year">Final Year (Stalls 26–36)</option>
+              <option value="ALL">All Stalls (42 Teams · 7 HW + 35 SW)</option>
+              <option value="HARDWARE">Hardware Track (HW 01–07)</option>
+              <option value="SOFTWARE">Software Track (SW 01–35)</option>
             `;
           } else if (evId === 'PAPER') {
             matrixSectionFilter.innerHTML = `

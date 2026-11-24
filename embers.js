@@ -305,8 +305,8 @@
           membersCount: t.member_count || (t.members ? t.members.length : 1),
           members: t.members || [],
           abstract: t.abstract || '',
-          domain: t.category ? `${t.category} Project Expo` : 'Engineering Innovation',
-          hardwareReq: 'Table Space & Power',
+          domain: t.project_type ? `${t.project_type} Track` : (t.category || 'Engineering Innovation'),
+          hardwareReq: t.project_type === 'Hardware' ? '230V Power Socket & Display Table' : 'Standard Table Space & Wi-Fi',
           feePaid: true,
           verified: true,
           assignedStall: t.stall || `Stall ${t.number}`

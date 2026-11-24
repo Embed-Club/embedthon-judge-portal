@@ -190,7 +190,7 @@
             TRACK 2 · EXPO
           </span>
           <span id="progressPill" class="text-slate-300 text-[10px] font-semibold">
-            0 / 36 Scored
+            0 / 42 Scored
           </span>
         </div>
       </div>
@@ -220,10 +220,10 @@
         </button>
       </div>
 
-      <!-- Quick Stall Category Filter -->
+      <!-- Quick Stall Category Filter: Hardware vs Software -->
       <div id="quickSectionSwitchWrapper" class="flex items-center gap-1 bg-[#f6f1e6] p-0.5 rounded-lg border border-[#e3dccd]">
-        <button id="btnSwitchSecA" class="px-2.5 py-1 text-xs font-black rounded bg-[#ea580c] text-white transition shadow-xs">Stalls 01–25 (3rd Yr)</button>
-        <button id="btnSwitchSecB" class="px-2.5 py-1 text-xs font-semibold rounded text-[#475569] hover:text-[#0f172a] transition">Stalls 26–36 (Final Yr)</button>
+        <button id="btnSwitchSecA" class="px-2.5 py-1 text-xs font-black rounded bg-[#ea580c] text-white transition shadow-xs">Hardware Track (01–07)</button>
+        <button id="btnSwitchSecB" class="px-2.5 py-1 text-xs font-semibold rounded text-[#475569] hover:text-[#0f172a] transition">Software Track (01–35)</button>
       </div>
     </div>
 
@@ -659,13 +659,14 @@
 
         <div class="flex items-center justify-between flex-wrap gap-1 text-[11px]">
           <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
-            <button class="roster-filter-btn px-2.5 py-1 rounded-md font-bold bg-[#0f172a] text-white" data-filter="all">All (36)</button>
-            <button class="roster-filter-btn px-2.5 py-1 rounded-md font-semibold text-[#475569] hover:bg-[#f6f1e6]" data-filter="3rd Year">3rd Yr (01–25)</button>
-            <button class="roster-filter-btn px-2.5 py-1 rounded-md font-semibold text-[#475569] hover:bg-[#f6f1e6]" data-filter="Final Year">Final Yr (26–36)</button>
+            <button class="roster-filter-btn px-2.5 py-1 rounded-md font-bold bg-[#0f172a] text-white" data-filter="all">All (42)</button>
+            <button class="roster-filter-btn px-2.5 py-1 rounded-md font-semibold text-[#475569] hover:bg-[#f6f1e6]" data-filter="Hardware">Hardware (01–07)</button>
+            <button class="roster-filter-btn px-2.5 py-1 rounded-md font-semibold text-[#475569] hover:bg-[#f6f1e6]" data-filter="Software">Software (01–35)</button>
           </div>
           <div class="flex items-center gap-1.5 flex-wrap">
-            <span id="rosterShowingCount" class="text-[10px] text-[#64748b]">36 stalls</span>
-            <a href="rosters/EMBERS_26_Project_Expo_Roster.pdf" target="_blank" class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-black text-[10px] hover:underline" title="Download Expo PDF Roster">📄 Expo PDF (45 pgs)</a>
+            <span id="rosterShowingCount" class="text-[10px] text-[#64748b]">42 projects</span>
+            <a href="rosters/EMBERS_26_Project_Expo_Hardware_Roster.pdf" target="_blank" class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-black text-[10px] hover:underline" title="Download Hardware Expo PDF Roster">📄 HW PDF (10 pgs)</a>
+            <a href="rosters/EMBERS_26_Project_Expo_Software_Roster.pdf" target="_blank" class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-black text-[10px] hover:underline" title="Download Software Expo PDF Roster">📄 SW PDF (38 pgs)</a>
           </div>
         </div>
       </div>
@@ -868,11 +869,17 @@
 
       <div class="flex-1 overflow-y-auto space-y-3 pr-1">
         <div>
-          <h4 class="text-xs font-bold text-[#ea580c] uppercase tracking-wider mb-1.5">3rd Year Stalls (01–25)</h4>
+          <h4 class="text-xs font-bold text-[#ea580c] uppercase tracking-wider mb-1.5 flex items-center justify-between">
+            <span>Hardware Projects (HW 01–07)</span>
+            <span class="text-[10px] text-slate-400 font-normal">7 Projects · Roster Order</span>
+          </h4>
           <div id="gridSectionA" class="grid grid-cols-4 gap-2"></div>
         </div>
         <div class="pt-2">
-          <h4 class="text-xs font-bold text-[#ea580c] uppercase tracking-wider mb-1.5">Final Year Stalls (26–36)</h4>
+          <h4 class="text-xs font-bold text-[#ea580c] uppercase tracking-wider mb-1.5 flex items-center justify-between">
+            <span>Software Projects (SW 01–35)</span>
+            <span class="text-[10px] text-slate-400 font-normal">35 Projects · Roster Order</span>
+          </h4>
           <div id="gridSectionB" class="grid grid-cols-4 gap-2"></div>
         </div>
       </div>

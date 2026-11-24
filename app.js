@@ -1199,9 +1199,10 @@
       if (teamSectionLabel) teamSectionLabel.textContent = `PAPER ${team.number} · MULTIPURPOSE HALL`;
       if (quickSectionSwitchWrapper) quickSectionSwitchWrapper.classList.add('hidden');
     } else if (activeEventId === 'PROJECT_EXPO') {
-      if (navSectionBadge) navSectionBadge.textContent = 'TRACK 2 · EXPO';
+      const isHw = (team.section === 'HARDWARE' || team.project_type === 'Hardware');
+      if (navSectionBadge) navSectionBadge.textContent = isHw ? 'TRACK 2 · HARDWARE' : 'TRACK 2 · SOFTWARE';
       if (teamSectionLabel) teamSectionLabel.textContent = `${team.stall || 'STALL ' + team.number} · EDUSAT HALL`;
-      if (quickSectionSwitchWrapper) quickSectionSwitchWrapper.classList.add('hidden');
+      if (quickSectionSwitchWrapper) quickSectionSwitchWrapper.classList.remove('hidden');
     } else {
       if (navSectionBadge) navSectionBadge.textContent = `SECTION ${team.section}`;
       if (teamSectionLabel) teamSectionLabel.textContent = `TEAM PROFILE · SECTION ${team.section}`;
@@ -1210,7 +1211,7 @@
 
     if (btnSwitchSecA && btnSwitchSecB) {
       const isSecA = activeEventId === 'PROJECT_EXPO'
-        ? (team.category === '3rd Year' || parseInt(team.number, 10) <= 25)
+        ? (team.section === 'HARDWARE' || team.project_type === 'Hardware')
         : team.section === 'A';
       if (isSecA) {
         btnSwitchSecA.className = 'px-2.5 py-1 text-xs font-black rounded bg-[#ea580c] text-white transition shadow-xs';
@@ -1733,7 +1734,7 @@
       if (activeEventId === 'PAPER') {
         gridSectionA.appendChild(btn);
       } else if (activeEventId === 'PROJECT_EXPO') {
-        if (t.category === '3rd Year' || parseInt(t.number, 10) <= 25) {
+        if (t.section === 'HARDWARE' || t.project_type === 'Hardware') {
           gridSectionA.appendChild(btn);
         } else {
           gridSectionB.appendChild(btn);
@@ -1761,9 +1762,9 @@
       if (activeEventId === 'EMBEDDATHON') {
         matchSection = activeSectionFilter === 'ALL' || t.section === activeSectionFilter;
       } else if (activeEventId === 'PROJECT_EXPO') {
-        if (activeSectionFilter === 'ALL') matchSection = true;
-        else if (activeSectionFilter === '3rd Year') matchSection = (t.category === '3rd Year' || parseInt(t.number, 10) <= 25);
-        else if (activeSectionFilter === 'Final Year') matchSection = (t.category === 'Final Year' || parseInt(t.number, 10) >= 26);
+        if (activeSectionFilter === 'ALL' || activeSectionFilter === 'all') matchSection = true;
+        else if (activeSectionFilter === 'Hardware' || activeSectionFilter === 'HARDWARE') matchSection = (t.section === 'HARDWARE' || t.project_type === 'Hardware');
+        else if (activeSectionFilter === 'Software' || activeSectionFilter === 'SOFTWARE') matchSection = (t.section === 'SOFTWARE' || t.project_type === 'Software');
       }
       const matchQuery =
         !query ||
@@ -2251,7 +2252,7 @@
     if (btnSwitchSecA) {
       btnSwitchSecA.addEventListener('click', () => {
         if (activeEventId === 'PROJECT_EXPO') {
-          const idx = teams.findIndex((x) => x.category === '3rd Year' || parseInt(x.number, 10) <= 25);
+          const idx = teams.findIndex((x) => x.section === 'HARDWARE' || x.project_type === 'Hardware');
           if (idx !== -1) loadTeamIntoForm(idx);
         } else {
           const idx = teams.findIndex((x) => x.section === 'A');
@@ -2263,7 +2264,7 @@
     if (btnSwitchSecB) {
       btnSwitchSecB.addEventListener('click', () => {
         if (activeEventId === 'PROJECT_EXPO') {
-          const idx = teams.findIndex((x) => x.category === 'Final Year' || parseInt(x.number, 10) >= 26);
+          const idx = teams.findIndex((x) => x.section === 'SOFTWARE' || x.project_type === 'Software');
           if (idx !== -1) loadTeamIntoForm(idx);
         } else {
           const idx = teams.findIndex((x) => x.section === 'B');
