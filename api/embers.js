@@ -133,12 +133,13 @@ module.exports = async function handler(req, res) {
       const body = req.body || {};
       const action = body.action || req.query.action || 'sync';
 
-      // Security Check: Secret Webhook Token or Admin PIN Protection
+      // Security Check: Secret Webhook Token, Admin PIN Protection, or Spot Registration
       const SECRET_TOKEN = process.env.EMBERS_WEBHOOK_TOKEN || 'EMBERS_SYNC_2026';
       const ADMIN_PIN = process.env.ADMIN_PIN || '5012';
       const providedAuth = req.headers['x-embers-token'] || body.token || body.adminPin;
+      const isSpotReg = (action === 'spot_registration' || action === 'public_registration');
 
-      if (providedAuth !== SECRET_TOKEN && providedAuth !== ADMIN_PIN) {
+      if (!isSpotReg && providedAuth !== SECRET_TOKEN && providedAuth !== ADMIN_PIN) {
         return res.status(401).json({ error: 'Unauthorized: Invalid x-embers-token or Admin PIN. Access Denied.' });
       }
 
@@ -193,12 +194,15 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      // 3. Add single manual registration
-      else if (action === 'add_registration') {
+      // 3. Add single manual registration or Spot Registration
+      else if (action === 'add_registration' || action === 'spot_registration') {
         const reg = body.registration;
         if (reg) {
-          reg.id = reg.id || `REG-${Date.now()}`;
-          embersData.registrations.unshift(reg);
+          const spotCount = (embersData.registrations || []).filter(r => (r.id || '').startsWith('SPOT-')).length + 1;
+          reg.id = reg.id || `SPOT-${String(spotCount).padStart(3, '0')}`;
+          reg.timestamp = reg.timestamp || new Date().toISOString();
+          reg.is_spot = true;
+          embersData.registrations.unshift(normalizeReg(reg));
         }
       }
 

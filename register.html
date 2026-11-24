@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>EMBERS '26 · Spot Registration Facility</title>
+  <meta name="description" content="Official Spot Registration facility for EMBERS '26 National Level Symposium at P.A. College of Engineering. Instant digital team enrollment and badge pass.">
+  <link rel="icon" type="image/png" href="assets/embers_logo.png">
+  <link rel="alternate icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/qrcode.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brandNavy: '#0f172a',
+            brandInk: '#1e293b',
+            brandSlate: '#475569',
+            brandMuted: '#64748b',
+            brandOrange: '#ea580c',
+            brandOrangeLight: '#fff7ed',
+            brandCream: '#fdfbf7',
+            brandCreamDark: '#f6f1e6',
+            brandBorder: '#e3dccd',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen pb-16 bg-[#fdfbf7] text-[#1e293b] antialiased">
+
+  <!-- ========================================================= -->
+  <!-- TOP BRANDING & NAVIGATION HEADER                          -->
+  <!-- ========================================================= -->
+  <header class="bg-white border-b-2 border-[#e3dccd] shadow-xs sticky top-0 z-40">
+    <div class="bg-[#0b1120] text-white border-b border-slate-800 text-[11px] px-3 py-1.5">
+      <div class="max-w-3xl mx-auto flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 truncate">
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-600/30 text-orange-400 font-black text-[10px] tracking-wide border border-orange-500/30">
+            <span>⚡</span>
+            <span>SPOT REGISTRATION DESK ACTIVE</span>
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="embers.html" class="text-slate-300 hover:text-white text-[11px] font-bold transition flex items-center gap-1">
+            <span>🔥 EMBERS Hub</span>
+          </a>
+          <span class="text-slate-600">·</span>
+          <a href="index.html" class="text-slate-300 hover:text-white text-[11px] font-bold transition flex items-center gap-1">
+            <span>⚖️ Judging Portal</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Letterhead -->
+    <div class="max-w-3xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <img src="assets/pace_crest.png" alt="PACE Crest" class="h-10 w-auto object-contain flex-shrink-0" onerror="this.style.display='none'">
+        <img src="assets/embers_logo.png" alt="EMBERS Logo" class="h-10 w-auto object-contain rounded-lg flex-shrink-0" onerror="this.style.display='none'">
+        <div class="truncate">
+          <h1 class="text-xs font-black tracking-wider text-[#0f172a] uppercase leading-tight truncate">
+            P.A. College of Engineering, Mangaluru
+          </h1>
+          <p class="text-[11px] font-bold text-[#ea580c] uppercase tracking-wide truncate">
+            EMBERS '26 · Spot Registration Facility
+          </p>
+        </div>
+      </div>
+      <div class="hidden sm:flex items-center gap-2">
+        <span class="text-[10px] font-bold px-2 py-1 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200">
+          ● Desk Live
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================= -->
+  <!-- MAIN REGISTRATION FORM CONTAINER                          -->
+  <!-- ========================================================= -->
+  <main class="max-w-3xl mx-auto px-3 sm:px-4 py-4 space-y-4">
+
+    <!-- WELCOME & INSTRUCTIONS HERO -->
+    <div class="bg-gradient-to-r from-orange-600 to-amber-600 rounded-2xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden">
+      <div class="relative z-10 space-y-1">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-white font-black text-[10px] uppercase tracking-wider backdrop-blur-xs">
+          <span>🚀 Instant Registration & Entry Pass</span>
+        </div>
+        <h2 class="text-lg sm:text-xl font-black tracking-tight leading-tight">
+          Welcome to EMBERS '26 Spot Desk
+        </h2>
+        <p class="text-xs text-orange-100 max-w-xl leading-relaxed">
+          Fill in your project and team information below. Once submitted, your team will be registered in the symposium ledger, assigned a spot token, and issued a digital pass.
+        </p>
+      </div>
+    </div>
+
+    <!-- MAIN FORM -->
+    <form id="formSpotRegister" onsubmit="return false;" class="space-y-4">
+
+      <!-- SECTION 1: EVENT / TRACK SELECTION -->
+      <div class="bg-white p-4 rounded-2xl border border-[#e3dccd] shadow-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-[#ea580c] text-white flex items-center justify-center text-xs font-black">1</span>
+            <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a]">Select Event Track</h3>
+          </div>
+          <span class="text-[10px] font-bold text-red-500">* Required</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="trackSelectionGrid">
+          <!-- Track 1: Embeddathon -->
+          <label class="cursor-pointer p-3 rounded-xl border-2 border-[#e3dccd] hover:border-[#ea580c] bg-[#fdfbf7] flex items-start gap-2.5 transition track-card has-[:checked]:border-[#ea580c] has-[:checked]:bg-orange-50/60 shadow-2xs">
+            <input type="radio" name="spotTrack" value="Track 1: Embeddathon" class="mt-1 text-[#ea580c] focus:ring-[#ea580c]" required>
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm">⚡</span>
+                <span class="text-xs font-black text-[#0f172a]">Track 1: Embeddathon</span>
+              </div>
+              <p class="text-[10px] text-[#64748b]">24-Hour IoT & Embedded Hackathon · Labs 1 & 2</p>
+            </div>
+          </label>
+
+          <!-- Track 2: Project Expo - Hardware -->
+          <label class="cursor-pointer p-3 rounded-xl border-2 border-[#e3dccd] hover:border-[#ea580c] bg-[#fdfbf7] flex items-start gap-2.5 transition track-card has-[:checked]:border-[#ea580c] has-[:checked]:bg-orange-50/60 shadow-2xs">
+            <input type="radio" name="spotTrack" value="Track 2: Project Expo (Hardware)" class="mt-1 text-[#ea580c] focus:ring-[#ea580c]" checked>
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm">🛠️</span>
+                <span class="text-xs font-black text-[#0f172a]">Track 2: Project Expo (Hardware)</span>
+              </div>
+              <p class="text-[10px] text-[#64748b]">Physical hardware prototypes & embedded systems · Edusat Hall</p>
+            </div>
+          </label>
+
+          <!-- Track 2: Project Expo - Software -->
+          <label class="cursor-pointer p-3 rounded-xl border-2 border-[#e3dccd] hover:border-[#ea580c] bg-[#fdfbf7] flex items-start gap-2.5 transition track-card has-[:checked]:border-[#ea580c] has-[:checked]:bg-orange-50/60 shadow-2xs">
+            <input type="radio" name="spotTrack" value="Track 2: Project Expo (Software)" class="mt-1 text-[#ea580c] focus:ring-[#ea580c]">
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm">💻</span>
+                <span class="text-xs font-black text-[#0f172a]">Track 2: Project Expo (Software)</span>
+              </div>
+              <p class="text-[10px] text-[#64748b]">Software apps, AI/ML models & web platforms · Edusat Hall</p>
+            </div>
+          </label>
+
+          <!-- Track 3: Technical Paper -->
+          <label class="cursor-pointer p-3 rounded-xl border-2 border-[#e3dccd] hover:border-[#ea580c] bg-[#fdfbf7] flex items-start gap-2.5 transition track-card has-[:checked]:border-[#ea580c] has-[:checked]:bg-orange-50/60 shadow-2xs">
+            <input type="radio" name="spotTrack" value="Track 3: Paper Presentation" class="mt-1 text-[#ea580c] focus:ring-[#ea580c]">
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm">📄</span>
+                <span class="text-xs font-black text-[#0f172a]">Track 3: Paper Presentation</span>
+              </div>
+              <p class="text-[10px] text-[#64748b]">Research paper presentation & viva defense · Multipurpose Hall</p>
+            </div>
+          </label>
+
+          <!-- Dual Track: Expo + Paper -->
+          <label class="cursor-pointer p-3 rounded-xl border-2 border-[#e3dccd] hover:border-[#ea580c] bg-[#fdfbf7] flex items-start gap-2.5 transition track-card has-[:checked]:border-[#ea580c] has-[:checked]:bg-orange-50/60 shadow-2xs sm:col-span-2">
+            <input type="radio" name="spotTrack" value="Both: Project Expo & Paper Presentation" class="mt-1 text-[#ea580c] focus:ring-[#ea580c]">
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm">🎯</span>
+                <span class="text-xs font-black text-[#0f172a]">Dual Track: Project Expo & Paper Presentation</span>
+              </div>
+              <p class="text-[10px] text-[#64748b]">Participating in both Project Prototype Exhibition & Technical Paper presentation</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- SECTION 2: TEAM & PROJECT PROFILE -->
+      <div class="bg-white p-4 rounded-2xl border border-[#e3dccd] shadow-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-[#ea580c] text-white flex items-center justify-center text-xs font-black">2</span>
+            <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a]">Project & Team Profile</h3>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Team Name -->
+          <div>
+            <label class="block text-[11px] font-bold text-[#475569] uppercase mb-1">Team Name <span class="text-red-500">*</span></label>
+            <input type="text" id="regTeamName" placeholder="e.g. Innovators PACE" required
+                   class="w-full px-3 py-2 text-xs font-bold text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+          </div>
+
+          <!-- Project / Paper Title -->
+          <div>
+            <label class="block text-[11px] font-bold text-[#475569] uppercase mb-1">Project / Paper Title <span class="text-red-500">*</span></label>
+            <input type="text" id="regProjectTitle" placeholder="e.g. Smart Autonomous Rover for Agriculture" required
+                   class="w-full px-3 py-2 text-xs font-bold text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+          </div>
+
+          <!-- College / Institution -->
+          <div class="sm:col-span-2">
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] font-bold text-[#475569] uppercase">College / Institution <span class="text-red-500">*</span></label>
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="setCollege('P.A. College of Engineering (PACE)')" class="text-[10px] font-extrabold text-[#ea580c] hover:underline bg-orange-50 px-2 py-0.5 rounded-md">
+                  + Select PACE
+                </button>
+              </div>
+            </div>
+            <input type="text" id="regCollege" placeholder="Enter Full College Name" required
+                   class="w-full px-3 py-2 text-xs font-bold text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+          </div>
+
+          <!-- Department & Year -->
+          <div>
+            <label class="block text-[11px] font-bold text-[#475569] uppercase mb-1">Department / Branch <span class="text-red-500">*</span></label>
+            <select id="regDept" class="w-full px-3 py-2 text-xs font-bold text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+              <option value="CSE" selected>Computer Science & Engineering (CSE)</option>
+              <option value="AIML">Artificial Intelligence & Machine Learning (AIML)</option>
+              <option value="ISE">Information Science & Engineering (ISE)</option>
+              <option value="ECE">Electronics & Communication Engineering (ECE)</option>
+              <option value="MECH">Mechanical Engineering (ME)</option>
+              <option value="CIVIL">Civil Engineering (CV)</option>
+              <option value="AIDS">Artificial Intelligence & Data Science (AIDS)</option>
+              <option value="OTHER">Other Discipline</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-[#475569] uppercase mb-1">Academic Year / Semester <span class="text-red-500">*</span></label>
+            <select id="regYear" class="w-full px-3 py-2 text-xs font-bold text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+              <option value="3rd Year (Sem 5/6)" selected>3rd Year (Pre-Final Year)</option>
+              <option value="Final Year (Sem 7/8)">Final Year (Capstone)</option>
+              <option value="2nd Year (Sem 3/4)">2nd Year</option>
+              <option value="Postgraduate / M.Tech">Postgraduate / M.Tech</option>
+            </select>
+          </div>
+
+          <!-- Project Abstract / Summary -->
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-bold text-[#475569] uppercase mb-1">Abstract / Project Summary <span class="text-red-500">*</span></label>
+            <textarea id="regAbstract" rows="3" placeholder="Briefly describe the objective, methodology, and outcome of your project or paper..." required
+                      class="w-full px-3 py-2 text-xs text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: TEAM LEAD (PRIMARY DELEGATE) -->
+      <div class="bg-white p-4 rounded-2xl border border-[#e3dccd] shadow-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-[#ea580c] text-white flex items-center justify-center text-xs font-black">3</span>
+            <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a]">Team Leader Details</h3>
+          </div>
+          <span class="text-[10px] text-[#64748b]">Primary Contact Person</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-[#475569] uppercase mb-1">Leader Full Name <span class="text-red-500">*</span></label>
+            <input type="text" id="regLeadName" placeholder="Full Name as on College ID" required
+                   class="w-full px-3 py-2 text-xs font-bold text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-[#475569] uppercase mb-1">Leader USN / Roll No. <span class="text-red-500">*</span></label>
+            <input type="text" id="regLeadUsn" placeholder="e.g. 4PA23CS045" required
+                   class="w-full px-3 py-2 text-xs font-bold font-mono text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-[#475569] uppercase mb-1">WhatsApp Mobile Number <span class="text-red-500">*</span></label>
+            <input type="tel" id="regLeadPhone" placeholder="e.g. 9876543210" required
+                   class="w-full px-3 py-2 text-xs font-bold font-mono text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-[#475569] uppercase mb-1">Email Address <span class="text-red-500">*</span></label>
+            <input type="email" id="regLeadEmail" placeholder="e.g. student@pace.edu.in" required
+                   class="w-full px-3 py-2 text-xs text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 4: ADDITIONAL TEAM MEMBERS -->
+      <div class="bg-white p-4 rounded-2xl border border-[#e3dccd] shadow-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-[#ea580c] text-white flex items-center justify-center text-xs font-black">4</span>
+            <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a]">Additional Team Members</h3>
+          </div>
+          <button type="button" id="btnAddMember" onclick="addMemberSlot()" class="text-xs font-black text-[#ea580c] hover:text-[#c2410c] flex items-center gap-1 transition">
+            <span>+ Add Member</span>
+          </button>
+        </div>
+
+        <p class="text-[11px] text-[#64748b]">Teams can have up to 4 members total (1 Leader + up to 3 additional members).</p>
+
+        <div id="additionalMembersList" class="space-y-3">
+          <!-- Dynamically populated member cards -->
+        </div>
+      </div>
+
+      <!-- SECTION 5: SPOT LOGISTICS & PAYMENT -->
+      <div class="bg-white p-4 rounded-2xl border border-[#e3dccd] shadow-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-[#ea580c] text-white flex items-center justify-center text-xs font-black">5</span>
+            <h3 class="text-xs font-black uppercase tracking-wider text-[#0f172a]">Logistics & Spot Payment</h3>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-[#475569] uppercase mb-1">Hardware / Power Requirement</label>
+            <select id="regHardwareReq" class="w-full px-3 py-2 text-xs font-bold text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+              <option value="Standard Table & Wi-Fi" selected>Standard Table Space & Wi-Fi</option>
+              <option value="230V AC Power Socket Required">230V AC Power Socket (Display Table)</option>
+              <option value="High Power Bench / Robotic Area">Special High-Power / Ground Area</option>
+              <option value="Projector & Mic Only">Projector & Audio Mic (Paper Only)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-[#475569] uppercase mb-1">Payment Method at Spot Desk</label>
+            <select id="regPaymentMethod" class="w-full px-3 py-2 text-xs font-bold text-[#0f172a] bg-[#fdfbf7] border border-[#cbd5e1] rounded-xl focus:ring-2 focus:ring-[#ea580c] focus:outline-none">
+              <option value="Cash at Desk" selected>💵 Cash Paid at Spot Registration Desk</option>
+              <option value="UPI / GPay / PhonePe">📱 UPI / QR Code Transfer</option>
+              <option value="Pre-registered / Exemption">🎟️ Pre-approved Institutional Exemption</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Desk Coordinator Verification Box -->
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 flex items-center justify-between text-xs font-bold flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <span>ℹ️</span>
+            <span>Fee confirmation verified by Spot Registration volunteer at counter.</span>
+          </div>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="regFeeConfirmed" checked class="rounded text-[#ea580c] focus:ring-[#ea580c]">
+            <span class="text-xs font-black text-amber-950">Mark Fee Paid ✓</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- ERROR / STATUS ALERT -->
+      <div id="formErrorAlert" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold text-center"></div>
+
+      <!-- SUBMIT BUTTON -->
+      <button type="submit" id="btnSubmitSpotReg" class="w-full py-3.5 px-4 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-sm uppercase tracking-wider shadow-md transition active:scale-[0.98] flex items-center justify-center gap-2">
+        <span>⚡ Complete Spot Registration & Generate Digital Pass</span>
+      </button>
+
+    </form>
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- DIGITAL SPOT REGISTRATION PASS MODAL (Shows on Success)  -->
+  <!-- ========================================================= -->
+  <div id="modalSpotPass" class="fixed inset-0 z-50 bg-[#0f172a]/85 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 border-2 border-[#fed7aa] shadow-2xl space-y-4 my-auto text-center animate-scale-up">
+      
+      <!-- Top Badge -->
+      <div class="flex items-center justify-between border-b border-[#f0ebe0] pb-3">
+        <div class="flex items-center gap-2">
+          <img src="assets/pace_crest.png" alt="PACE" class="h-8 w-auto">
+          <div class="text-left">
+            <h4 class="text-[10px] font-black uppercase tracking-wider text-[#0f172a]">P.A. College of Engineering</h4>
+            <p class="text-[9px] font-bold text-[#ea580c] uppercase">EMBERS '26 · Spot Delegate Pass</p>
+          </div>
+        </div>
+        <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+          Verified ✓
+        </span>
+      </div>
+
+      <!-- Token Big Display -->
+      <div class="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-2xl border border-orange-200 space-y-1">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#64748b]">Spot Registration Token</span>
+        <div id="passTokenId" class="text-3xl font-black font-mono tracking-wider text-[#ea580c]">SPOT-001</div>
+        <div id="passTrackName" class="text-xs font-black text-[#0f172a]">Track 2: Project Expo (Hardware)</div>
+        <div id="passVenueName" class="text-[11px] font-bold text-[#64748b]">📍 Edusat Hall</div>
+      </div>
+
+      <!-- QR Code Container -->
+      <div class="flex flex-col items-center justify-center py-1">
+        <div id="passQRCode" class="p-2.5 bg-white border-2 border-slate-200 rounded-xl shadow-xs"></div>
+        <span class="text-[9px] text-[#64748b] mt-1 font-mono">Present this QR code at your evaluation stall</span>
+      </div>
+
+      <!-- Details Summary -->
+      <div class="bg-[#fdfbf7] p-3 rounded-xl border border-[#e3dccd] text-left text-xs space-y-1.5 font-medium">
+        <div class="flex justify-between items-start gap-2">
+          <span class="text-[#64748b] text-[11px]">Team Name:</span>
+          <span id="passTeamName" class="font-extrabold text-[#0f172a] text-right">Innovators PACE</span>
+        </div>
+        <div class="flex justify-between items-start gap-2">
+          <span class="text-[#64748b] text-[11px]">Project Title:</span>
+          <span id="passProjectTitle" class="font-bold text-[#0f172a] text-right truncate max-w-[200px]">Smart Rover</span>
+        </div>
+        <div class="flex justify-between items-start gap-2">
+          <span class="text-[#64748b] text-[11px]">Leader:</span>
+          <span id="passLeadName" class="font-bold text-[#0f172a]">Ahmad Khan</span>
+        </div>
+        <div class="flex justify-between items-start gap-2">
+          <span class="text-[#64748b] text-[11px]">College:</span>
+          <span id="passCollege" class="font-bold text-[#0f172a] truncate max-w-[200px]">P.A. College of Engineering</span>
+        </div>
+        <div class="flex justify-between items-start gap-2 pt-1 border-t border-[#f0ebe0]">
+          <span class="text-[#64748b] text-[11px]">Fee Status:</span>
+          <span id="passFeeStatus" class="font-black text-emerald-700">PAID AT COUNTER ✓</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button type="button" onclick="window.print()" class="py-2.5 px-3 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white font-black text-xs transition flex items-center justify-center gap-1.5 shadow-xs">
+          <span>🖨️ Print Pass</span>
+        </button>
+        <button type="button" onclick="closePassModalAndReset()" class="py-2.5 px-3 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-black text-xs transition flex items-center justify-center gap-1.5 shadow-xs">
+          <span>+ Register Another</span>
+        </button>
+      </div>
+
+      <div class="pt-2">
+        <a href="embers.html" class="text-[11px] font-bold text-[#64748b] hover:text-[#ea580c] hover:underline">
+          Go to EMBERS Registration Ledger →
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <script>
+    let memberCount = 1;
+
+    function setCollege(name) {
+      document.getElementById('regCollege').value = name;
+    }
+
+    function addMemberSlot() {
+      if (memberCount >= 4) {
+        alert('Maximum team size is 4 members (1 Leader + 3 Members).');
+        return;
+      }
+      memberCount++;
+      const container = document.getElementById('additionalMembersList');
+      const slotNum = String(memberCount).padStart(2, '0');
+
+      const card = document.createElement('div');
+      card.id = `memberSlot${memberCount}`;
+      card.className = 'p-3 bg-[#fdfbf7] rounded-xl border border-[#cbd5e1] space-y-2 text-xs relative';
+      card.innerHTML = `
+        <div class="flex items-center justify-between pb-1 border-b border-slate-200">
+          <span class="font-black text-[#ea580c] text-[10px] uppercase">Member #${memberCount}</span>
+          <button type="button" onclick="removeMemberSlot(${memberCount})" class="text-[10px] font-bold text-red-600 hover:underline">Remove</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-[#64748b] uppercase mb-0.5">Name</label>
+            <input type="text" class="input-mem-name w-full px-2 py-1 text-xs font-bold text-[#0f172a] bg-white border border-[#cbd5e1] rounded-lg focus:outline-none" placeholder="Member Name" required>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-[#64748b] uppercase mb-0.5">USN</label>
+            <input type="text" class="input-mem-usn w-full px-2 py-1 text-xs font-bold font-mono text-[#0f172a] bg-white border border-[#cbd5e1] rounded-lg focus:outline-none" placeholder="4PA..." required>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-[#64748b] uppercase mb-0.5">Phone (Optional)</label>
+            <input type="tel" class="input-mem-phone w-full px-2 py-1 text-xs text-[#0f172a] bg-white border border-[#cbd5e1] rounded-lg focus:outline-none" placeholder="Phone">
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    }
+
+    function removeMemberSlot(idx) {
+      const el = document.getElementById(`memberSlot${idx}`);
+      if (el) el.remove();
+      memberCount--;
+    }
+
+    document.getElementById('formSpotRegister').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmitSpotReg');
+      const errAlert = document.getElementById('formErrorAlert');
+      errAlert.classList.add('hidden');
+
+      const selectedTrackEl = document.querySelector('input[name="spotTrack"]:checked');
+      if (!selectedTrackEl) {
+        errAlert.textContent = 'Please select an event track.';
+        errAlert.classList.remove('hidden');
+        return;
+      }
+
+      const track = selectedTrackEl.value;
+      const teamName = document.getElementById('regTeamName').value.trim();
+      const projectTitle = document.getElementById('regProjectTitle').value.trim();
+      const college = document.getElementById('regCollege').value.trim();
+      const dept = document.getElementById('regDept').value.trim();
+      const year = document.getElementById('regYear').value.trim();
+      const abstract = document.getElementById('regAbstract').value.trim();
+      const leadName = document.getElementById('regLeadName').value.trim();
+      const leadUsn = document.getElementById('regLeadUsn').value.trim();
+      const leadPhone = document.getElementById('regLeadPhone').value.trim();
+      const leadEmail = document.getElementById('regLeadEmail').value.trim();
+      const hwReq = document.getElementById('regHardwareReq').value;
+      const payMethod = document.getElementById('regPaymentMethod').value;
+      const feeConfirmed = document.getElementById('regFeeConfirmed').checked;
+
+      if (!teamName || !projectTitle || !college || !leadName || !leadUsn || !leadPhone) {
+        errAlert.textContent = 'Please fill in all required fields highlighted with *.';
+        errAlert.classList.remove('hidden');
+        return;
+      }
+
+      // Collect additional members
+      const members = [
+        {
+          slot: '01',
+          name: leadName,
+          usn: leadUsn,
+          dept: dept,
+          phone: leadPhone,
+          email: leadEmail,
+          is_lead: true
+        }
+      ];
+
+      const memCards = document.querySelectorAll('#additionalMembersList > div');
+      memCards.forEach((c, idx) => {
+        const mName = c.querySelector('.input-mem-name')?.value.trim() || '';
+        const mUsn = c.querySelector('.input-mem-usn')?.value.trim() || '';
+        const mPhone = c.querySelector('.input-mem-phone')?.value.trim() || '';
+        if (mName) {
+          members.push({
+            slot: String(idx + 2).padStart(2, '0'),
+            name: mName,
+            usn: mUsn,
+            dept: dept,
+            phone: mPhone,
+            is_lead: false
+          });
+        }
+      });
+
+      // Generate Spot ID
+      const randomSuffix = Math.floor(100 + Math.random() * 900);
+      const spotId = `SPOT-${Date.now().toString().slice(-4)}${randomSuffix.toString().slice(-1)}`;
+
+      let venue = 'Edusat Hall';
+      if (track.includes('Embeddathon')) venue = 'Computer Labs 1 & 2';
+      else if (track.includes('Paper')) venue = 'Multipurpose Hall';
+
+      const payload = {
+        action: 'spot_registration',
+        registration: {
+          id: spotId,
+          timestamp: new Date().toISOString(),
+          track: track,
+          title: projectTitle,
+          team_name: teamName,
+          college: college,
+          dept: `${dept} (${year})`,
+          leaderName: leadName,
+          email: leadEmail,
+          phone: leadPhone,
+          usn: leadUsn,
+          membersCount: members.length,
+          members: members,
+          abstract: abstract,
+          domain: track.includes('Hardware') ? 'Hardware Track' : track.includes('Software') ? 'Software Track' : 'Engineering Innovation',
+          hardwareReq: hwReq,
+          paymentMethod: payMethod,
+          feePaid: feeConfirmed,
+          verified: true,
+          assignedStall: `Spot Desk (${venue})`,
+          is_spot: true
+        }
+      };
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Enrolling Team & Syncing...</span>';
+
+      try {
+        const res = await fetch('/api/embers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        showPassModal(payload.registration, venue);
+      } catch (err) {
+        console.warn('API sync warning, falling back to local confirmation:', err);
+        // Fallback local persistence
+        const existing = JSON.parse(localStorage.getItem('embers_spot_registrations') || '[]');
+        existing.unshift(payload.registration);
+        localStorage.setItem('embers_spot_registrations', JSON.stringify(existing));
+        showPassModal(payload.registration, venue);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>⚡ Complete Spot Registration & Generate Digital Pass</span>';
+      }
+    });
+
+    function showPassModal(reg, venue) {
+      document.getElementById('passTokenId').textContent = reg.id;
+      document.getElementById('passTrackName').textContent = reg.track;
+      document.getElementById('passVenueName').textContent = `📍 ${venue} · Assigned on Spot`;
+      document.getElementById('passTeamName').textContent = reg.team_name;
+      document.getElementById('passProjectTitle').textContent = reg.title;
+      document.getElementById('passLeadName').textContent = reg.leaderName;
+      document.getElementById('passCollege').textContent = reg.college;
+      document.getElementById('passFeeStatus').textContent = reg.feePaid ? 'PAID AT COUNTER ✓' : 'FEE PENDING ✕';
+
+      // Generate QR Code
+      const qrContainer = document.getElementById('passQRCode');
+      qrContainer.innerHTML = '';
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(qrContainer, {
+          text: `EMBERS26|${reg.id}|${reg.team_name}|${reg.track}|${reg.leaderName}`,
+          width: 110,
+          height: 110,
+          colorDark: "#0f172a",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+
+      document.getElementById('modalSpotPass').classList.remove('hidden');
+    }
+
+    function closePassModalAndReset() {
+      document.getElementById('modalSpotPass').classList.add('hidden');
+      document.getElementById('formSpotRegister').reset();
+      document.getElementById('additionalMembersList').innerHTML = '';
+      memberCount = 1;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
