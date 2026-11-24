@@ -1064,13 +1064,13 @@
     } else if (mode === 'elimination') {
       suspenseBody = `
         <div class="rv-grid" id="elimGrid" aria-hidden="true"></div>
-        <p class="rv-slot-tag" id="elimTag">Elimination Royale · dropping teams one by one…</p>`;
+        <p class="rv-fx-status" id="elimTag">Elimination Royale · dropping teams one by one…</p>`;
     } else if (mode === 'decrypt') {
       suspenseBody = `
         <div class="rv-decrypt-box" aria-hidden="true">
           <span class="rv-decrypt-text" id="decryptText">████████████</span>
         </div>
-        <p class="rv-slot-tag" id="decryptTag">Decrypting encrypted verdict · press Space to reveal</p>`;
+        <p class="rv-fx-status" id="decryptTag">Decrypting encrypted verdict…</p>`;
     } else if (mode === 'stamp') {
       suspenseBody = `
         <div class="rv-fx-count" id="stampCount" aria-hidden="true">3</div>
