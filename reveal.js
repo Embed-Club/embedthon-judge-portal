@@ -771,7 +771,16 @@
     scheduleAuto();
   }
 
+  function suspenseStyleFor(rank) {
+    const param = new URLSearchParams(window.location.search).get('style');
+    if (param && ['slot', 'elimination', 'decrypt', 'stamp'].includes(param)) return param;
+    if (rank.place === 1) return 'slot';
+    if (rank.place === 2) return 'elimination';
+    return 'decrypt';
+  }
+
   function rankMarkup(row, rank) {
+    const mode = suspenseStyleFor(rank);
     const members = row.team.members.map((m) => `
       <span class="rv-player ${m.is_lead ? 'is-lead' : ''}">
         ${m.is_lead ? '<span class="rv-player-star">★</span>' : ''}${esc(m.name)}
@@ -779,6 +788,49 @@
 
     const show = (v) => (state.hasScores ? v.toFixed(1) : '—');
     const note = state.hasScores ? '' : '<p class="rv-note">Rehearsal data · scores not yet saved</p>';
+
+    let suspenseBody = '';
+    if (mode === 'slot') {
+      suspenseBody = `
+        <div class="rv-slot-machine" id="slotMachine" aria-hidden="true">
+          <span class="rv-slot-bulb rv-slot-bulb--a" aria-hidden="true"></span>
+          <span class="rv-slot-bulb rv-slot-bulb--b" aria-hidden="true"></span>
+          <span class="rv-slot-bulb rv-slot-bulb--c" aria-hidden="true"></span>
+          <span class="rv-slot-bulb rv-slot-bulb--d" aria-hidden="true"></span>
+          <div class="rv-slot-window">
+            <span class="rv-slot-reel" id="slotReel">—</span>
+            <span class="rv-slot-psych" aria-hidden="true">PSYCH!</span>
+          </div>
+          <div class="rv-slot-leds" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <p class="rv-slot-tag" id="slotTag">Drumroll · press Space to lock it in</p>`;
+    } else if (mode === 'elimination') {
+      suspenseBody = `
+        <div class="rv-grid" id="elimGrid" aria-hidden="true"></div>
+        <p class="rv-slot-tag" id="elimTag">Elimination Royale · dropping teams one by one…</p>`;
+    } else if (mode === 'decrypt') {
+      suspenseBody = `
+        <div class="rv-decrypt-box" aria-hidden="true">
+          <span class="rv-decrypt-text" id="decryptText">████████████</span>
+        </div>
+        <p class="rv-slot-tag" id="decryptTag">Decrypting encrypted verdict · press Space to reveal</p>`;
+    } else if (mode === 'stamp') {
+      suspenseBody = `
+        <div class="rv-fx-count" id="stampCount" aria-hidden="true">3</div>
+        <p class="rv-suspense-hint">Countdown · press Space to reveal now</p>`;
+    } else {
+      suspenseBody = `
+        <div class="rv-suspense-shapes" aria-hidden="true">
+          <span class="k-shape k-shape--triangle"></span>
+          <span class="k-shape k-shape--diamond"></span>
+          <span class="k-shape k-shape--circle"></span>
+          <span class="k-shape k-shape--square"></span>
+        </div>
+        <div class="rv-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+        <p class="rv-suspense-hint">Drumroll · press Space to reveal now</p>`;
+    }
 
     return `
       <section class="rv-act ${rank.place === 1 ? 'rv-act--champion' : ''}"
@@ -794,33 +846,9 @@
         </div>
 
         <div class="rv-act-body">
-          <div class="rv-suspense ${rank.place === 1 ? 'rv-suspense--slot' : ''}">
+          <div class="rv-suspense ${mode === 'slot' ? 'rv-suspense--slot' : ''} ${mode === 'elimination' ? 'rv-suspense--wide' : ''}">
             <p class="rv-suspense-kicker">${rank.kicker}</p>
-            ${rank.place === 1 ? `
-              <div class="rv-slot-machine" id="slotMachine" aria-hidden="true">
-                <span class="rv-slot-bulb rv-slot-bulb--a" aria-hidden="true"></span>
-                <span class="rv-slot-bulb rv-slot-bulb--b" aria-hidden="true"></span>
-                <span class="rv-slot-bulb rv-slot-bulb--c" aria-hidden="true"></span>
-                <span class="rv-slot-bulb rv-slot-bulb--d" aria-hidden="true"></span>
-                <div class="rv-slot-window">
-                  <span class="rv-slot-reel" id="slotReel">—</span>
-                  <span class="rv-slot-psych" aria-hidden="true">PSYCH!</span>
-                </div>
-                <div class="rv-slot-leds" aria-hidden="true">
-                  <span></span><span></span><span></span><span></span><span></span><span></span>
-                </div>
-              </div>
-              <p class="rv-slot-tag" id="slotTag">Drumroll · press Space to lock it in</p>
-            ` : `
-              <div class="rv-suspense-shapes" aria-hidden="true">
-                <span class="k-shape k-shape--triangle"></span>
-                <span class="k-shape k-shape--diamond"></span>
-                <span class="k-shape k-shape--circle"></span>
-                <span class="k-shape k-shape--square"></span>
-              </div>
-              <div class="rv-dots" aria-hidden="true"><span></span><span></span><span></span></div>
-              <p class="rv-suspense-hint">Drumroll · press Space to reveal now</p>
-            `}
+            ${suspenseBody}
           </div>
 
           <div class="rv-reveal">
@@ -911,11 +939,146 @@
     };
 
     state.gate = skipRank;
-    if (rank.place === 1) {
+    const mode = suspenseStyleFor(rank);
+    if (mode === 'slot') {
       runSlot(act, row, reveal, () => slotCancelled);
+    } else if (mode === 'elimination') {
+      runElimination(act, row, reveal, () => slotCancelled);
+    } else if (mode === 'decrypt') {
+      runDecrypt(act, row, reveal, () => slotCancelled);
+    } else if (mode === 'stamp') {
+      runStamp(act, row, reveal, () => slotCancelled);
     } else {
       later(reveal, suspenseMs);
     }
+  }
+
+  // Elimination Battle Royale: drop teams one by one, hold on the Final 2 with
+  // a fakeout tension riser, slash the decoy, and crown the survivor.
+  function runElimination(act, row, reveal, isCancelled) {
+    const grid = act.querySelector('#elimGrid');
+    const tag = act.querySelector('#elimTag');
+    if (!grid) { later(reveal, 3200); return; }
+
+    const allTeams = pool().map((r) => r.team);
+    const others = allTeams.filter((t) => String(t.number) !== String(row.team.number));
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [others[i], others[j]] = [others[j], others[i]];
+    }
+    const chosen = [row.team, ...others.slice(0, 15)];
+    for (let i = chosen.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
+    }
+
+    grid.innerHTML = chosen.map((t) =>
+      `<span class="rv-tile" data-no="${esc(t.number)}">${esc(t.name)}</span>`
+    ).join('');
+
+    const dropOrder = others.slice(0, 15);
+    const decoy = dropOrder.pop(); // Keep 1 decoy for the Final 2 showdown!
+    const gap = Math.max(110, Math.min(260, 2600 / Math.max(1, dropOrder.length)));
+
+    dropOrder.forEach((t, k) => later(() => {
+      if (isCancelled()) return;
+      const tile = grid.querySelector(`[data-no="${CSS.escape(String(t.number))}"]`);
+      if (tile) tile.classList.add('is-out');
+      audio.tick(2100 - k * 35);
+    }, 350 + k * gap));
+
+    const finalTwoAt = 350 + dropOrder.length * gap + 220;
+    later(() => {
+      if (isCancelled()) return;
+      const winTile = grid.querySelector(`[data-no="${CSS.escape(String(row.team.number))}"]`);
+      const decoyTile = decoy ? grid.querySelector(`[data-no="${CSS.escape(String(decoy.number))}"]`) : null;
+      if (winTile) winTile.classList.add('is-finalist');
+      if (decoyTile) decoyTile.classList.add('is-finalist');
+      if (tag) tag.textContent = decoy ? `FINAL 2 STANDING · ${row.team.name} vs ${decoy.name}…` : 'FINAL SURVIVOR!';
+      audio.stopDrumroll();
+      audio.fakeBuild();
+    }, finalTwoAt);
+
+    later(() => {
+      if (isCancelled()) return;
+      const winTile = grid.querySelector(`[data-no="${CSS.escape(String(row.team.number))}"]`);
+      const decoyTile = decoy ? grid.querySelector(`[data-no="${CSS.escape(String(decoy.number))}"]`) : null;
+      if (decoyTile) {
+        decoyTile.classList.remove('is-finalist');
+        decoyTile.classList.add('is-decoy-out');
+        audio.psychFart();
+      }
+      if (winTile) {
+        winTile.classList.remove('is-finalist');
+        winTile.classList.add('is-winner');
+      }
+      if (tag) tag.textContent = `SURVIVOR · ${row.team.name}!`;
+      audio.winnerBell();
+      later(() => { if (!isCancelled()) reveal(); }, 750);
+    }, finalTwoAt + 1450);
+  }
+
+  // Matrix Decrypt with a decoy glitch before locking onto the real winner.
+  function runDecrypt(act, row, reveal, isCancelled) {
+    const reel = act.querySelector('#decryptText');
+    const tag = act.querySelector('#decryptTag');
+    if (!reel) { later(reveal, 3000); return; }
+
+    const candidates = pool().map((r) => r.team.name).filter((n) => n !== row.team.name);
+    const decoyName = (candidates[Math.floor(Math.random() * candidates.length)] || 'SYSTEM OVERRIDE').toUpperCase();
+    const realName = row.team.name.toUpperCase();
+    const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#@$%&*';
+
+    const scrambleTo = (target, ms, onDone) => {
+      const start = performance.now();
+      let lastLocked = -1;
+      const frame = () => {
+        if (isCancelled()) return;
+        const p = Math.min(1, (performance.now() - start) / ms);
+        const locked = Math.floor(p * target.length);
+        let out = '';
+        for (let i = 0; i < target.length; i++) {
+          out += (target[i] === ' ' || i < locked)
+            ? target[i]
+            : glyphs[Math.floor(Math.random() * glyphs.length)];
+        }
+        reel.textContent = out;
+        if (locked !== lastLocked) { lastLocked = locked; audio.click(); }
+        if (p < 1) later(frame, 48);
+        else { reel.textContent = target; onDone(); }
+      };
+      frame();
+    };
+
+    scrambleTo(decoyName, 1500, () => {
+      if (isCancelled()) return;
+      reel.classList.add('is-decoy');
+      if (tag) tag.textContent = `LOCKED: ${decoyName}… WAIT A SECOND`;
+      audio.tick(750);
+      later(() => {
+        if (isCancelled()) return;
+        reel.classList.remove('is-decoy');
+        if (tag) tag.textContent = 'CORRUPTED PACKET · RE-DECRYPTING…';
+        audio.psychFart();
+        scrambleTo(realName, 1400, () => {
+          if (isCancelled()) return;
+          if (tag) tag.textContent = `VERIFIED · ${row.team.name}`;
+          audio.winnerBell();
+          later(() => { if (!isCancelled()) reveal(); }, 550);
+        });
+      }, 900);
+    });
+  }
+
+  function runStamp(act, row, reveal, isCancelled) {
+    const counter = act.querySelector('#stampCount');
+    if (!counter) { later(reveal, 2700); return; }
+    ['3', '2', '1'].forEach((n, k) => later(() => {
+      if (isCancelled()) return;
+      counter.textContent = n;
+      audio.tick(1800 + k * 300);
+    }, k * 850));
+    later(() => { if (!isCancelled()) reveal(); }, 2550);
   }
 
   // Champion-only slot machine: spin through the field, fake out on a decoy,
