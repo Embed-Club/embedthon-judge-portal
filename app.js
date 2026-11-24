@@ -1209,7 +1209,10 @@
     }
 
     if (btnSwitchSecA && btnSwitchSecB) {
-      if (team.section === 'A') {
+      const isSecA = activeEventId === 'PROJECT_EXPO'
+        ? (team.category === '3rd Year' || parseInt(team.number, 10) <= 25)
+        : team.section === 'A';
+      if (isSecA) {
         btnSwitchSecA.className = 'px-2.5 py-1 text-xs font-black rounded bg-[#ea580c] text-white transition shadow-xs';
         btnSwitchSecB.className = 'px-2.5 py-1 text-xs font-semibold rounded text-[#475569] hover:text-[#0f172a] transition';
       } else {
@@ -1222,9 +1225,11 @@
     if (teamBigName) teamBigName.textContent = team.name;
     if (teamSubtitle) {
       if (activeEventId === 'PAPER') {
-        teamSubtitle.textContent = `${team.slot || 'PP-' + team.number} · ${team.venue || 'Multipurpose Hall'} · Dept: ${team.dept || 'Engineering'}`;
+        const clg = team.college ? ` · ${team.college}` : '';
+        teamSubtitle.textContent = `${team.slot || 'PP-' + team.number} · ${team.venue || 'Multipurpose Hall'}${clg} · Dept: ${team.dept || 'Engineering'}`;
       } else if (activeEventId === 'PROJECT_EXPO') {
-        teamSubtitle.textContent = `${team.stall || 'Stall ' + team.number} · ${team.venue || 'Edusat Hall'} · Dept: ${team.dept || 'Engineering'}`;
+        const clg = team.college ? ` · ${team.college}` : '';
+        teamSubtitle.textContent = `${team.stall || 'Stall ' + team.number} · ${team.venue || 'Edusat Hall'}${clg} · Dept: ${team.dept || 'Engineering'}`;
       } else {
         teamSubtitle.textContent = `${team.member_count || (team.members ? team.members.length : 4)} members · Section ${team.section} · Labs 1 & 2`;
       }
@@ -1725,8 +1730,10 @@
         loadTeamIntoForm(idx);
       });
 
-      if (isSingle) {
-        if (idx < Math.ceil(teams.length / 2)) {
+      if (activeEventId === 'PAPER') {
+        gridSectionA.appendChild(btn);
+      } else if (activeEventId === 'PROJECT_EXPO') {
+        if (t.category === '3rd Year' || parseInt(t.number, 10) <= 25) {
           gridSectionA.appendChild(btn);
         } else {
           gridSectionB.appendChild(btn);
@@ -1750,7 +1757,14 @@
     let count = 0;
 
     teams.forEach((t, idx) => {
-      const matchSection = activeEventId !== 'EMBEDDATHON' || activeSectionFilter === 'ALL' || t.section === activeSectionFilter;
+      let matchSection = true;
+      if (activeEventId === 'EMBEDDATHON') {
+        matchSection = activeSectionFilter === 'ALL' || t.section === activeSectionFilter;
+      } else if (activeEventId === 'PROJECT_EXPO') {
+        if (activeSectionFilter === 'ALL') matchSection = true;
+        else if (activeSectionFilter === '3rd Year') matchSection = (t.category === '3rd Year' || parseInt(t.number, 10) <= 25);
+        else if (activeSectionFilter === 'Final Year') matchSection = (t.category === 'Final Year' || parseInt(t.number, 10) >= 26);
+      }
       const matchQuery =
         !query ||
         t.number.includes(query) ||
@@ -1810,7 +1824,7 @@
                 <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-[#475569]">${secBadge}</span>
               </div>
               <p class="text-[10px] text-[#64748b] truncate">
-                Lead: ${leadText} · ${countText}
+                Lead: ${leadText} · ${countText}${t.college ? ' · ' + t.college : ''}
               </p>
             </div>
           </div>
@@ -2233,16 +2247,30 @@
     tabRoster.addEventListener('click', () => switchView('roster'));
     tabLeaderboard.addEventListener('click', () => switchView('leaderboard'));
 
-    // Section Switching
-    btnSwitchSecA.addEventListener('click', () => {
-      const idx = teams.findIndex((x) => x.section === 'A');
-      if (idx !== -1) loadTeamIntoForm(idx);
-    });
+    // Section / Category Switching
+    if (btnSwitchSecA) {
+      btnSwitchSecA.addEventListener('click', () => {
+        if (activeEventId === 'PROJECT_EXPO') {
+          const idx = teams.findIndex((x) => x.category === '3rd Year' || parseInt(x.number, 10) <= 25);
+          if (idx !== -1) loadTeamIntoForm(idx);
+        } else {
+          const idx = teams.findIndex((x) => x.section === 'A');
+          if (idx !== -1) loadTeamIntoForm(idx);
+        }
+      });
+    }
 
-    btnSwitchSecB.addEventListener('click', () => {
-      const idx = teams.findIndex((x) => x.section === 'B');
-      if (idx !== -1) loadTeamIntoForm(idx);
-    });
+    if (btnSwitchSecB) {
+      btnSwitchSecB.addEventListener('click', () => {
+        if (activeEventId === 'PROJECT_EXPO') {
+          const idx = teams.findIndex((x) => x.category === 'Final Year' || parseInt(x.number, 10) >= 26);
+          if (idx !== -1) loadTeamIntoForm(idx);
+        } else {
+          const idx = teams.findIndex((x) => x.section === 'B');
+          if (idx !== -1) loadTeamIntoForm(idx);
+        }
+      });
+    }
 
     // Grid Modal
     btnOpenTeamGridModal.addEventListener('click', () => {

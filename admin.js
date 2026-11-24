@@ -852,7 +852,20 @@
     const event = EVENT_LIB.getEvent(eventId);
     const filterSec = activeMatrixFilter;
     const eventTeams = typeof getEventTeams === 'function' ? getEventTeams(eventId) : teams;
-    const filteredTeams = eventTeams.filter((t) => filterSec === 'ALL' || t.section === filterSec || event.mode === 'SINGLE');
+
+    const matrixHeaderTitle = document.getElementById('matrixHeaderTitle');
+    if (matrixHeaderTitle) {
+      matrixHeaderTitle.textContent = `📋 Live Evaluation Master Matrix (${eventTeams.length} Teams · ${event.label})`;
+    }
+
+    const filteredTeams = eventTeams.filter((t) => {
+      if (filterSec === 'ALL') return true;
+      if (eventId === 'PROJECT_EXPO') {
+        if (filterSec === '3rd Year') return (t.category === '3rd Year' || parseInt(t.number, 10) <= 25);
+        if (filterSec === 'Final Year') return (t.category === 'Final Year' || parseInt(t.number, 10) >= 26);
+      }
+      return t.section === filterSec || event.mode === 'SINGLE';
+    });
     const eventMap = getEventMap(eventId);
 
     if (adminMatrixThead) {
@@ -899,13 +912,17 @@
           ? `<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-800">${totals.length} judge${totals.length === 1 ? '' : 's'} ✓</span>`
           : '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500">Pending</span>';
 
+        const leadName = t.lead || (t.members && t.members[0] ? t.members[0].name : '');
+        const memberCount = t.member_count || (t.members ? t.members.length : 1);
+        const secLabel = event.mode === 'SINGLE' ? (t.stall || t.slot || t.section || '') : t.section;
+
         tr.innerHTML = `
           <td class="py-2.5 px-2.5 font-black font-serif-pace text-[#ea580c]">#${t.number}</td>
           <td class="py-2.5 px-3 font-bold text-[#0f172a] truncate max-w-[150px]">
             <div>${t.name}</div>
-            <span class="text-[9px] text-[#64748b] font-normal truncate block">${t.members[0]?.name || ''} · ${t.member_count} members</span>
+            <span class="text-[9px] text-[#64748b] font-normal truncate block">${leadName} · ${memberCount} members${t.college ? ' · ' + t.college : ''}</span>
           </td>
-          <td class="py-2.5 px-1.5 text-center font-bold text-[#64748b] text-[10px]">${t.section}</td>
+          <td class="py-2.5 px-1.5 text-center font-bold text-[#64748b] text-[10px]">${secLabel}</td>
           <td class="py-2.5 px-2 text-center font-bold text-slate-700">${totals.length}</td>
           <td class="py-2.5 px-2.5 text-right font-black text-sm text-[#ea580c]">${avg > 0 ? `${avg} / ${event.maxTotal}` : '—'}</td>
           <td class="py-2.5 px-2 text-center">${statusBadge}</td>
@@ -929,11 +946,14 @@
           statusBadge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500">Pending</span>';
         }
 
+        const leadName = t.lead || (t.members && t.members[0] ? t.members[0].name : '');
+        const memberCount = t.member_count || (t.members ? t.members.length : 1);
+
         tr.innerHTML = `
           <td class="py-2.5 px-2.5 font-black font-serif-pace text-[#ea580c]">#${t.number}</td>
           <td class="py-2.5 px-3 font-bold text-[#0f172a] truncate max-w-[150px]">
             <div>${t.name}</div>
-            <span class="text-[9px] text-[#64748b] font-normal truncate block">${t.members[0]?.name || ''} · ${t.member_count} members</span>
+            <span class="text-[9px] text-[#64748b] font-normal truncate block">${leadName} · ${memberCount} members</span>
           </td>
           <td class="py-2.5 px-1.5 text-center font-bold text-[#64748b] text-[10px]">${t.section}</td>
           <td class="py-2.5 px-2 text-center font-bold text-slate-700">${p1Avg > 0 ? `${p1Avg} / 30` : '—'}</td>
@@ -1140,7 +1160,30 @@
     }
 
     if (matrixEventFilter) {
-      matrixEventFilter.addEventListener('change', renderMatrix);
+      matrixEventFilter.addEventListener('change', () => {
+        const evId = matrixEventFilter.value;
+        if (matrixSectionFilter) {
+          if (evId === 'PROJECT_EXPO') {
+            matrixSectionFilter.innerHTML = `
+              <option value="ALL">All Stalls (36 Teams)</option>
+              <option value="3rd Year">3rd Year (Stalls 01–25)</option>
+              <option value="Final Year">Final Year (Stalls 26–36)</option>
+            `;
+          } else if (evId === 'PAPER') {
+            matrixSectionFilter.innerHTML = `
+              <option value="ALL">All Papers (12 Papers)</option>
+            `;
+          } else {
+            matrixSectionFilter.innerHTML = `
+              <option value="ALL">All Sections (24 Teams)</option>
+              <option value="A">Section A (01–11)</option>
+              <option value="B">Section B (12–24)</option>
+            `;
+          }
+          activeMatrixFilter = 'ALL';
+        }
+        renderMatrix();
+      });
     }
 
     // Export & Reset

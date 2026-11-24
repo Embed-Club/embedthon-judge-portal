@@ -265,12 +265,12 @@
 
     // Seed registrations from teams.js if empty
     if (!registrations.length && typeof TEAMS_DATA !== 'undefined') {
-      registrations = TEAMS_DATA.map((t, idx) => {
+      const embedRegs = (TEAMS_DATA || []).map((t) => {
         const lead = t.members.find(m => m.is_lead) || t.members[0];
         return {
-          id: `EMB-TEAM-${t.number}`,
+          id: `EMB-${t.number}`,
           timestamp: '2026-11-20T10:00:00.000Z',
-          track: t.section === 'A' ? 'Track 1: Embeddathon' : 'Track 2: Project Exhibition / Expo',
+          track: 'Track 1: Embeddathon',
           title: t.abstract_title || `${t.name} Prototype`,
           college: 'P.A. College of Engineering, Mangaluru',
           dept: `CSE (Section ${t.section})`,
@@ -285,9 +285,59 @@
           hardwareReq: '230V Power Socket, Display Table',
           feePaid: true,
           verified: true,
-          assignedStall: `Stall ${t.number}`
+          assignedStall: 'Computer Labs 1 & 2'
         };
       });
+
+      const expoRegs = (typeof PROJECT_EXPO_TEAMS !== 'undefined' ? PROJECT_EXPO_TEAMS : []).map((t) => {
+        const lead = t.members && t.members.length ? (t.members.find(m => m.is_lead) || t.members[0]) : null;
+        return {
+          id: `EXP-${t.number}`,
+          timestamp: '2026-11-20T10:00:00.000Z',
+          track: 'Track 2: Project Expo',
+          title: t.name,
+          college: t.college || 'P.A. College of Engineering',
+          dept: t.dept || 'Engineering',
+          leaderName: t.lead || (lead ? lead.name : 'Team Leader'),
+          email: t.email || (lead ? lead.email : ''),
+          phone: t.phone || (lead ? lead.phone : ''),
+          usn: lead ? lead.usn : '',
+          membersCount: t.member_count || (t.members ? t.members.length : 1),
+          members: t.members || [],
+          abstract: t.abstract || '',
+          domain: t.category ? `${t.category} Project Expo` : 'Engineering Innovation',
+          hardwareReq: 'Table Space & Power',
+          feePaid: true,
+          verified: true,
+          assignedStall: t.stall || `Stall ${t.number}`
+        };
+      });
+
+      const paperRegs = (typeof PAPER_TEAMS !== 'undefined' ? PAPER_TEAMS : []).map((t) => {
+        const lead = t.members && t.members.length ? (t.members.find(m => m.is_lead) || t.members[0]) : null;
+        return {
+          id: `PPR-${t.number}`,
+          timestamp: '2026-11-20T10:00:00.000Z',
+          track: 'Track 3: Paper Presentation',
+          title: t.name,
+          college: t.college || 'P.A. College of Engineering',
+          dept: t.dept || 'Engineering',
+          leaderName: t.lead || (lead ? lead.name : 'Author'),
+          email: t.email || (lead ? lead.email : ''),
+          phone: t.phone || (lead ? lead.phone : ''),
+          usn: lead ? lead.usn : '',
+          membersCount: t.member_count || (t.members ? t.members.length : 1),
+          members: t.members || [],
+          abstract: t.abstract || '',
+          domain: t.domain || 'Technical Research Paper',
+          hardwareReq: 'Projector & Mic',
+          feePaid: true,
+          verified: true,
+          assignedStall: t.slot || `PP-${t.number}`
+        };
+      });
+
+      registrations = [...embedRegs, ...expoRegs, ...paperRegs];
     }
 
     if (inputGoogleSheetCsvUrl && googleSheetConfig.sheetCsvUrl) {

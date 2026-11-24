@@ -102,16 +102,30 @@ module.exports = async function handler(req, res) {
     try {
       const gist = await fetchGist();
       if (gist.files && gist.files['embers_data.json']) {
-        embersData = { ...embersData, ...JSON.parse(gist.files['embers_data.json'].content) };
+        const parsed = JSON.parse(gist.files['embers_data.json'].content);
+        if (parsed.registrations && Array.isArray(parsed.registrations)) {
+          const clean = parsed.registrations.filter(r => {
+            const title = r.title || r.project_title || '';
+            const name = r.leaderName || r.lead_name || '';
+            return title !== 'Untitled Innovation' && name !== 'Lead Participant' && (title.length > 2 || name.length > 2);
+          });
+          if (clean.length >= 40) {
+            parsed.registrations = clean;
+          } else {
+            parsed.registrations = OFFICIAL_REGISTRATIONS;
+          }
+        }
+        embersData = { ...embersData, ...parsed };
       }
     } catch (e) {
       console.warn('Gist fetch warning (using in-memory fallback):', e.message);
     }
 
     if (req.method === 'GET') {
-      if (Array.isArray(embersData.registrations)) {
-        embersData.registrations = embersData.registrations.map(normalizeReg).filter(Boolean);
+      if (!embersData.registrations || !embersData.registrations.length) {
+        embersData.registrations = OFFICIAL_REGISTRATIONS;
       }
+      embersData.registrations = embersData.registrations.map(normalizeReg).filter(Boolean);
       return res.status(200).json(embersData);
     }
 
