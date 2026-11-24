@@ -322,53 +322,356 @@
   }
 
   // =============================================================
-  // Mock Demo Standings Generator (Uses Real Teams from teams.js)
+  // Curated Fake Demo Data (Rehearsal & Test Reveal Only)
   // =============================================================
-  function getMasterTeamPool(category) {
-    const cat = (category || 'OVERALL').toUpperCase();
-    if (cat === 'PAPER') {
-      return (typeof PAPER_TEAMS !== 'undefined' ? PAPER_TEAMS : []);
-    }
-    if (cat === 'PROJECT_EXPO' || cat === 'HARDWARE' || cat === 'SOFTWARE') {
-      return (typeof PROJECT_EXPO_TEAMS !== 'undefined' ? PROJECT_EXPO_TEAMS : []);
-    }
-    if (cat === 'A') {
-      return (typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA.filter(t => t.section === 'A') : []);
-    }
-    if (cat === 'B') {
-      return (typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA.filter(t => t.section === 'B') : []);
-    }
-    return (typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA : []);
-  }
+  const FAKE_DEMO_DATA = {
+    EMBEDDATHON: [
+      {
+        number: '07',
+        name: 'Apex Innovators ⚡',
+        abstract_title: 'Autonomous Swarm Drones for Disaster Relief & Thermal Mapping',
+        college: 'Apex Institute of Technology, Bengaluru',
+        lead: 'Aryan "Neo" Sharma',
+        dept: 'Robotics & Artificial Intelligence',
+        section: 'A',
+        p1: 29.2,
+        p2: 68.2,
+        total: 97.4
+      },
+      {
+        number: '14',
+        name: 'NeuralForge AI 🧠',
+        abstract_title: 'Quantum-Resistant Neuromorphic Cryptochip on RISC-V Silicon',
+        college: 'Global Cybernetics University, Mysuru',
+        lead: 'Elena Vance',
+        dept: 'Computer Science & Engineering',
+        section: 'B',
+        p1: 28.3,
+        p2: 65.9,
+        total: 94.2
+      },
+      {
+        number: '03',
+        name: 'Veloce Dynamics 🦾',
+        abstract_title: 'Sub-Millisecond Bionic Exoskeleton with Neural Force Feedback',
+        college: 'Metropolis Institute of Tech, Mangaluru',
+        lead: 'Marcus Vance',
+        dept: 'Electronics & Communication Engineering',
+        section: 'A',
+        p1: 27.1,
+        p2: 63.4,
+        total: 90.5
+      },
+      {
+        number: '19',
+        name: 'Hyperion Core ☀️',
+        abstract_title: 'Next-Gen Solid-State High-Capacity Smart Battery BMS',
+        college: 'Solaria Engineering Academy, Udupi',
+        lead: 'Zara Chen',
+        dept: 'Electrical & Electronics Engineering',
+        section: 'B',
+        p1: 26.3,
+        p2: 61.5,
+        total: 87.8
+      },
+      {
+        number: '09',
+        name: 'Aether Robotics 🤖',
+        abstract_title: 'Vision-Guided Micro-Pesticide Precision Agriculture Harvester',
+        college: 'Horizon State University, Hubballi',
+        lead: 'Rohan Verma',
+        dept: 'Mechatronics & Automation',
+        section: 'A',
+        p1: 25.4,
+        p2: 59.2,
+        total: 84.6
+      },
+      {
+        number: '22',
+        name: 'CyberPulse Labs 📡',
+        abstract_title: 'Edge-AI Acoustic Vibration Fault Classifier for Jet Turbines',
+        college: 'Pacific Technical Campus, Belagavi',
+        lead: 'David Miller',
+        dept: 'Information Science & Engineering',
+        section: 'B',
+        p1: 24.2,
+        p2: 57.0,
+        total: 81.2
+      },
+      {
+        number: '05',
+        name: 'Quantum Rovers 🚀',
+        abstract_title: 'All-Terrain Lunar Exploration Rover with Real-Time LiDAR SLAM',
+        college: 'Astrodyne Institute of Aeronautical Tech',
+        lead: 'Samantha Ray',
+        dept: 'Aerospace & Embedded Systems',
+        section: 'A',
+        p1: 23.5,
+        p2: 55.1,
+        total: 78.6
+      },
+      {
+        number: '16',
+        name: 'PixelForge Core 👾',
+        abstract_title: 'Sub-Milliwatt Neural Audio Speech Enhancer on ARM Cortex-M4',
+        college: 'Delta Polytechnic Institute, Shivamogga',
+        lead: 'Priya Sharma',
+        dept: 'Computer Engineering',
+        section: 'B',
+        p1: 22.8,
+        p2: 52.7,
+        total: 75.5
+      },
+      {
+        number: '02',
+        name: 'TerraGuard IoT 🌍',
+        abstract_title: 'Long-Range Forest Fire Early Warning Mesh Sensor Network',
+        college: 'Terra Nova University, Hassan',
+        lead: 'Lucas Scott',
+        dept: 'Civil & Environmental Technology',
+        section: 'A',
+        p1: 21.6,
+        p2: 50.4,
+        total: 72.0
+      },
+      {
+        number: '18',
+        name: 'OmniShield Security 🛡️',
+        abstract_title: 'Hardware-Enforced SCADA Air-Gap Anomaly Prevention Device',
+        college: 'Neo Tokyo Institute of Cybernetics',
+        lead: 'Kenji Sato',
+        dept: 'Cyber Security & Forensics',
+        section: 'B',
+        p1: 20.5,
+        p2: 48.0,
+        total: 68.5
+      },
+      {
+        number: '11',
+        name: 'BioSensor Matrix 🧬',
+        abstract_title: 'Wearable Real-Time Continuous Blood Lactate & Glucose Monitor',
+        college: 'MedTech Advanced Institute, Manipal',
+        lead: 'Ananya Deshmukh',
+        dept: 'Biomedical Engineering',
+        section: 'A',
+        p1: 19.8,
+        p2: 46.2,
+        total: 66.0
+      },
+      {
+        number: '24',
+        name: 'Vortex Turbines 🌀',
+        abstract_title: 'Bladeless Micro-Wind Energy Harvester with Piezoelectric Arrays',
+        college: 'Renewable Power Institute, Kalaburagi',
+        lead: 'Tariq Al-Mansoor',
+        dept: 'Mechanical Engineering',
+        section: 'B',
+        p1: 19.0,
+        p2: 44.0,
+        total: 63.0
+      }
+    ],
+    PROJECT_EXPO: [
+      {
+        number: 'HW-99',
+        name: 'Titan Dynamics 🦾',
+        abstract_title: 'Omni-Directional Industrial Exoskeleton with Neural Force Feedback',
+        college: 'Titan Polytechnic Institute, Bengaluru',
+        lead: 'Dr. Elena Rostova',
+        dept: 'Mechatronics & Robotics',
+        section: 'Hardware',
+        total: 98.2
+      },
+      {
+        number: 'SW-88',
+        name: 'Synthetix Studio 🔮',
+        abstract_title: 'Generative Holographic CAD Workbench with Real-Time Hand Tracking',
+        college: 'Horizon State University, Mysuru',
+        lead: 'Leo Sterling',
+        dept: 'Computer Science & Design',
+        section: 'Software',
+        total: 95.4
+      },
+      {
+        number: 'HW-77',
+        name: 'HyperDrive Labs 🚄',
+        abstract_title: 'Contactless MagLev Urban Rapid Transit Capsule Prototype',
+        college: 'Silicon Valley Technical Campus',
+        lead: 'Zainab Al-Hassan',
+        dept: 'Automotive & Control Systems',
+        section: 'Hardware',
+        total: 91.8
+      },
+      {
+        number: 'SW-66',
+        name: 'ShieldOS CyberSec 🛡️',
+        abstract_title: 'Zero-Trust Microkernel Sandboxing for Critical Infrastructure Firmware',
+        college: 'CyberCore Research University, Mangaluru',
+        lead: 'Natasha Roman',
+        dept: 'Cyber Defense Systems',
+        section: 'Software',
+        total: 88.5
+      },
+      {
+        number: 'HW-55',
+        name: 'GreenMatrix BioPower 🌿',
+        abstract_title: 'Microbial Fuel Cell Array for Autonomous Wetland Monitoring Sensors',
+        college: 'EcoTech Global Institute, Hassan',
+        lead: 'Carlos Morales',
+        dept: 'Bio-Engineering & Green Tech',
+        section: 'Hardware',
+        total: 85.0
+      },
+      {
+        number: 'SW-44',
+        name: 'MediScan Vision 🩺',
+        abstract_title: 'Multi-Modal Federated AI for Microscopic Blood Pathology Diagnosis',
+        college: 'Cambridge Health Sciences Institute',
+        lead: 'Dr. Sarah Jenkins',
+        dept: 'Biomedical Informatics',
+        section: 'Software',
+        total: 81.5
+      },
+      {
+        number: 'HW-33',
+        name: 'AeroGlide Drone 🛩️',
+        abstract_title: 'Solar-Assisted High-Altitude Pseudo-Satellite Surveillance Glider',
+        college: 'Apex Aeronautical Academy',
+        lead: 'Devraj Rao',
+        dept: 'Aeronautical Engineering',
+        section: 'Hardware',
+        total: 78.0
+      },
+      {
+        number: 'SW-22',
+        name: 'Algoritmica DeFi 💎',
+        abstract_title: 'Formal-Verifiable Decentralized Order Routing Protocol with MEV Immunity',
+        college: 'FinTech Polytechnic',
+        lead: 'Rachel Green',
+        dept: 'Computer Science',
+        section: 'Software',
+        total: 74.2
+      }
+    ],
+    PAPER: [
+      {
+        number: 'PP-01',
+        name: 'Turing Scholars 📜',
+        abstract_title: 'Transformers at the Edge: Ultra-Low-Bit Quantization for Sub-Milliwatt Microcontrollers',
+        college: 'International AI Research Institute, Bengaluru',
+        lead: 'Prof. Maya Chen',
+        dept: 'Advanced Machine Learning',
+        section: 'Paper',
+        total: 98.6
+      },
+      {
+        number: 'PP-02',
+        name: 'CyberPulse Research 🔬',
+        abstract_title: 'Formal Verification of Autonomous Flight Neural Controllers Against Adversarial Attacks',
+        college: 'Cambridge Cybernetics Laboratory',
+        lead: 'Liam O\'Connor',
+        dept: 'Autonomous Aerospace Systems',
+        section: 'Paper',
+        total: 94.8
+      },
+      {
+        number: 'PP-03',
+        name: 'BioInformatics Alpha 🧬',
+        abstract_title: 'In-Silico Protein-Ligand Affinity Acceleration via Geometric Graph Neural Operators',
+        college: 'Stanford Genomic Computing Centre',
+        lead: 'Dr. Priya Sengupta',
+        dept: 'Computational Biology & AI',
+        section: 'Paper',
+        total: 91.2
+      },
+      {
+        number: 'PP-04',
+        name: 'Quantum Logic Group ⚛️',
+        abstract_title: 'Fault-Tolerant Topological Surface Code Optimization for Noisy Intermediate-Scale Quantum Processors',
+        college: 'Oxford Quantum Computing Institute',
+        lead: 'Dr. Alexander Bohr',
+        dept: 'Theoretical & Quantum Physics',
+        section: 'Paper',
+        total: 87.5
+      },
+      {
+        number: 'PP-05',
+        name: 'ZeroTrust Protocol Guild 🌐',
+        abstract_title: 'Lattice-Based Post-Quantum Zero-Knowledge Authentication for Ultra-Constrained IoT Nodes',
+        college: 'ETH Zurich Cryptography Center',
+        lead: 'Karin Lindqvist',
+        dept: 'Information Security & Privacy',
+        section: 'Paper',
+        total: 83.9
+      },
+      {
+        number: 'PP-06',
+        name: 'Neural Neuromorphic Team ⚡',
+        abstract_title: 'Spike-Timing-Dependent Plasticity Emulation on Memristive Crossbar Networks',
+        college: 'Tokyo Institute of Neuromorphic Engineering',
+        lead: 'Hiroshi Tanaka',
+        dept: 'Nanoelectronics',
+        section: 'Paper',
+        total: 80.4
+      }
+    ]
+  };
 
   function generateMockStandings(category) {
-    const pool = [...getMasterTeamPool(category)];
+    const cat = (category || 'OVERALL').toUpperCase();
+    let pool = [];
+    if (cat === 'PAPER') {
+      pool = [...FAKE_DEMO_DATA.PAPER];
+    } else if (cat === 'PROJECT_EXPO' || cat === 'HARDWARE' || cat === 'SOFTWARE') {
+      if (cat === 'HARDWARE') {
+        pool = FAKE_DEMO_DATA.PROJECT_EXPO.filter(t => t.section === 'Hardware');
+      } else if (cat === 'SOFTWARE') {
+        pool = FAKE_DEMO_DATA.PROJECT_EXPO.filter(t => t.section === 'Software');
+      } else {
+        pool = [...FAKE_DEMO_DATA.PROJECT_EXPO];
+      }
+    } else if (cat === 'A') {
+      pool = FAKE_DEMO_DATA.EMBEDDATHON.filter(t => t.section === 'A');
+    } else if (cat === 'B') {
+      pool = FAKE_DEMO_DATA.EMBEDDATHON.filter(t => t.section === 'B');
+    } else {
+      pool = [...FAKE_DEMO_DATA.EMBEDDATHON];
+    }
     if (!pool.length) return [];
 
-    // Deterministic pseudo-shuffle with seed
-    const shuffled = pool.map(v => ({ v, sort: Math.sin(state.shuffleSeed + Number(v.orig_number || v.number || 1) * 31.7) }))
-      .sort((a, b) => a.sort - b.sort)
-      .map(({ v }) => v);
+    // Deterministic pseudo-shuffle with seed; seed=1 keeps curated top-3 order, shuffling rotates winners
+    const ordered = state.shuffleSeed === 1
+      ? pool
+      : pool.map((v, idx) => {
+          const charSum = (v.name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+          return { v, sort: Math.sin(state.shuffleSeed * 17.31 + charSum * 0.13 + (idx + 1) * 31.7) };
+        })
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ v }) => v);
 
-    const isDual = (category === 'OVERALL' || category === 'EMBEDDATHON' || category === 'A' || category === 'B');
-    const baseScores = [97.4, 93.8, 89.5, 86.2, 83.0, 80.5, 78.2, 75.0, 72.4, 69.8];
+    const isDual = (cat === 'OVERALL' || cat === 'EMBEDDATHON' || cat === 'A' || cat === 'B');
+    const baseScores = [97.8, 94.2, 90.6, 87.1, 84.3, 81.0, 78.4, 75.2, 72.0, 68.5, 65.0, 62.0];
 
-    return shuffled.map((team, idx) => {
-      const total = idx < baseScores.length ? baseScores[idx] : Math.max(50, 68 - idx * 1.5);
-      const lead = (team.members && team.members.length ? (team.members.find(m => m.is_lead) || team.members[0]) : null);
-      const p1 = isDual ? Math.round((total * 0.3) * 10) / 10 : 0;
-      const p2 = isDual ? Math.round((total - p1) * 10) / 10 : 0;
+    return ordered.map((team, idx) => {
+      const total = state.shuffleSeed === 1 && typeof team.total === 'number'
+        ? team.total
+        : (idx < baseScores.length ? baseScores[idx] : Math.max(50, 68 - idx * 1.5));
+      const p1 = isDual
+        ? (state.shuffleSeed === 1 && typeof team.p1 === 'number' ? team.p1 : Math.round((total * 0.3) * 10) / 10)
+        : 0;
+      const p2 = isDual
+        ? (state.shuffleSeed === 1 && typeof team.p2 === 'number' ? team.p2 : Math.round((total - p1) * 10) / 10)
+        : 0;
 
       return {
         team: {
-          ...team,
-          number: team.number || team.slot || `0${idx + 1}`,
-          name: team.name || team.team_name || `Team ${idx + 1}`,
+          number: team.number || `0${idx + 1}`,
+          name: team.name,
           section: team.section || (idx % 2 === 0 ? 'A' : 'B'),
-          lead: team.lead || (lead ? lead.name : 'Team Leader'),
-          college: team.college || 'P.A. College of Engineering, Mangaluru',
-          dept: team.dept || 'Computer Science & Engineering',
-          abstract_title: team.project_title || team.abstract_title || `${team.name} Prototype`
+          lead: team.lead || 'Demo Lead',
+          college: team.college || 'Demo Engineering Institute',
+          dept: team.dept || 'Engineering Innovation',
+          abstract_title: team.abstract_title || `${team.name} Prototype`
         },
         total: Math.round(total * 10) / 10,
         p1,
@@ -397,6 +700,66 @@
     if (cat === 'A') return all.filter((r) => r.team.section === 'A');
     if (cat === 'B') return all.filter((r) => r.team.section === 'B');
     return all;
+  }
+
+  function renderModal() {
+    if (!el.modalBody) return;
+    const f = el.modalFilter ? el.modalFilter.value : 'ALL';
+    const rows = state.locked.filter((r) => f === 'ALL' || r.team.section === f);
+    const show = (v) => (state.hasScores ? v.toFixed(1) : '—');
+    const event = EVENT_LIB.getEvent(categoryEventId(state.category));
+    const isSingle = event.mode === 'SINGLE';
+
+    const modalSub = $('standingsModalSub');
+    if (modalSub) {
+      const modeTag = state.isMockMode ? '🧪 SIMULATED DEMO DATA · ' : '';
+      modalSub.textContent = modeTag + (isSingle
+        ? `${event.icon || ''} ${event.label} · Jury average out of ${event.maxTotal} marks`
+        : 'Phase 1 Mentoring (30%) + Phase 2 Final Expo (70%) = Total Score (100%)');
+    }
+
+    const theadRow = $('standingsTheadRow');
+    if (theadRow) {
+      theadRow.innerHTML = isSingle
+        ? `
+          <th class="is-center">Rank</th>
+          <th>Team</th>
+          <th>Team Name &amp; Project</th>
+          <th class="is-center">Sec</th>
+          <th class="is-center">Judges</th>
+          <th class="is-right">Average (${event.maxTotal})</th>`
+        : `
+          <th class="is-center">Rank</th>
+          <th>Team</th>
+          <th>Team Name &amp; Project</th>
+          <th class="is-center">Sec</th>
+          <th class="is-center">Phase 1 (/30)</th>
+          <th class="is-center">Phase 2 (/70)</th>
+          <th class="is-right">Total (/100)</th>`;
+    }
+
+    el.modalBody.innerHTML = rows.map((r, i) => {
+      const cells = isSingle
+        ? `
+        <td class="is-center">${r.judges}</td>
+        <td class="is-right"><span class="rv-table-total">${show(r.total)}</span></td>`
+        : `
+        <td class="is-center">${show(r.p1)}</td>
+        <td class="is-center">${show(r.p2)}</td>
+        <td class="is-right"><span class="rv-table-total">${show(r.total)}</span></td>`;
+
+      return `
+      <tr class="${i === 0 ? 'is-leader' : ''}">
+        <td class="is-center"><strong>#${i + 1}</strong></td>
+        <td class="rv-table-num">${esc(r.team.number)}</td>
+        <td>
+          <span class="rv-table-team">${esc(r.team.name)}</span>
+          <span class="rv-table-sub">${esc(r.team.abstract_title || '')}</span>
+        </td>
+        <td class="is-center"><span class="rv-table-sec">${esc(r.team.section)}</span></td>
+        ${cells}
+      </tr>`;
+    }).join('');
   }
 
   function applyLive(rows) {
@@ -488,6 +851,10 @@
     const rows = state.locked;
     const rankInfo = RANKS.find(r => r.place === state.step);
 
+    const demoPill = state.isMockMode
+      ? `<div class="rv-demo-pill" style="display:inline-flex; align-items:center; gap:6px; background:rgba(234, 88, 12, 0.25); border:1px solid #ea580c; color:#fed7aa; font-size:11px; font-weight:800; padding:4px 14px; border-radius:999px; margin-bottom:12px; letter-spacing:0.06em; text-transform:uppercase;">🧪 FAKE REHEARSAL DATA · DEMO MODE</div>`
+      : '';
+
     // Welcome Screen (Step 0)
     if (state.step === STEP_WELCOME) {
       if (el.indicator) el.indicator.textContent = 'Stage Ready · Grand Valedictory';
@@ -502,6 +869,7 @@
               <img src="assets/embers_logo.png" alt="EMBERS '26" onerror="this.style.display='none'">
             </span>
           </div>
+          ${demoPill}
           <p class="rv-welcome-kicker">${esc(CATEGORY_TITLES[state.category])}</p>
           <h1 class="rv-welcome-title">GRAND RESULTS REVEAL</h1>
           <p class="rv-welcome-lead">
@@ -687,6 +1055,9 @@
         el.modal.setAttribute('aria-hidden', 'true');
       }
     });
+    if (el.modalFilter) {
+      el.modalFilter.addEventListener('change', renderModal);
+    }
 
     // -------------------------------------------------------------
     // Test Control Deck Event Handlers
