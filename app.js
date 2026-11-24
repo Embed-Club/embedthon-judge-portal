@@ -35,16 +35,16 @@
     activePhase: 'PHASE_1',
     adminPin: '5012',
     internalJudges: [
-      { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor', pin: '1111' },
-      { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor', pin: '2222' }
+      { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor', pin: '3842' },
+      { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor', pin: '7195' }
     ],
     externalJudges: [
-      { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)', pin: '3333' },
-      { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)', pin: '4444' },
-      { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator', pin: '5555' },
-      { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator', pin: '6666' },
-      { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', pin: '7777' },
-      { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '8888' }
+      { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)', pin: '6428' },
+      { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)', pin: '9153' },
+      { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator', pin: '4817' },
+      { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator', pin: '2639' },
+      { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', pin: '8531' },
+      { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '1794' }
     ],
     judgeAssignments: {
       'INT-1': { eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotTitle: 'Track 1: Embeddathon Phase 1' },
