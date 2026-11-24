@@ -549,8 +549,8 @@
   function rowsForCategory(category) {
     const eventId = categoryEventId(category);
     const rows = state.eventRows[eventId] || [];
-    if (category === 'A' || category === 'B') {
-      return rows.filter((row) => row.team.section === category);
+    if (category === 'A' || category === 'B' || category === 'HARDWARE' || category === 'SOFTWARE') {
+      return rows.filter((row) => String(row.team.section || '').toUpperCase() === category);
     }
     return rows;
   }
@@ -833,16 +833,19 @@
               <h3 class="rv-name">${esc(row.team.name)}</h3>
               ${row.team.abstract_title ? `<p class="rv-project">“${esc(row.team.abstract_title)}”</p>` : ''}
               <div class="rv-members">${members}</div>
-              <div class="rv-scoreboard">
+                <div class="rv-scoreboard">
                 <div class="rv-total">
                   <span class="rv-total-label">Grand Total</span>
                   <span class="rv-total-value ${state.hasScores ? '' : 'is-empty'}" data-count="${state.hasScores ? row.total : ''}">${state.hasScores ? '0.0' : '—'}</span>
                   <span class="rv-total-max">/ ${state.maxTotal}</span>
                 </div>
-                <div class="rv-split">
-                  <div><span>Phase 1</span><strong>${show(row.p1)}</strong><small>/ 30</small></div>
-                  <div><span>Phase 2</span><strong>${show(row.p2)}</strong><small>/ 70</small></div>
-                </div>
+                ${EVENT_LIB.getEvent(categoryEventId(state.category)).mode === 'SINGLE'
+                  ? `<div class="rv-split"><div><span>Judges</span><strong>${row.judges || 0}</strong><small>scored</small></div></div>`
+                  : `<div class="rv-split">
+                      <div><span>Phase 1</span><strong>${show(row.p1)}</strong><small>/ 30</small></div>
+                      <div><span>Phase 2</span><strong>${show(row.p2)}</strong><small>/ 70</small></div>
+                    </div>`
+                }
               </div>
               ${note}
             </div>
@@ -1171,6 +1174,8 @@
     if (state.muted) {
       audio.stopDrumroll();
       audio.stopSlotSpin();
+    } else {
+      audio.get();
     }
     el.audioIcon.textContent = state.muted ? '🔇' : '🔊';
     el.audioText.textContent = state.muted ? 'MUTED' : 'SOUND ON';
@@ -1233,7 +1238,10 @@
     el.modal.addEventListener('click', (e) => { if (e.target === el.modal) closeModal(); });
 
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { closeModal(); return; }
+      if (e.key === 'Escape') {
+        if (el.modal && el.modal.classList.contains('is-open')) closeModal();
+        return;
+      }
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
       if (el.modal.classList.contains('is-open')) return;
 

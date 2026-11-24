@@ -1746,7 +1746,7 @@ body.ceremony-brand::before {
   .rv-name { font-size: clamp(1.7rem, 9.4vw, 2.6rem); }
   .rv-suspense-kicker { font-size: clamp(1.45rem, 7.4vw, 2rem); }
   .rv-total-value { font-size: 2rem; }
-  .rv-players { gap: 4px; }
+  .rv-members { gap: 4px; }
   .rv-player { font-size: 9px; padding: 4px 8px; }
 }
 

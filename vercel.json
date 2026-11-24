@@ -10,6 +10,14 @@
       "destination": "/reveal.html"
     },
     {
+      "source": "/test-reveal",
+      "destination": "/test-reveal.html"
+    },
+    {
+      "source": "/reveal-test",
+      "destination": "/reveal-test.html"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     },

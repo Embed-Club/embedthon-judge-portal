@@ -16,24 +16,26 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="reveal-theme.css">
   <style>
-    /* Dedicated Rehearsal Test Deck Styling */
+    /* Dedicated Rehearsal Test Deck Styling (Normal Flow - Never Overlaps Header or Modal) */
     .rv-test-deck {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 9999;
-      background: rgba(15, 23, 42, 0.94);
+      position: relative;
+      z-index: 50;
+      background: rgba(15, 23, 42, 0.96);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 2px solid #ea580c;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
       padding: 6px 12px;
       font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .rv-test-deck.is-minimized .rv-test-group:not(.rv-test-group--keep) {
+      display: none;
     }
     .rv-test-deck.is-minimized {
-      transform: translateY(-82%);
+      padding: 3px 12px;
+    }
+    body.is-fullscreen .rv-test-deck {
+      display: none;
     }
     .rv-test-deck-inner {
       max-width: 1400px;
@@ -118,15 +120,6 @@
       font-size: 10px;
       padding: 3px 8px;
     }
-    /* Shift header down when test deck is visible */
-    body.has-test-deck .rv-header {
-      margin-top: 48px;
-    }
-    @media (max-width: 768px) {
-      body.has-test-deck .rv-header {
-        margin-top: 86px;
-      }
-    }
   </style>
 </head>
 <body class="ceremony-brand has-test-deck">
@@ -168,6 +161,8 @@
         <button id="btnTestApplause" type="button" class="rv-test-btn rv-test-btn--emerald" title="Test Crowd Applause">👏 Applause</button>
 
         <!-- Minimize/Expand Deck -->
+      </div>
+      <div class="rv-test-group rv-test-group--keep">
         <button id="btnToggleDeckVisibility" type="button" class="rv-test-btn rv-test-toggle-deck" title="Hide/Show Test Bar (Shortcut: T)">
           <span id="txtToggleDeck">Hide Deck ▲</span>
         </button>
