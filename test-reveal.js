@@ -1022,9 +1022,15 @@
     if (state.style && state.style !== 'mix') return state.style;
     const param = new URLSearchParams(window.location.search).get('style');
     if (param && ['slot', 'elimination', 'decrypt', 'stamp'].includes(param)) return param;
-    if (rank.place === 1) return 'slot';
-    if (rank.place === 2) return 'elimination';
-    return 'decrypt';
+    const cat = (state.category || 'OVERALL').toUpperCase();
+    const map = {
+      PAPER:        { 3: 'stamp',       2: 'elimination', 1: 'decrypt' },
+      HARDWARE:     { 3: 'decrypt',     2: 'stamp',       1: 'elimination' },
+      SOFTWARE:     { 3: 'elimination', 2: 'decrypt',     1: 'stamp' },
+      PROJECT_EXPO: { 3: 'decrypt',     2: 'stamp',       1: 'elimination' }
+    };
+    const plan = map[cat] || { 3: 'decrypt', 2: 'elimination', 1: 'slot' };
+    return plan[rank.place] || 'slot';
   }
 
   function rankMarkup(row, rank) {
@@ -1322,8 +1328,31 @@
       if (isCancelled()) return;
       counter.textContent = n;
       audio.tick(1800 + k * 300);
-    }, k * 850));
-    later(() => { if (!isCancelled()) reveal(); }, 2550);
+    }, k * 800));
+
+    if (row && act.classList.contains('rv-act--champion')) {
+      const candidates = pool().map((r) => r.team.name).filter((n) => n !== row.team.name);
+      const decoy = candidates[Math.floor(Math.random() * candidates.length)] || 'OVERRIDE';
+      later(() => {
+        if (isCancelled()) return;
+        counter.classList.add('is-decoy');
+        counter.textContent = `${decoy}?`;
+        audio.stopDrumroll();
+        audio.fakeBuild();
+      }, 2450);
+      later(() => {
+        if (isCancelled()) return;
+        counter.textContent = 'NOPE! PSYCH!';
+        audio.psychFart();
+      }, 3650);
+      later(() => {
+        if (isCancelled()) return;
+        audio.winnerBell();
+        reveal();
+      }, 4500);
+    } else {
+      later(() => { if (!isCancelled()) reveal(); }, 2450);
+    }
   }
 
   function runSlot(act, row, reveal, isCancelled) {

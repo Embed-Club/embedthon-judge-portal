@@ -219,16 +219,20 @@
         </button>
 
         <select id="stageCategorySelect" class="rv-select" title="Choose the award category">
-          <optgroup label="⚡ EMBERS '26 · Three Events">
+          <optgroup label="🏆 Four Prize Categories">
             <option value="PAPER">📄 Paper Presentation</option>
-            <option value="PROJECT_EXPO">🛠️ Project Expo</option>
+            <option value="HARDWARE">🔧 Project Expo · Hardware</option>
+            <option value="SOFTWARE">💻 Project Expo · Software</option>
             <option value="EMBEDDATHON">⚡ Embeddathon</option>
+          </optgroup>
+          <optgroup label="🛠️ Combined Expo">
+            <option value="PROJECT_EXPO">🛠️ Project Expo (All)</option>
           </optgroup>
           <optgroup label="🏫 Section Awards (Embeddathon)">
             <option value="A">Section A (Teams 01–11)</option>
             <option value="B">Section B (Teams 12–24)</option>
           </optgroup>
-          <optgroup label="🏆 Combined">
+          <optgroup label="🏆 Overall">
             <option value="OVERALL" selected>🏆 Overall Champions (24)</option>
           </optgroup>
         </select>
@@ -331,9 +335,12 @@
         <label class="rv-filter">
           <span>Filter section</span>
           <select id="modalSectionFilter" class="rv-select rv-select--light">
-            <option value="ALL">All Sections</option>
+            <option value="ALL">All Sections / Tracks</option>
             <option value="A">Section A</option>
             <option value="B">Section B</option>
+            <option value="HARDWARE">Hardware</option>
+            <option value="SOFTWARE">Software</option>
+            <option value="PAPER">Paper</option>
           </select>
         </label>
 
