@@ -88,11 +88,11 @@
   // Coordinator Authentication
   // =============================================================
   function checkAuth() {
-    // Strictly require session PIN verification so the admin gate is always enforced
+    const savedToken = sessionStorage.getItem('embers_session_token');
     const savedPin = sessionStorage.getItem('embers_admin_pin');
 
-    if (savedPin === '5012') {
-      unlockConsole(savedPin);
+    if (savedToken && savedPin) {
+      unlockConsole(savedPin, savedToken);
     } else {
       if (embersAuthGate) embersAuthGate.classList.remove('hidden');
       if (embersMainContainer) embersMainContainer.classList.add('hidden');
@@ -100,8 +100,9 @@
     }
   }
 
-  function unlockConsole(pin) {
-    sessionStorage.setItem('embers_admin_pin', pin);
+  function unlockConsole(pin, token) {
+    if (pin) sessionStorage.setItem('embers_admin_pin', pin);
+    if (token) sessionStorage.setItem('embers_session_token', token);
     if (embersAuthGate) embersAuthGate.classList.add('hidden');
     if (embersMainContainer) embersMainContainer.classList.remove('hidden');
   }
@@ -131,14 +132,9 @@
         return;
       }
 
-      unlockConsole(pin);
+      unlockConsole(pin, data.token || '');
     } catch (e) {
-      // Local fallback
-      if (pin === '5012') {
-        unlockConsole(pin);
-      } else {
-        showGateError('Incorrect Admin PIN.');
-      }
+      showGateError('Network error. Server authentication required.');
     }
   }
 
@@ -151,6 +147,7 @@
 
   function handleLogout() {
     sessionStorage.removeItem('embers_admin_pin');
+    sessionStorage.removeItem('embers_session_token');
     localStorage.removeItem('embedthon_admin_auth');
     localStorage.removeItem('embers_admin_pin');
     if (embersAuthGate) embersAuthGate.classList.remove('hidden');
@@ -164,23 +161,20 @@
   // =============================================================
   // Secure API Helper
   // =============================================================
-  const EMBERS_SECRET_TOKEN = 'EMBERS_SYNC_2026';
-
   async function postEmbersApi(action, data = {}) {
     try {
-      const currentPin = sessionStorage.getItem('embers_admin_pin') || '5012';
+      const currentPin = sessionStorage.getItem('embers_admin_pin') || '';
+      const sessionToken = sessionStorage.getItem('embers_session_token') || '';
       const payload = {
         action,
-        token: EMBERS_SECRET_TOKEN,
         adminPin: currentPin,
         ...data
       };
+      const headers = { 'Content-Type': 'application/json' };
+      if (sessionToken) headers['Authorization'] = `Bearer ${sessionToken}`;
       const res = await fetch('/api/embers', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-embers-token': EMBERS_SECRET_TOKEN
-        },
+        headers,
         body: JSON.stringify(payload)
       });
       return await res.json();

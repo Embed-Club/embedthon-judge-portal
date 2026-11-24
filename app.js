@@ -30,19 +30,18 @@
   let singleEventInputs = {};
   let renderedSingleEventId = null;
 
-  // Config & Master Evaluations
+  // Config & Master Evaluations (secrets fetched/validated server-side only)
   let juryConfig = {
     activePhase: 'PHASE_1',
-    adminPin: '5012',
     internalJudges: [
-      { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor', pin: '3842' },
-      { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor', pin: '7195' }
+      { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor' },
+      { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor' }
     ],
     externalJudges: [
-      { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)', pin: '6428' },
-      { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)', pin: '9153' },
-      { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator', pin: '4817' },
-      { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator', pin: '2639' },
+      { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)' },
+      { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)' },
+      { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator' },
+      { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator' },
       { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', pin: '8531' },
       { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '1794' }
     ],

@@ -1,4 +1,5 @@
 const { fetchGist, updateGistFile } = require('./_gist');
+const { validateAuthEnv, requireEnv, safeEqual, verifySessionToken } = require('./_auth');
 
 const DEFAULT_SCHEDULE = [
   // DAY 1: NOV 24, 2026
@@ -141,6 +142,9 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    validateAuthEnv();
+    const SECRET_TOKEN = requireEnv('EMBERS_WEBHOOK_TOKEN');
+    const ADMIN_PIN = requireEnv('ADMIN_PIN');
     let embersData = { ...DEFAULT_EMBERS_DATA };
 
     // Try fetching from GitHub Gist
@@ -169,10 +173,24 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
+      const authHeader = req.headers['authorization'] ? String(req.headers['authorization']).replace(/^Bearer\s+/i, '').trim() : '';
+      const providedAuth = req.headers['x-embers-token'] || req.query.adminPin || '';
+      const session = verifySessionToken(authHeader);
+      const isAuthed = (session && session.isAdmin) || safeEqual(providedAuth, SECRET_TOKEN) || safeEqual(providedAuth, ADMIN_PIN);
+
       if (!embersData.registrations || !embersData.registrations.length) {
         embersData.registrations = OFFICIAL_REGISTRATIONS;
       }
       embersData.registrations = embersData.registrations.map(normalizeReg).filter(Boolean);
+
+      if (!isAuthed) {
+        return res.status(200).json({
+          schedule: embersData.schedule,
+          registrationCount: embersData.registrations.length,
+          registrations: [],
+          redacted: true
+        });
+      }
       return res.status(200).json(embersData);
     }
 
@@ -180,14 +198,14 @@ module.exports = async function handler(req, res) {
       const body = req.body || {};
       const action = body.action || req.query.action || 'sync';
 
-      // Security Check: Secret Webhook Token, Admin PIN Protection, or Spot Registration
-      const SECRET_TOKEN = process.env.EMBERS_WEBHOOK_TOKEN || 'EMBERS_SYNC_2026';
-      const ADMIN_PIN = process.env.ADMIN_PIN || '5012';
-      const providedAuth = req.headers['x-embers-token'] || body.token || body.adminPin;
+      // Security Check: Secret Webhook Token, Admin PIN, or Signed Admin Session (no hardcoded fallbacks)
+      const authHeader = req.headers['authorization'] ? String(req.headers['authorization']).replace(/^Bearer\s+/i, '').trim() : '';
+      const session = verifySessionToken(authHeader);
+      const providedAuth = req.headers['x-embers-token'] || body.token || body.adminPin || '';
       const isSpotReg = (action === 'spot_registration' || action === 'public_registration');
 
-      if (!isSpotReg && providedAuth !== SECRET_TOKEN && providedAuth !== ADMIN_PIN) {
-        return res.status(401).json({ error: 'Unauthorized: Invalid x-embers-token or Admin PIN. Access Denied.' });
+      if (!isSpotReg && !(session && session.isAdmin) && !safeEqual(providedAuth, SECRET_TOKEN) && !safeEqual(providedAuth, ADMIN_PIN)) {
+        return res.status(401).json({ error: 'Unauthorized: Invalid credentials. Access Denied.' });
       }
 
       // 1. Google Forms Webhook or Batch Sync

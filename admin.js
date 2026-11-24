@@ -17,7 +17,7 @@
   let teams = typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA : [];
   let masterConfig = {
     activePhase: 'PHASE_1',
-    adminPin: '5012',
+    adminPin: '',
     internalJudges: [
       { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor', pin: '3842' },
       { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor', pin: '7195' }
@@ -172,20 +172,12 @@
       }
 
       localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(data.judge));
+      if (data.token) sessionStorage.setItem('embedthon_session_token', data.token);
       sessionStorage.setItem('embedthon_admin_pin', pin);
       unlockConsole();
     } catch (e) {
-      // Local offline fallback
-      if (pin === (masterConfig.adminPin || '5012')) {
-        localStorage.setItem(
-          STORAGE_KEY_AUTH,
-          JSON.stringify({ id: 'ADMIN', name: 'Chief Coordinator', isAdmin: true })
-        );
-        unlockConsole();
-      } else {
-        gateErrorMessage.textContent = 'Network error or incorrect PIN.';
-        gateErrorMessage.classList.remove('hidden');
-      }
+      gateErrorMessage.textContent = 'Network error. Server authentication required.';
+      gateErrorMessage.classList.remove('hidden');
     }
   }
 
@@ -1281,7 +1273,6 @@
 
     function generateUniquePin() {
       const existing = new Set([
-        '5012',
         ...(draftConfig.internalJudges || []).map(j => String(j.pin)),
         ...(draftConfig.externalJudges || []).map(j => String(j.pin))
       ]);

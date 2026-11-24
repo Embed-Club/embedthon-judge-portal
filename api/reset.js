@@ -1,4 +1,5 @@
 const { fetchGist, updateGistFile } = require('./_gist');
+const { validateAuthEnv, requireEnv, safeEqual } = require('./_auth');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,18 +15,20 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    validateAuthEnv();
+    const expectedAdminPin = requireEnv('ADMIN_PIN');
     const body = req.body || {};
     const adminPin = String(body.adminPin || '').trim();
 
     const gist = await fetchGist();
-    let config = { adminPin: '5012' };
+    let config = {};
     if (gist.files && gist.files['config.json']) {
       try {
         config = JSON.parse(gist.files['config.json'].content);
       } catch (e) {}
     }
 
-    if (adminPin !== String(config.adminPin || '5012')) {
+    if (!safeEqual(adminPin, config.adminPin || expectedAdminPin)) {
       return res.status(401).json({ success: false, error: 'Invalid Admin PIN.' });
     }
 
