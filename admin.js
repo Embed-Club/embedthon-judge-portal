@@ -95,40 +95,104 @@
   const btnAdminResetScores = document.getElementById('btnAdminResetScores');
 
   // -------------------------------------------------------------
-  // Initialization
+  // Initialization & Zero-Trust Session Gate
   // -------------------------------------------------------------
-  async function init() {
-    await fetchConfig();
-    await fetchEvaluations();
-    await fetchEmbersLogistics();
+  let hiddenAt = 0;
+  let idleTimer = null;
+  const BACKGROUND_LOCK_MS = 10 * 1000; // Re-lock if user leaves Chrome > 10s
+  const IDLE_LOCK_MS = 10 * 60 * 1000;  // Re-lock after 10 min idle
 
-    checkAuthentication();
-    bindEvents();
-
-    startLivePolling();
+  function resetIdleTimer() {
+    if (idleTimer) clearTimeout(idleTimer);
+    if (adminMainContainer && !adminMainContainer.classList.contains('hidden')) {
+      idleTimer = setTimeout(() => { void lockConsole(true, 'Session timed out due to inactivity.'); }, IDLE_LOCK_MS);
+    }
   }
 
-  function checkAuthentication() {
+  async function init() {
+    bindEvents();
+    setupMobileSecurityGuards();
+    await checkAuthentication();
+  }
+
+  function setupMobileSecurityGuards() {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now();
+      } else if (document.visibilityState === 'visible') {
+        if (hiddenAt && (Date.now() - hiddenAt) >= BACKGROUND_LOCK_MS) {
+          void lockConsole(true, 'Locked on return from background. Enter Admin PIN.');
+        }
+        hiddenAt = 0;
+      }
+    });
+
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) {
+        void lockConsole(false);
+        void checkAuthentication();
+      }
+    });
+
+    ['pointerdown', 'keydown', 'touchstart'].forEach((evt) => {
+      window.addEventListener(evt, resetIdleTimer, { passive: true });
+    });
+  }
+
+  async function lockConsole(clearServer = false, message = '') {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      pollingInterval = null;
+    }
+    if (idleTimer) {
+      clearTimeout(idleTimer);
+      idleTimer = null;
+    }
+    localStorage.removeItem(STORAGE_KEY_AUTH);
+    sessionStorage.removeItem('embedthon_admin_pin');
+    sessionStorage.removeItem('embedthon_session_token');
+    if (clearServer) {
+      try { await fetch('/api/session', { method: 'DELETE', credentials: 'same-origin' }); } catch (e) {}
+    }
+    if (adminMainContainer) adminMainContainer.classList.add('hidden');
+    if (adminAuthGate) adminAuthGate.classList.remove('hidden');
+    if (gateAdminPin) {
+      gateAdminPin.value = '';
+      gateAdminPin.focus();
+    }
+    if (message && gateErrorMessage) {
+      gateErrorMessage.textContent = message;
+      gateErrorMessage.classList.remove('hidden');
+    }
+  }
+
+  async function checkAuthentication() {
+    // Never trust localStorage; always verify server-signed HttpOnly session cookie.
+    localStorage.removeItem(STORAGE_KEY_AUTH);
     try {
-      const saved = localStorage.getItem(STORAGE_KEY_AUTH);
-      if (saved) {
-        const user = JSON.parse(saved);
-        if (user && (user.isAdmin || user.id === 'ADMIN')) {
-          unlockConsole();
+      const res = await fetch('/api/session', { credentials: 'same-origin', cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.authenticated && data.session && data.session.isAdmin) {
+          await unlockConsole();
           return;
         }
       }
     } catch (e) {}
 
-    // Lock gate
-    adminAuthGate.classList.remove('hidden');
-    adminMainContainer.classList.add('hidden');
-    if (gateAdminPin) gateAdminPin.focus();
+    await lockConsole(false);
   }
 
-  function unlockConsole() {
+  async function unlockConsole() {
     adminAuthGate.classList.add('hidden');
     adminMainContainer.classList.remove('hidden');
+    resetIdleTimer();
+
+    await Promise.all([
+      fetchConfig(),
+      fetchEvaluations(),
+      fetchEmbersLogistics()
+    ]);
 
     draftConfig = JSON.parse(JSON.stringify(masterConfig));
     if (!draftConfig.judgeAssignments || typeof draftConfig.judgeAssignments !== 'object') {
@@ -141,6 +205,7 @@
     renderJudgeAllocations();
     renderVenueBoard();
     renderMatrix();
+    startLivePolling();
   }
 
   async function handleGateUnlock() {
@@ -156,6 +221,7 @@
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           judgeId: 'ADMIN',
@@ -171,20 +237,18 @@
         return;
       }
 
-      localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(data.judge));
       if (data.token) sessionStorage.setItem('embedthon_session_token', data.token);
       sessionStorage.setItem('embedthon_admin_pin', pin);
-      unlockConsole();
+      await unlockConsole();
     } catch (e) {
       gateErrorMessage.textContent = 'Network error. Server authentication required.';
       gateErrorMessage.classList.remove('hidden');
     }
   }
 
-  function handleLogout() {
+  async function handleLogout() {
     if (confirm('Log out from Admin Console?')) {
-      localStorage.removeItem(STORAGE_KEY_AUTH);
-      sessionStorage.removeItem('embedthon_admin_pin');
+      await lockConsole(true);
       sessionStorage.removeItem('embers_admin_pin');
       window.location.href = 'index.html';
     }

@@ -736,11 +736,21 @@
   // -------------------------------------------------------------
   // Authentication & Judge Profiles
   // -------------------------------------------------------------
-  function checkSavedAuth() {
+  async function checkSavedAuth() {
     try {
+      const res = await fetch('/api/session', { credentials: 'same-origin', cache: 'no-store' });
+      const sessData = res.ok ? await res.json() : null;
+      if (!sessData || !sessData.authenticated || !sessData.session) {
+        localStorage.removeItem(STORAGE_KEY_AUTH);
+        currentJudge = null;
+        if (loginOverlay) loginOverlay.classList.remove('hidden');
+        return;
+      }
+
       const saved = localStorage.getItem(STORAGE_KEY_AUTH);
       if (saved) {
         currentJudge = JSON.parse(saved);
+        currentJudge.isAdmin = !!sessData.session.isAdmin;
         updateActiveJudgeUI();
         if (loginOverlay) loginOverlay.classList.add('hidden');
 
@@ -748,7 +758,7 @@
         const path = (window.location.pathname || '').toLowerCase();
         const isHub = path.endsWith('index.html') || path === '/' || path.endsWith('/');
         if (isHub && currentJudge) {
-          if (currentJudge.isAdmin || currentJudge.id === 'ADMIN') {
+          if (sessData.session.isAdmin) {
             window.location.href = 'admin.html';
             return;
           }
@@ -1235,9 +1245,10 @@
     loginErrorMessage.classList.remove('hidden');
   }
 
-  function handleLogout() {
+  async function handleLogout() {
     if (confirm('Switch to a different judge login?')) {
       localStorage.removeItem(STORAGE_KEY_AUTH);
+      try { await fetch('/api/session', { method: 'DELETE', credentials: 'same-origin' }); } catch (e) {}
       currentJudge = null;
       window.location.href = 'index.html';
     }

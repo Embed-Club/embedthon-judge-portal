@@ -1,5 +1,5 @@
 const { fetchGist, updateGistFile } = require('./_gist');
-const { validateAuthEnv, requireEnv, safeEqual, verifySessionToken } = require('./_auth');
+const { validateAuthEnv, requireEnv, safeEqual, getSessionFromRequest } = require('./_auth');
 
 const DEFAULT_SCHEDULE = [
   // DAY 1: NOV 24, 2026
@@ -133,7 +133,7 @@ function normalizeReg(r) {
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'https://embers26.vercel.app');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-embers-token');
 
@@ -173,9 +173,8 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      const authHeader = req.headers['authorization'] ? String(req.headers['authorization']).replace(/^Bearer\s+/i, '').trim() : '';
       const providedAuth = req.headers['x-embers-token'] || req.query.adminPin || '';
-      const session = verifySessionToken(authHeader);
+      const session = getSessionFromRequest(req);
       const isAuthed = (session && session.isAdmin) || safeEqual(providedAuth, SECRET_TOKEN) || safeEqual(providedAuth, ADMIN_PIN);
 
       if (!embersData.registrations || !embersData.registrations.length) {
@@ -199,8 +198,7 @@ module.exports = async function handler(req, res) {
       const action = body.action || req.query.action || 'sync';
 
       // Security Check: Secret Webhook Token, Admin PIN, or Signed Admin Session (no hardcoded fallbacks)
-      const authHeader = req.headers['authorization'] ? String(req.headers['authorization']).replace(/^Bearer\s+/i, '').trim() : '';
-      const session = verifySessionToken(authHeader);
+      const session = getSessionFromRequest(req);
       const providedAuth = req.headers['x-embers-token'] || body.token || body.adminPin || '';
       const isSpotReg = (action === 'spot_registration' || action === 'public_registration');
 

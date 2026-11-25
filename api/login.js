@@ -6,7 +6,8 @@ const {
   checkRateLimit,
   recordFailedAttempt,
   clearRateLimit,
-  signSessionToken
+  signSessionToken,
+  setSessionCookie
 } = require('./_auth');
 
 const DEFAULT_CONFIG = {
@@ -36,7 +37,7 @@ const DEFAULT_CONFIG = {
 };
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'https://embers26.vercel.app');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -103,9 +104,11 @@ module.exports = async function handler(req, res) {
     if (resolvedId === 'ADMIN') {
       if (safeEqual(pin, config.adminPin || expectedAdminPin)) {
         clearRateLimit(rateKey);
+        const token = signSessionToken({ id: 'ADMIN', type: 'ADMIN', isAdmin: true });
+        setSessionCookie(res, token, true);
         return res.status(200).json({
           success: true,
-          token: signSessionToken({ id: 'ADMIN', type: 'ADMIN', isAdmin: true }),
+          token,
           judge: {
             id: 'ADMIN',
             name: customName || 'Chief Coordinator',
@@ -144,6 +147,8 @@ module.exports = async function handler(req, res) {
     clearRateLimit(rateKey);
 
     const finalName = customName || matched.name;
+    const judgeToken = signSessionToken({ id: matched.id, type: judgeType, isAdmin: false });
+    setSessionCookie(res, judgeToken, false);
     if (customName && customName !== matched.name) {
       matched.name = customName;
       await updateGistFile('config.json', JSON.stringify(config, null, 2));
