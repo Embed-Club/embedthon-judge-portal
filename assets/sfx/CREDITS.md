@@ -14,16 +14,10 @@ Used under the [Mixkit Sound Effects Free License](https://mixkit.co/license/#sf
 | `fanfare-horns.mp3` | Successful horns fanfare | 722 | Runner-up fanfare |
 | `applause-crowd.mp3` | Medium size crowd applause | 485 | Champion & podium applause |
 
-## Project-Supplied Files (Unconfirmed License — Flagged)
-These files were supplied by the project owner without an attached commercial license certificate.
-
-| File | Original Filename | Status |
-| --- | --- | --- |
-| `fake-build-riser.mp3` | `fronbondi_skegs-sfx-cinematic-reversed-snare-riser-sound-effect-503605.mp3` | **UNCONFIRMED LICENSE** — flagged in `AUDIT.md`; confirm Pixabay/Freesound license or replace before public broadcast. |
-| `podium-brass.mp3` | `u_ss015dykrt-brass-fanfare-with-timpani-and-winchimes-reverberated-146260.mp3` | **UNCONFIRMED LICENSE** — flagged in `AUDIT.md`; confirm license or replace with `fanfare-horns.mp3`. |
-
-## Retired / Removed from `SFX_URLS` (Cartoon / Game-Show / Unconfirmed)
-Removed from `reveal.js` and `test-reveal.js` `SFX_URLS` and replaced with Mixkit samples + Web Audio API synthesis:
+## Retired / Removed from `SFX_URLS` (Cartoon / Game-Show / Unconfirmed License)
+Removed from `reveal.js` and `test-reveal.js` `SFX_URLS` and replaced with Mixkit commercial-license samples + Web Audio API synthesis:
+- `fake-build-riser.mp3` (`fronbondi_skegs-sfx-cinematic-reversed-snare-riser-sound-effect-503605.mp3`) — unconfirmed license; replaced by Web Audio riser.
+- `podium-brass.mp3` (`u_ss015dykrt-brass-fanfare-with-timpani-and-winchimes-reverberated-146260.mp3`) — unconfirmed license; replaced by Mixkit `fanfare-horns.mp3` (SFX 722).
 - `psych-fart.mp3` (`fart-with-reverb_NcgStsA.mp3`) — comedic/cartoon sound & unconfirmed license.
 - `winner-bell.mp3` (`freesound_community-winner-bell-game-show-91932.mp3`) — game-show bell & unconfirmed license.
 - `slot-payout.mp3` (`freesound_community-slot-machine-payout-81725.mp3`) — game-show payout & unconfirmed license.

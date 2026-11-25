@@ -211,9 +211,7 @@
     drumroll566: 'assets/sfx/drumroll-566.mp3',
     impact577: 'assets/sfx/impact-577.mp3',
     fanfareRunnerUp: 'assets/sfx/fanfare-horns.mp3',
-    podiumBrass: 'assets/sfx/podium-brass.mp3',
-    applause: 'assets/sfx/applause-crowd.mp3',
-    fakeRiser: 'assets/sfx/fake-build-riser.mp3'
+    applause: 'assets/sfx/applause-crowd.mp3'
   };
 
   const audio = {
@@ -401,7 +399,7 @@
       }
     },
     podiumFanfare() {
-      if (!this.playSample('podiumBrass', 0.82, { duration: 8.5, fadeOut: 1.5 })) {
+      if (!this.playSample('fanfareRunnerUp', 0.82, { fadeOut: 0.4 })) {
         [[523.25, 0.42], [659.25, 0.42], [783.99, 0.5], [1046.5, 0.7], [1318.5, 0.85]]
           .forEach(([f, dur], i) => this.tone(f, dur, 0.18, 'triangle', 0, i * 0.13));
         [1046.5, 1318.5, 1568].forEach((f, i) => this.tone(f, 1.5, 0.1, 'sine', 0, 0.62 + i * 0.02));
