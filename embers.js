@@ -87,17 +87,54 @@
   // =============================================================
   // Coordinator Authentication
   // =============================================================
-  function checkAuth() {
-    const savedToken = sessionStorage.getItem('embers_session_token');
-    const savedPin = sessionStorage.getItem('embers_admin_pin');
+  let embersHiddenAt = 0;
 
-    if (savedToken && savedPin) {
-      unlockConsole(savedPin, savedToken);
-    } else {
-      if (embersAuthGate) embersAuthGate.classList.remove('hidden');
-      if (embersMainContainer) embersMainContainer.classList.add('hidden');
-      if (gateEmbersPin) setTimeout(() => gateEmbersPin.focus(), 100);
+  async function lockEmbersConsole(clearServer = false) {
+    sessionStorage.removeItem('embers_admin_pin');
+    sessionStorage.removeItem('embers_session_token');
+    localStorage.removeItem('embedthon_admin_auth');
+    localStorage.removeItem('embers_admin_pin');
+    if (clearServer) {
+      try { await fetch('/api/session', { method: 'DELETE', credentials: 'same-origin' }); } catch (e) {}
     }
+    if (embersMainContainer) embersMainContainer.classList.add('hidden');
+    if (embersAuthGate) embersAuthGate.classList.remove('hidden');
+    if (gateEmbersPin) {
+      gateEmbersPin.value = '';
+      gateEmbersPin.focus();
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      embersHiddenAt = Date.now();
+    } else if (document.visibilityState === 'visible') {
+      if (embersHiddenAt && (Date.now() - embersHiddenAt) >= 10000) {
+        void lockEmbersConsole(true);
+      }
+      embersHiddenAt = 0;
+    }
+  });
+
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      void lockEmbersConsole(false);
+      void checkAuth();
+    }
+  });
+
+  async function checkAuth() {
+    try {
+      const res = await fetch('/api/session', { credentials: 'same-origin', cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.authenticated && data.session && data.session.isAdmin) {
+          unlockConsole(sessionStorage.getItem('embers_admin_pin') || '', sessionStorage.getItem('embers_session_token') || '');
+          return;
+        }
+      }
+    } catch (e) {}
+    await lockEmbersConsole(false);
   }
 
   function unlockConsole(pin, token) {
@@ -118,6 +155,7 @@
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           judgeId: 'ADMIN',
@@ -145,17 +183,8 @@
     }
   }
 
-  function handleLogout() {
-    sessionStorage.removeItem('embers_admin_pin');
-    sessionStorage.removeItem('embers_session_token');
-    localStorage.removeItem('embedthon_admin_auth');
-    localStorage.removeItem('embers_admin_pin');
-    if (embersAuthGate) embersAuthGate.classList.remove('hidden');
-    if (embersMainContainer) embersMainContainer.classList.add('hidden');
-    if (gateEmbersPin) {
-      gateEmbersPin.value = '';
-      gateEmbersPin.focus();
-    }
+  async function handleLogout() {
+    await lockEmbersConsole(true);
   }
 
   // =============================================================

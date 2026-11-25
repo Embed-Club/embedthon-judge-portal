@@ -1,5 +1,5 @@
 const { fetchGist, updateGistFile } = require('./_gist');
-const { validateAuthEnv, verifySessionToken, requireEnv, safeEqual } = require('./_auth');
+const { validateAuthEnv, getSessionFromRequest, requireEnv, safeEqual } = require('./_auth');
 const { EVENTS, getEvent } = require('../rubrics.js');
 
 function clamp(value, min, max) {
@@ -129,8 +129,7 @@ module.exports = async function handler(req, res) {
 
     if (req.method === 'POST') {
       validateAuthEnv();
-      const authHeader = req.headers['authorization'] ? String(req.headers['authorization']).replace(/^Bearer\s+/i, '').trim() : '';
-      const session = verifySessionToken(authHeader);
+      const session = getSessionFromRequest(req);
       const body = req.body || {};
       const adminPin = String(body.adminPin || '');
       const isAdminPin = adminPin && safeEqual(adminPin, requireEnv('ADMIN_PIN'));
