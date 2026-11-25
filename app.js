@@ -627,7 +627,53 @@
     }, 3000);
   }
 
+  const PENDING_QUEUE_KEY = 'embers_pending_eval_queue';
+
+  async function postEvaluationWithRetry(payload, maxAttempts = 3) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const res = await fetch('/api/evaluations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) return true;
+        if (res.status >= 400 && res.status < 500 && res.status !== 429) return false;
+      } catch (e) { /* transient network drop */ }
+      if (attempt < maxAttempts - 1) {
+        await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
+    return false;
+  }
+
+  function enqueuePendingEval(payload) {
+    try {
+      const q = JSON.parse(localStorage.getItem(PENDING_QUEUE_KEY) || '[]');
+      const idx = q.findIndex((item) => item.eventId === payload.eventId && item.teamNumber === payload.teamNumber && item.judgeId === payload.judgeId);
+      if (idx >= 0) q[idx] = payload;
+      else q.push(payload);
+      localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(q));
+    } catch (e) {}
+  }
+
+  async function flushPendingEvaluations() {
+    try {
+      const q = JSON.parse(localStorage.getItem(PENDING_QUEUE_KEY) || '[]');
+      if (!Array.isArray(q) || !q.length) return;
+      const remaining = [];
+      for (const item of q) {
+        const ok = await postEvaluationWithRetry(item, 2);
+        if (!ok) remaining.push(item);
+      }
+      localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(remaining));
+    } catch (e) {}
+  }
+
+  window.addEventListener('online', () => { void flushPendingEvaluations(); });
+
   async function syncDataSilently() {
+    void flushPendingEvaluations();
     try {
       const [evalRes, cfgRes] = await Promise.all([
         fetch('/api/evaluations', { cache: 'no-store' }),
@@ -1694,15 +1740,12 @@
       }, 2500);
     }
 
-    // Send to server
-    try {
-      await fetch('/api/evaluations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-    } catch (e) {
-      console.warn('Saved score locally, will sync when online');
+    // Send to server with idempotency key & exponential backoff retry
+    payload.idempotencyKey = `${event.id}-${team.number}-${currentJudge.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const synced = await postEvaluationWithRetry(payload, 3);
+    if (!synced) {
+      enqueuePendingEval(payload);
+      console.warn('Network dropped; queued evaluation for automatic retry:', payload.idempotencyKey);
     }
   }
 
