@@ -212,12 +212,8 @@
     impact577: 'assets/sfx/impact-577.mp3',
     fanfareRunnerUp: 'assets/sfx/fanfare-horns.mp3',
     podiumBrass: 'assets/sfx/podium-brass.mp3',
-    winnerBell: 'assets/sfx/winner-bell.mp3',
     applause: 'assets/sfx/applause-crowd.mp3',
-    fakeRiser: 'assets/sfx/fake-build-riser.mp3',
-    psychFart: 'assets/sfx/psych-fart.mp3',
-    slotPayout: 'assets/sfx/slot-payout.mp3',
-    slotTick: 'assets/sfx/slot-tick.mp3'
+    fakeRiser: 'assets/sfx/fake-build-riser.mp3'
   };
 
   const audio = {
@@ -395,8 +391,8 @@
       this.stingCut();
     },
     winnerBell() {
-      if (!this.playSample('winnerBell', 0.8, { duration: 2.0, fadeOut: 0.4 })) this.chime();
-      this.playSample('whooshFast', 0.28, { rate: 1.2, duration: 0.7, fadeOut: 0.2 });
+      this.chime();
+      this.playSample('whooshFast', 0.28, { rate: 1.15, duration: 0.7, fadeOut: 0.2 });
     },
     runnerUpFanfare() {
       if (!this.playSample('fanfareRunnerUp', 0.7, { fadeOut: 0.2 })) {
@@ -415,9 +411,9 @@
     applause(volume = 0.27) {
       this.playSample('applause', volume, { offset: 0.15, duration: 6.5, fadeOut: 1.5 });
     },
-    slotSpin(dur = 3.1) {
+    slotSpin(dur = 2.3) {
       this.stopSlotSpin();
-      const handle = this.playSample('slotPayout', 0.85, { duration: dur, fadeOut: 0.15 });
+      const handle = this.playSample('drumroll566', 0.45, { duration: dur, fadeOut: 0.15 });
       if (handle) this.slotNode = handle;
     },
     stopSlotSpin() {

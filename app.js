@@ -2566,10 +2566,11 @@
   class CeremonyAudioEngine {
     constructor() {
       this.ctx = null;
-      this.muted = false;
+      this.muted = sessionStorage.getItem('embers_reveal_muted') === '1';
     }
 
     init() {
+      if (this.muted) return;
       if (!this.ctx) {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) {
@@ -2577,13 +2578,14 @@
         }
       }
       if (this.ctx && this.ctx.state === 'suspended') {
-        this.ctx.resume();
+        this.ctx.resume().catch(() => {});
       }
     }
 
     toggleMute() {
       this.muted = !this.muted;
-      return !this.muted;
+      try { sessionStorage.setItem('embers_reveal_muted', this.muted ? '1' : '0'); } catch (e) {}
+      return this.muted;
     }
 
     // 1. Suspense Heartbeat Pulse

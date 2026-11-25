@@ -1,0 +1,86 @@
+[
+  {
+    "file": "applause-crowd.mp3",
+    "before_LUFS": "-16.76",
+    "before_TP_dBTP": "-1.72",
+    "after_LUFS": "-16.45",
+    "after_TP_dBTP": "-1.44"
+  },
+  {
+    "file": "drumroll-566.mp3",
+    "before_LUFS": "-15.80",
+    "before_TP_dBTP": "-0.68",
+    "after_LUFS": "-16.00",
+    "after_TP_dBTP": "-1.26"
+  },
+  {
+    "file": "fake-build-riser.mp3",
+    "before_LUFS": "-16.25",
+    "before_TP_dBTP": "-2.15",
+    "after_LUFS": "-16.28",
+    "after_TP_dBTP": "-2.08"
+  },
+  {
+    "file": "fanfare-horns.mp3",
+    "before_LUFS": "-16.28",
+    "before_TP_dBTP": "-3.57",
+    "after_LUFS": "-16.25",
+    "after_TP_dBTP": "-3.48"
+  },
+  {
+    "file": "impact-577.mp3",
+    "before_LUFS": "-16.33",
+    "before_TP_dBTP": "-1.67",
+    "after_LUFS": "-16.34",
+    "after_TP_dBTP": "-2.12"
+  },
+  {
+    "file": "podium-brass.mp3",
+    "before_LUFS": "-16.38",
+    "before_TP_dBTP": "-2.76",
+    "after_LUFS": "-16.36",
+    "after_TP_dBTP": "-1.71"
+  },
+  {
+    "file": "psych-fart.mp3",
+    "before_LUFS": "-17.14",
+    "before_TP_dBTP": "-1.74",
+    "after_LUFS": "-17.38",
+    "after_TP_dBTP": "-1.92"
+  },
+  {
+    "file": "slot-payout.mp3",
+    "before_LUFS": "-16.31",
+    "before_TP_dBTP": "-1.69",
+    "after_LUFS": "-16.31",
+    "after_TP_dBTP": "-1.46"
+  },
+  {
+    "file": "slot-tick.mp3",
+    "before_LUFS": "-inf",
+    "before_TP_dBTP": "-4.99",
+    "after_LUFS": "-inf",
+    "after_TP_dBTP": "-1.77"
+  },
+  {
+    "file": "whoosh-deep.mp3",
+    "before_LUFS": "-13.67",
+    "before_TP_dBTP": "-0.38",
+    "after_LUFS": "-14.63",
+    "after_TP_dBTP": "-1.76"
+  },
+  {
+    "file": "whoosh-fast-1489.mp3",
+    "before_LUFS": "-18.05",
+    "before_TP_dBTP": "-1.46",
+    "after_LUFS": "-18.35",
+    "after_TP_dBTP": "-1.87"
+  },
+  {
+    "file": "winner-bell.mp3",
+    "before_LUFS": "-10.04",
+    "before_TP_dBTP": "0.24",
+    "after_LUFS": "-16.24",
+    "after_TP_dBTP": "-6.01"
+  }
+]
