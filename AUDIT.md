@@ -59,8 +59,7 @@
 ---
 
 ## Task 3: Audio Audit & Normalization (`5f74c01`)
-- **Removed Comedic / Game-Show / Unconfirmed Sounds from `SFX_URLS`:** Retired `psych-fart.mp3`, `winner-bell.mp3`, `slot-payout.mp3`, and `slot-tick.mp3` in `reveal.js` and `test-reveal.js`; replaced with Mixkit commercial-license SFX + Web Audio synthesis.
-- **Flagged Unconfirmed Licenses in `assets/sfx/CREDITS.md`:** `fake-build-riser.mp3` and `podium-brass.mp3` remain flagged for owner license confirmation before public broadcast.
+- **Removed Comedic / Game-Show / Unconfirmed Sounds from `SFX_URLS`:** Retired `psych-fart.mp3`, `winner-bell.mp3`, `slot-payout.mp3`, `slot-tick.mp3`, `fake-build-riser.mp3`, and `podium-brass.mp3` from `reveal.js` and `test-reveal.js`; 100% of active `SFX_URLS` now use Mixkit commercial-license SFX (`fanfare-horns.mp3`, `drumroll-566.mp3`, `impact-577.mp3`, `whoosh-fast-1489.mp3`, `whoosh-deep.mp3`, `applause-crowd.mp3`) + Web Audio API synthesis.
 - **No `AudioContext` on Load:** `audio.preload()` decodes via `OfflineAudioContext`; live `AudioContext` initializes only on user gesture. Mute (`M` key & button) persists in `sessionStorage` (`embers_reveal_muted`) across `reveal.js`, `test-reveal.js`, and `app.js` (`CeremonyAudioEngine.toggleMute()` inversion bug fixed at `app.js:2584-2587`).
 - **FFmpeg Loudnorm (`-16 LUFS`, `< -1.5 dBTP`, `44.1 kHz` stereo, `192 kbps`):**
   - `applause-crowd.mp3`: `-16.76 LUFS / -1.72 dBTP` -> `-16.45 LUFS / -1.44 dBTP`
