@@ -29,6 +29,13 @@
 | **Critical** | `GET /api/config` leaked `adminPin` & all judge PINs | `api/config.js:60-65` | Fixed in `fix/auth-env-secrets`: `stripSecretsFromConfig()` strips all PINs. |
 | **High** | `POST /api/login` had no rate limiting (4-digit PINs) | `api/login.js:30-161` | Fixed in `fix/auth-env-secrets`: sliding-window rate limiter (`5` failed attempts / 15 min -> `HTTP 429`). |
 
+### 4. Mobile Session Persistence & `admin.html` Auth Bypass Review (`431c7f7` on `fix/auth-env-secrets`)
+| Severity | Finding | Evidence (File & Line) | Remediation in `fix/auth-env-secrets` (`431c7f7`) |
+| :--- | :--- | :--- | :--- |
+| **Critical** | `admin.html` auto-unlocked from client `localStorage` (`embedthon_admin_auth`) with zero expiry, zero signature, and zero server check — leaving Chrome and returning bypassed the PIN gate indefinitely | `admin.js:111-121` | Removed `localStorage` auto-unlock; `admin.js` & `embers.js` now verify server-signed `HttpOnly; Secure; SameSite=Strict` cookie (`embers_session`, 30-min Admin TTL) via `GET /api/session`. |
+| **Critical** | `admin.js` fetched config, evaluations, and student PII (`fetchEmbersLogistics()`) BEFORE checking authentication | `admin.js:100-108` | Moved all data fetches inside `unlockConsole()`, which runs only after `/api/session` or `/api/login` succeeds. |
+| **High** | Mobile Chrome bfcache & background tab suspension kept unlocked admin DOM & `sessionStorage` alive when leaving Chrome and returning | `admin.js`, `embers.js`, `vercel.json` | Added `visibilitychange` (`>= 10s` background -> `lockConsole(true)` + `DELETE /api/session`), `pageshow` (`persisted` -> re-lock & re-verify), 10-min idle timeout, and `Cache-Control: no-store, no-cache, must-revalidate, private` + `X-Frame-Options: DENY` headers in `vercel.json`. |
+
 ---
 
 ## Task 1: Reveal Ceremony Analysis & Redesign
