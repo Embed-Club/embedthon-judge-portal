@@ -1,4 +1,5 @@
 const { fetchGist, updateGistFile } = require('./_gist');
+const { validateAuthEnv, verifySessionToken, requireEnv, safeEqual } = require('./_auth');
 const { EVENTS, getEvent } = require('../rubrics.js');
 
 function clamp(value, min, max) {
@@ -127,7 +128,15 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
+      validateAuthEnv();
+      const authHeader = req.headers['authorization'] ? String(req.headers['authorization']).replace(/^Bearer\s+/i, '').trim() : '';
+      const session = verifySessionToken(authHeader);
       const body = req.body || {};
+      const adminPin = String(body.adminPin || '');
+      const isAdminPin = adminPin && safeEqual(adminPin, requireEnv('ADMIN_PIN'));
+      if (!session && !isAdminPin) {
+        return res.status(401).json({ success: false, error: 'Unauthorized: Judge or Admin session token required.' });
+      }
       const eventId = String(body.eventId || 'EMBEDDATHON').trim().toUpperCase();
       const teamNumber = String(body.teamNumber || '').padStart(2, '0');
       const judgeId = String(body.judgeId || '').trim().toUpperCase();

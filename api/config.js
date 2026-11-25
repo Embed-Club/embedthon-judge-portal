@@ -1,19 +1,19 @@
 const { fetchGist, updateGistFile } = require('./_gist');
+const { validateAuthEnv, requireEnv, safeEqual, stripSecretsFromConfig } = require('./_auth');
 
 const DEFAULT_CONFIG = {
   activePhase: 'PHASE_1', // 'PHASE_1', 'PHASE_2', 'BOTH'
-  adminPin: '5012',
   internalJudges: [
-    { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor', pin: '1111' },
-    { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor', pin: '2222' }
+    { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor' },
+    { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor' }
   ],
   externalJudges: [
-    { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)', pin: '3333', eventId: 'EMBEDDATHON' },
-    { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)', pin: '4444', eventId: 'EMBEDDATHON' },
-    { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator', pin: '5555', eventId: 'PROJECT_EXPO' },
-    { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator', pin: '6666', eventId: 'PROJECT_EXPO' },
-    { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', pin: '7777', eventId: 'PAPER' },
-    { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '8888', eventId: 'PAPER' }
+    { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)', eventId: 'EMBEDDATHON' },
+    { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)', eventId: 'EMBEDDATHON' },
+    { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator', eventId: 'PROJECT_EXPO' },
+    { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator', eventId: 'PROJECT_EXPO' },
+    { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', eventId: 'PAPER' },
+    { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', eventId: 'PAPER' }
   ],
   // Judge deployment: event/track (supports multiple events), venue and schedule slot.
   judgeAssignments: {
@@ -38,6 +38,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    validateAuthEnv();
+    const expectedAdminPin = requireEnv('ADMIN_PIN');
     const gist = await fetchGist();
     let config = DEFAULT_CONFIG;
 
@@ -58,17 +60,14 @@ module.exports = async function handler(req, res) {
     };
 
     if (req.method === 'GET') {
-      if (!gist.files || !gist.files['config.json'] || !JSON.parse(gist.files['config.json'].content).internalJudges) {
-        await updateGistFile('config.json', JSON.stringify(config, null, 2));
-      }
-      return res.status(200).json(config);
+      return res.status(200).json(stripSecretsFromConfig(config));
     }
 
     if (req.method === 'POST') {
       const body = req.body || {};
       const adminPin = String(body.adminPin || '').trim();
 
-      if (adminPin !== String(config.adminPin || '5012')) {
+      if (!safeEqual(adminPin, config.adminPin || expectedAdminPin)) {
         return res.status(401).json({ success: false, error: 'Invalid Admin PIN.' });
       }
 

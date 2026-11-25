@@ -1,19 +1,27 @@
-const { fetchGist, updateGistFile } = require('./_gist');
+const { fetchGist } = require('./_gist');
+const {
+  validateAuthEnv,
+  requireEnv,
+  safeEqual,
+  checkRateLimit,
+  recordFailedAttempt,
+  clearRateLimit,
+  signSessionToken
+} = require('./_auth');
 
 const DEFAULT_CONFIG = {
   activePhase: 'PHASE_1',
-  adminPin: '5012',
   internalJudges: [
-    { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor', pin: '1111' },
-    { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor', pin: '2222' }
+    { id: 'INT-1', name: 'Fizan', role: 'CSE Faculty Mentor' },
+    { id: 'INT-2', name: 'Rafan', role: 'CSE Faculty Mentor' }
   ],
   externalJudges: [
-    { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)', pin: '3333', eventId: 'EMBEDDATHON' },
-    { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)', pin: '4444', eventId: 'EMBEDDATHON' },
-    { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator', pin: '5555', eventId: 'PROJECT_EXPO' },
-    { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator', pin: '6666', eventId: 'PROJECT_EXPO' },
-    { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', pin: '7777', eventId: 'PAPER' },
-    { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', pin: '8888', eventId: 'PAPER' }
+    { id: 'EXT-1', name: 'Muadh Bin Mohammed Ali', role: 'External Jury (Embeddathon)', eventId: 'EMBEDDATHON' },
+    { id: 'EXT-2', name: 'Mohammed Nouman', role: 'External Jury (Embeddathon)', eventId: 'EMBEDDATHON' },
+    { id: 'EXP-1', name: 'Suhail Afzal', role: 'Project Expo Evaluator', eventId: 'PROJECT_EXPO' },
+    { id: 'EXP-2', name: 'Dr. Mohammed Hafeez M.K.', role: 'Project Expo Evaluator', eventId: 'PROJECT_EXPO' },
+    { id: 'PPR-1', name: 'Dr. Saleem Malik', role: 'Technical Paper Evaluator', eventId: 'PAPER' },
+    { id: 'PPR-2', name: 'ROULATH SANI MOIDEEN', role: 'Technical Paper Evaluator', eventId: 'PAPER' }
   ],
   judgeAssignments: {
     'INT-1': { events: ['EMBEDDATHON'], eventId: 'EMBEDDATHON', venue: 'Computer Labs 1 & 2', slotId: 'S3', day: 1, start: '10:30', end: '13:00', slotTitle: 'Track 1: Embeddathon Phase 1 (Mentoring)' },
@@ -41,10 +49,22 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    validateAuthEnv();
+    const expectedAdminPin = requireEnv('ADMIN_PIN');
+    const judgePinsMap = JSON.parse(requireEnv('JUDGE_PINS_JSON'));
+
     const body = req.body || {};
     const judgeId = String(body.judgeId || '').trim().toUpperCase();
     const pin = String(body.pin || '').trim();
     const customName = String(body.judgeName || '').trim();
+    const clientIp = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+    const rateKey = `${clientIp}:${judgeId}`;
+
+    const rl = checkRateLimit(rateKey);
+    if (!rl.allowed) {
+      res.setHeader('Retry-After', String(rl.retryAfterSec));
+      return res.status(429).json({ success: false, error: `Too many failed attempts. Retry in ${rl.retryAfterSec}s.` });
+    }
 
     const gist = await fetchGist();
     let config = { ...DEFAULT_CONFIG };
@@ -75,15 +95,17 @@ module.exports = async function handler(req, res) {
       '6': 'EXP-2', 'HAFEEZ': 'EXP-2', 'DR. MOHAMMED HAFEEZ M.K.': 'EXP-2', 'DR HAFEEZ': 'EXP-2', 'EXP2': 'EXP-2', 'EXP-2': 'EXP-2',
       '7': 'PPR-1', 'SALEEM': 'PPR-1', 'DR. SALEEM MALIK': 'PPR-1', 'DR SALEEM': 'PPR-1', 'PPR1': 'PPR-1', 'PPR-1': 'PPR-1',
       '8': 'PPR-2', 'ROULATH': 'PPR-2', 'ROULATH SANI MOIDEEN': 'PPR-2', 'ROULATH SANI': 'PPR-2', 'PPR2': 'PPR-2', 'PPR-2': 'PPR-2',
-      'ADMIN': 'ADMIN', 'COORDINATOR': 'ADMIN', '5012': 'ADMIN'
+      'ADMIN': 'ADMIN', 'COORDINATOR': 'ADMIN'
     };
     const resolvedId = ID_ALIASES[judgeId] || judgeId;
 
     // 1. Admin login
     if (resolvedId === 'ADMIN') {
-      if (pin === String(config.adminPin || '5012') || pin === '5012' || pin === '2026') {
+      if (safeEqual(pin, config.adminPin || expectedAdminPin)) {
+        clearRateLimit(rateKey);
         return res.status(200).json({
           success: true,
+          token: signSessionToken({ id: 'ADMIN', type: 'ADMIN', isAdmin: true }),
           judge: {
             id: 'ADMIN',
             name: customName || 'Chief Coordinator',
@@ -92,6 +114,7 @@ module.exports = async function handler(req, res) {
           }
         });
       } else {
+        recordFailedAttempt(rateKey);
         return res.status(401).json({ success: false, error: 'Invalid Admin PIN.' });
       }
     }
@@ -109,13 +132,16 @@ module.exports = async function handler(req, res) {
     }
 
     if (!matched) {
+      recordFailedAttempt(rateKey);
       return res.status(404).json({ success: false, error: `Judge '${judgeId}' not found.` });
     }
 
-    // Strict unique PIN check: each judge must provide their exact designated PIN
-    if (String(matched.pin || '') !== pin) {
+    const expectedPin = String(judgePinsMap[matched.id] || matched.pin || '');
+    if (!expectedPin || !safeEqual(expectedPin, pin)) {
+      recordFailedAttempt(rateKey);
       return res.status(401).json({ success: false, error: `Incorrect PIN for ${matched.name}.` });
     }
+    clearRateLimit(rateKey);
 
     const finalName = customName || matched.name;
     if (customName && customName !== matched.name) {
