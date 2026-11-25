@@ -99,20 +99,66 @@
     auto: $('autoControl'),
     autoSelect: $('autoAdvanceSelect'),
     autoCount: $('autoCountdown'),
-    emberField: $('emberField')
+    emberField: $('emberField'),
+    psychBtn: $('btnPsychToggle'),
+    psychIcon: $('psychIcon'),
+    psychText: $('psychStatusText'),
+    projectorBtn: $('btnProjectorToggle')
+  };
+
+  const EVENT_THEMES = {
+    PAPER: {
+      accent: '#6366f1',
+      deep: '#312e81',
+      intro: 'Track 3 · Research & Technical Rigor · Multipurpose Hall',
+      orderLabel: 'Prize 1 of 4 · Opening Honors'
+    },
+    HARDWARE: {
+      accent: '#f59e0b',
+      deep: '#92400e',
+      intro: 'Track 2 · Physical Engineering & Embedded Prototypes · Edusat Hall',
+      orderLabel: 'Prize 2 of 4 · Hardware Showcase'
+    },
+    SOFTWARE: {
+      accent: '#10b981',
+      deep: '#065f46',
+      intro: 'Track 2 · Intelligent Systems & Full-Stack Innovation · Edusat Hall',
+      orderLabel: 'Prize 3 of 4 · Software Showcase'
+    },
+    EMBEDDATHON: {
+      accent: '#ea580c',
+      deep: '#7c2d12',
+      intro: 'Track 1 · 24-Hour Flagship Hackathon · The Grand Finale',
+      orderLabel: 'Prize 4 of 4 · Grand Finale'
+    }
+  };
+
+  // Psych beat config flag per track & rank: at most 2 ranks in the entire ceremony.
+  const PSYCH_CONFIG = {
+    PAPER: { 1: false, 2: false, 3: false },
+    HARDWARE: { 1: true, 2: false, 3: false },
+    SOFTWARE: { 1: false, 2: false, 3: false },
+    EMBEDDATHON: { 1: true, 2: false, 3: false },
+    PROJECT_EXPO: { 1: true, 2: false, 3: false },
+    OVERALL: { 1: true, 2: false, 3: false },
+    A: { 1: false, 2: false, 3: false },
+    B: { 1: false, 2: false, 3: false }
   };
 
   const state = {
-    category: 'OVERALL',
+    category: 'PAPER',
     step: STEP_WELCOME,
-    gate: null,      // pending presenter action: skip the drumroll and reveal now
+    gate: null,
     live: [],
     locked: [],
     eventRows: {},
-    maxTotal: 100,
+    maxTotal: 50,
     pending: false,
+    syncFailed: false,
     hasScores: false,
-    muted: false,
+    muted: sessionStorage.getItem('embers_reveal_muted') === '1',
+    psychEnabled: true,
+    projectorMode: false,
     timers: [],
     checksum: '',
     auto: {
@@ -123,6 +169,30 @@
       hold: false
     }
   };
+
+  const prefersReducedMotion = () =>
+    typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function saveCeremonyState() {
+    try {
+      sessionStorage.setItem('embers_reveal_state', JSON.stringify({
+        category: state.category,
+        step: state.step,
+        psychEnabled: state.psychEnabled,
+        projectorMode: state.projectorMode
+      }));
+    } catch (e) { /* ignore storage quota */ }
+  }
+
+  function restoreCeremonyState() {
+    try {
+      const raw = sessionStorage.getItem('embers_reveal_state');
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -192,8 +262,9 @@
       this.bus.gain.setTargetAtTime(muted ? 0 : 1, t, 0.02);
     },
     async preload() {
-      const ctx = this.ensureCtx();
-      if (!ctx) return;
+      // Fetch audio bytes without instantiating AudioContext before a user gesture.
+      // Decode using OfflineAudioContext so no live AudioContext starts on page load.
+      const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
       await Promise.all(Object.entries(SFX_URLS).map(async ([key, url]) => {
         if (this.samples[key] || this.loading[key]) return;
         this.loading[key] = true;
@@ -201,7 +272,13 @@
           const res = await fetch(url, { cache: 'force-cache' });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.arrayBuffer();
-          this.samples[key] = await ctx.decodeAudioData(data);
+          if (OfflineCtx) {
+            const off = new OfflineCtx(2, 44100, 44100);
+            this.samples[key] = await off.decodeAudioData(data);
+          } else {
+            this.rawBuffers = this.rawBuffers || Object.create(null);
+            this.rawBuffers[key] = data;
+          }
         } catch (e) {
           console.warn(`Sound effect unavailable (${url}):`, e.message || e);
         } finally {
@@ -308,12 +385,14 @@
         src.start(t); src.stop(t + dur);
       }
     },
-    psychFart() {
-      if (!this.playSample('psychFart', 0.82, { duration: 1.2, fadeOut: 0.25 })) {
-        [[392, 0.18], [370, 0.18], [349, 0.34]].forEach(([f, dur], i) => {
-          this.tone(f, dur, 0.15, 'sawtooth', 0, i * 0.17);
-        });
+    stingCut() {
+      // Restrained single cinematic sting cut for the psych beat (no cartoon/comedic sound).
+      if (!this.playSample('impact577', 0.55, { offset: 5.15, duration: 0.45, fadeOut: 0.15 })) {
+        this.tone(220, 0.25, 0.22, 'triangle', 0.75);
       }
+    },
+    psychFart() {
+      this.stingCut();
     },
     winnerBell() {
       if (!this.playSample('winnerBell', 0.8, { duration: 2.0, fadeOut: 0.4 })) this.chime();
@@ -561,17 +640,27 @@
         fetch('/api/evaluations', { cache: 'no-store' }),
         fetch('/api/config', { cache: 'no-store' })
       ]);
-      if (!er.ok || !cr.ok) return;
+      if (!er.ok || !cr.ok) {
+        state.syncFailed = true;
+        updateSyncBadge();
+        return;
+      }
+      state.syncFailed = false;
       const evals = await er.json();
       const cfg = await cr.json();
       const sum = JSON.stringify([evals, cfg]);
-      if (sum === state.checksum) return;
+      if (sum === state.checksum) {
+        updateSyncBadge();
+        return;
+      }
       state.checksum = sum;
       state.eventRows = computeStandings(evals);
       state.maxTotal = categoryMax(state.category);
       applyLive(rowsForCategory(state.category));
     } catch (err) {
-      console.warn('Live sync unavailable, staying in rehearsal mode:', err);
+      state.syncFailed = true;
+      updateSyncBadge();
+      console.warn('Live sync unavailable:', err);
     }
   }
 
@@ -579,7 +668,7 @@
 
   function applyLive(rows) {
     state.live = rows;
-    if (state.step === STEP_WELCOME) {
+    if (state.step === STEP_WELCOME || !state.locked.length) {
       state.locked = rows;
       state.pending = false;
       state.hasScores = rows.some((r) => r.judges > 0);
@@ -594,6 +683,11 @@
   function updateSyncBadge() {
     const label = el.syncBadge && el.syncBadge.lastElementChild;
     if (!label) return;
+    if (state.syncFailed) {
+      label.textContent = 'NETWORK OFFLINE · RETRYING SYNC';
+      el.syncBadge.classList.add('is-pending');
+      return;
+    }
     label.textContent = state.pending ? 'NEW SCORES · HELD UNTIL REPLAY' : 'LIVE SYNC ACTIVE';
     el.syncBadge.classList.toggle('is-pending', state.pending);
   }
@@ -674,6 +768,7 @@
     resetConfetti();
     clearAutoTimer();
     state.step = step;
+    saveCeremonyState();
     state.auto.hold = step > STEP_WELCOME && step < STEP_PODIUM;
     audio.whoosh(step >= 3);
     if (step === STEP_WELCOME) {
@@ -735,40 +830,57 @@
     el.indicator.textContent = 'Stage ready · Grand reveal';
     el.nextLabel.textContent = 'Start the reveal ▶';
     const rehearsal = !state.hasScores;
+    const theme = EVENT_THEMES[state.category] || EVENT_THEMES.EMBEDDATHON;
 
     el.stage.innerHTML = `
       <section class="rv-welcome">
         <div class="rv-welcome-card">
           <div class="rv-stripe" aria-hidden="true">
-            <span style="--c:#d62828"></span><span style="--c:#f77f00"></span>
-            <span style="--c:#fcbf49"></span><span style="--c:#7f1d1d"></span>
+            <span style="--c:${theme.accent}"></span><span style="--c:#f77f00"></span>
+            <span style="--c:#fcbf49"></span><span style="--c:${theme.deep}"></span>
           </div>
           <div class="rv-welcome-body">
             <div class="rv-welcome-logo">
               <img src="assets/embers_logo.png" alt="EMBERS '26" onerror="this.style.display='none'">
             </div>
-            <p class="rv-welcome-kicker">P.A. College of Engineering · Dept. of CSE</p>
-            <h1 class="rv-welcome-title">EMBEDTHON <span>'26</span></h1>
-            <p class="rv-welcome-sub">&amp; EMBERS '26 · Grand Results Reveal</p>
-            <div class="rv-welcome-pill">
+            <p class="rv-welcome-kicker">${esc(theme.orderLabel)} · P.A. College of Engineering</p>
+            <h1 class="rv-welcome-title">EMBERS <span>'26</span></h1>
+            <p class="rv-welcome-sub">${esc(theme.intro)}</p>
+            <div class="rv-welcome-pill" style="border-color:${theme.accent}">
               <span class="k-shape k-shape--triangle" aria-hidden="true"></span>
               ${esc(CATEGORY_TITLES[state.category])}
             </div>
             <p class="rv-welcome-status ${rehearsal ? 'is-warn' : 'is-ok'}">
-              ${rehearsal
-                ? 'Rehearsal mode · no evaluation scores saved yet'
-                : 'Verified jury evaluations loaded · results locked for reveal'}
+              ${state.syncFailed
+                ? 'Network offline · retrying live evaluation sync'
+                : (rehearsal
+                  ? 'Awaiting saved evaluation scores for this track'
+                  : 'Verified jury evaluations loaded · results locked for reveal')}
             </p>
             <div class="rv-welcome-shapes">${shapeRow()}</div>
             <p class="rv-welcome-hint">
-              <kbd>Space</kbd> / <kbd>→</kbd> begin · <kbd>1</kbd>–<kbd>3</kbd> jump ·
-              <kbd>A</kbd> auto-advance · <kbd>F</kbd> fullscreen · <kbd>R</kbd> restart
+              <kbd>Space</kbd> / <kbd>Enter</kbd> begin · <kbd>1</kbd>–<kbd>3</kbd> jump ·
+              <kbd>End</kbd> skip to result · <kbd>F</kbd> fullscreen · <kbd>M</kbd> mute
             </p>
           </div>
         </div>
       </section>`;
     state.auto.hold = false;
     scheduleAuto();
+  }
+
+  function isPsychActiveForRank(rank) {
+    if (!state.psychEnabled) return false;
+    const cat = (state.category || 'PAPER').toUpperCase();
+    const cfg = PSYCH_CONFIG[cat] || PSYCH_CONFIG.EMBEDDATHON;
+    return !!cfg[rank.place];
+  }
+
+  function pickTrackFinalistDecoy(row) {
+    const finalists = pool().slice(0, 6).filter((r) => r.team.name !== row.team.name);
+    const list = finalists.length ? finalists : pool().filter((r) => r.team.name !== row.team.name);
+    if (!list.length) return row.team.name;
+    return list[Math.floor(Math.random() * list.length)].team.name;
   }
 
   // Per-event & per-rank choreography so none of the 4 1st-prize finales repeat:
@@ -810,7 +922,7 @@
           <span class="rv-slot-bulb rv-slot-bulb--d" aria-hidden="true"></span>
           <div class="rv-slot-window">
             <span class="rv-slot-reel" id="slotReel">—</span>
-            <span class="rv-slot-psych" aria-hidden="true">PSYCH!</span>
+            <span class="rv-slot-psych" aria-hidden="true">FINALIST CHECK</span>
           </div>
           <div class="rv-slot-leds" aria-hidden="true">
             <span></span><span></span><span></span><span></span><span></span><span></span>
@@ -871,6 +983,7 @@
               </div>
               <h3 class="rv-name">${esc(row.team.name)}</h3>
               ${row.team.abstract_title ? `<p class="rv-project">“${esc(row.team.abstract_title)}”</p>` : ''}
+              ${row.team.college ? `<p class="rv-college">${esc(row.team.college)}</p>` : ''}
               <div class="rv-members">${members}</div>
                 <div class="rv-scoreboard">
                 <div class="rv-total">
@@ -950,26 +1063,32 @@
     };
 
     state.gate = skipRank;
+    if (prefersReducedMotion()) {
+      reveal();
+      return;
+    }
+
+    const usePsych = isPsychActiveForRank(rank);
     const mode = suspenseStyleFor(rank);
     if (mode === 'slot') {
-      runSlot(act, row, reveal, () => slotCancelled);
+      runSlot(act, row, reveal, () => slotCancelled, usePsych);
     } else if (mode === 'elimination') {
-      runElimination(act, row, reveal, () => slotCancelled);
+      runElimination(act, row, reveal, () => slotCancelled, usePsych);
     } else if (mode === 'decrypt') {
-      runDecrypt(act, row, reveal, () => slotCancelled);
+      runDecrypt(act, row, reveal, () => slotCancelled, usePsych);
     } else if (mode === 'stamp') {
-      runStamp(act, row, reveal, () => slotCancelled);
+      runStamp(act, row, reveal, () => slotCancelled, usePsych);
     } else {
       later(reveal, suspenseMs);
     }
   }
 
-  // Elimination Battle Royale: drop teams one by one, hold on the Final 2 with
-  // a fakeout tension riser, slash the decoy, and crown the survivor.
-  function runElimination(act, row, reveal, isCancelled) {
+  // Elimination Battle Royale: drop teams one by one, hold on the Final 2,
+  // optionally flash the psych beat (0.6s) on configured ranks, and crown the survivor.
+  function runElimination(act, row, reveal, isCancelled, usePsych) {
     const grid = act.querySelector('#elimGrid');
     const tag = act.querySelector('#elimTag');
-    if (!grid) { later(reveal, 3200); return; }
+    if (!grid) { later(reveal, 2200); return; }
 
     const allTeams = pool().map((r) => r.team);
     const others = allTeams.filter((t) => String(t.number) !== String(row.team.number));
@@ -977,7 +1096,7 @@
       const j = Math.floor(Math.random() * (i + 1));
       [others[i], others[j]] = [others[j], others[i]];
     }
-    const chosen = [row.team, ...others.slice(0, 15)];
+    const chosen = [row.team, ...others.slice(0, 11)];
     for (let i = chosen.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
@@ -987,58 +1106,83 @@
       `<span class="rv-tile" data-no="${esc(t.number)}">${esc(t.name)}</span>`
     ).join('');
 
-    const dropOrder = others.slice(0, 15);
-    const decoy = dropOrder.pop(); // Keep 1 decoy for the Final 2 showdown!
-    const gap = Math.max(110, Math.min(260, 2600 / Math.max(1, dropOrder.length)));
+    const dropOrder = others.slice(0, 11);
+    const decoy = dropOrder.pop();
+    const gap = Math.max(95, Math.min(200, 1700 / Math.max(1, dropOrder.length)));
 
     dropOrder.forEach((t, k) => later(() => {
       if (isCancelled()) return;
       const tile = grid.querySelector(`[data-no="${CSS.escape(String(t.number))}"]`);
       if (tile) tile.classList.add('is-out');
       audio.tick(2100 - k * 35);
-    }, 350 + k * gap));
+    }, 260 + k * gap));
 
-    const finalTwoAt = 350 + dropOrder.length * gap + 220;
+    const finalTwoAt = 260 + dropOrder.length * gap + 180;
     later(() => {
       if (isCancelled()) return;
       const winTile = grid.querySelector(`[data-no="${CSS.escape(String(row.team.number))}"]`);
       const decoyTile = decoy ? grid.querySelector(`[data-no="${CSS.escape(String(decoy.number))}"]`) : null;
       if (winTile) winTile.classList.add('is-finalist');
       if (decoyTile) decoyTile.classList.add('is-finalist');
-      if (tag) tag.textContent = decoy ? `FINAL 2 STANDING · ${row.team.name} vs ${decoy.name}…` : 'FINAL SURVIVOR!';
+      if (tag) tag.textContent = decoy ? `Finalists · ${row.team.name} & ${decoy.name}` : 'Finalist confirmed';
       audio.stopDrumroll();
-      audio.fakeBuild();
     }, finalTwoAt);
 
-    later(() => {
-      if (isCancelled()) return;
-      const winTile = grid.querySelector(`[data-no="${CSS.escape(String(row.team.number))}"]`);
-      const decoyTile = decoy ? grid.querySelector(`[data-no="${CSS.escape(String(decoy.number))}"]`) : null;
-      if (decoyTile) {
-        decoyTile.classList.remove('is-finalist');
-        decoyTile.classList.add('is-decoy-out');
-        audio.psychFart();
-      }
-      if (winTile) {
-        winTile.classList.remove('is-finalist');
-        winTile.classList.add('is-winner');
-      }
-      if (tag) tag.textContent = `SURVIVOR · ${row.team.name}!`;
-      audio.winnerBell();
-      later(() => { if (!isCancelled()) reveal(); }, 750);
-    }, finalTwoAt + 1450);
+    if (usePsych && decoy) {
+      // Held pause -> 0.6s decoy flash -> restrained sting cut -> hard-cut to real winner within 0.8s
+      later(() => {
+        if (isCancelled()) return;
+        const decoyTile = grid.querySelector(`[data-no="${CSS.escape(String(decoy.number))}"]`);
+        if (decoyTile) decoyTile.classList.add('is-winner');
+        if (tag) tag.textContent = `${decoy.name}…`;
+        audio.stingCut();
+      }, finalTwoAt + 950);
+
+      later(() => {
+        if (isCancelled()) return;
+        const winTile = grid.querySelector(`[data-no="${CSS.escape(String(row.team.number))}"]`);
+        const decoyTile = grid.querySelector(`[data-no="${CSS.escape(String(decoy.number))}"]`);
+        if (decoyTile) {
+          decoyTile.classList.remove('is-winner', 'is-finalist');
+          decoyTile.classList.add('is-decoy-out');
+        }
+        if (winTile) {
+          winTile.classList.remove('is-finalist');
+          winTile.classList.add('is-winner');
+        }
+        if (tag) tag.textContent = `Official Winner · ${row.team.name}`;
+        audio.winnerBell();
+        later(() => { if (!isCancelled()) reveal(); }, 550);
+      }, finalTwoAt + 1550);
+    } else {
+      later(() => {
+        if (isCancelled()) return;
+        const winTile = grid.querySelector(`[data-no="${CSS.escape(String(row.team.number))}"]`);
+        const decoyTile = decoy ? grid.querySelector(`[data-no="${CSS.escape(String(decoy.number))}"]`) : null;
+        if (decoyTile) {
+          decoyTile.classList.remove('is-finalist');
+          decoyTile.classList.add('is-decoy-out');
+        }
+        if (winTile) {
+          winTile.classList.remove('is-finalist');
+          winTile.classList.add('is-winner');
+        }
+        if (tag) tag.textContent = `Official Winner · ${row.team.name}`;
+        audio.winnerBell();
+        later(() => { if (!isCancelled()) reveal(); }, 550);
+      }, finalTwoAt + 950);
+    }
   }
 
-  // Matrix Decrypt with a decoy glitch before locking onto the real winner.
-  function runDecrypt(act, row, reveal, isCancelled) {
+  // Matrix Decrypt: scrambles glyphs and locks onto the winner (no psych unless flagged).
+  function runDecrypt(act, row, reveal, isCancelled, usePsych) {
     const reel = act.querySelector('#decryptText');
     const tag = act.querySelector('#decryptTag');
-    if (!reel) { later(reveal, 3000); return; }
+    if (!reel) { later(reveal, 2200); return; }
 
-    const candidates = pool().map((r) => r.team.name).filter((n) => n !== row.team.name);
-    const decoyName = (candidates[Math.floor(Math.random() * candidates.length)] || 'SYSTEM OVERRIDE').toUpperCase();
     const realName = row.team.name.toUpperCase();
-    const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#@$%&*';
+    const decoyName = pickTrackFinalistDecoy(row).toUpperCase();
+    const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
     const scrambleTo = (target, ms, onDone) => {
       const start = performance.now();
@@ -1061,82 +1205,83 @@
       frame();
     };
 
-    scrambleTo(decoyName, 1500, () => {
-      if (isCancelled()) return;
-      reel.classList.add('is-decoy');
-      if (tag) tag.textContent = `LOCKED: ${decoyName}… WAIT A SECOND`;
-      audio.tick(750);
-      later(() => {
+    if (usePsych) {
+      scrambleTo(decoyName, 1400, () => {
         if (isCancelled()) return;
-        reel.classList.remove('is-decoy');
-        if (tag) tag.textContent = 'CORRUPTED PACKET · RE-DECRYPTING…';
-        audio.psychFart();
-        scrambleTo(realName, 1400, () => {
+        reel.classList.add('is-decoy');
+        if (tag) tag.textContent = `${decoyName}…`;
+        audio.stingCut();
+        later(() => {
           if (isCancelled()) return;
-          if (tag) tag.textContent = `VERIFIED · ${row.team.name}`;
+          reel.classList.remove('is-decoy');
+          reel.textContent = realName;
+          if (tag) tag.textContent = `Official Winner · ${row.team.name}`;
           audio.winnerBell();
-          later(() => { if (!isCancelled()) reveal(); }, 550);
-        });
-      }, 900);
-    });
+          later(() => { if (!isCancelled()) reveal(); }, 500);
+        }, 600);
+      });
+    } else {
+      scrambleTo(realName, 2000, () => {
+        if (isCancelled()) return;
+        if (tag) tag.textContent = `Official Winner · ${row.team.name}`;
+        audio.winnerBell();
+        later(() => { if (!isCancelled()) reveal(); }, 500);
+      });
+    }
   }
 
-  function runStamp(act, row, reveal, isCancelled) {
+  function runStamp(act, row, reveal, isCancelled, usePsych) {
     const counter = act.querySelector('#stampCount');
-    if (!counter) { later(reveal, 2700); return; }
+    if (!counter) { later(reveal, 2200); return; }
     ['3', '2', '1'].forEach((n, k) => later(() => {
       if (isCancelled()) return;
       counter.textContent = n;
       audio.tick(1800 + k * 300);
-    }, k * 800));
+    }, k * 700));
 
-    if (row && act.classList.contains('rv-act--champion')) {
-      const candidates = pool().map((r) => r.team.name).filter((n) => n !== row.team.name);
-      const decoy = candidates[Math.floor(Math.random() * candidates.length)] || 'OVERRIDE';
+    if (usePsych && row) {
+      const decoy = pickTrackFinalistDecoy(row);
       later(() => {
         if (isCancelled()) return;
         counter.classList.add('is-decoy');
-        counter.textContent = `${decoy}?`;
+        counter.textContent = decoy;
         audio.stopDrumroll();
-        audio.fakeBuild();
-      }, 2450);
+        audio.stingCut();
+      }, 2150);
       later(() => {
         if (isCancelled()) return;
-        counter.textContent = 'NOPE! PSYCH!';
-        audio.psychFart();
-      }, 3650);
-      later(() => {
-        if (isCancelled()) return;
+        counter.classList.remove('is-decoy');
+        counter.textContent = row.team.name;
         audio.winnerBell();
-        reveal();
-      }, 4500);
+        later(() => { if (!isCancelled()) reveal(); }, 450);
+      }, 2750);
     } else {
-      later(() => { if (!isCancelled()) reveal(); }, 2450);
+      later(() => { if (!isCancelled()) reveal(); }, 2200);
     }
   }
 
   // Champion-only slot machine: spin through the field, fake out on a decoy,
   // then snap to the real winner at the last moment.
-  function runSlot(act, row, reveal, isCancelled) {
+  function runSlot(act, row, reveal, isCancelled, usePsych) {
     const reel = act.querySelector('#slotReel');
     const tag = act.querySelector('#slotTag');
     const machine = act.querySelector('#slotMachine');
     if (!reel || !tag || !machine) {
-      later(reveal, 3200);
+      later(reveal, 2200);
       return;
     }
 
     const names = pool().map((r) => r.team.name).filter((n) => n !== row.team.name);
-    const candidates = pool().filter((r) => r.team.name !== row.team.name);
-    const poolForFake = candidates.slice(Math.max(0, Math.floor(candidates.length * 0.55)));
-    const decoy = (poolForFake[Math.floor(Math.random() * poolForFake.length)] || candidates[0] || {}).team?.name || names[0] || '—';
-    const spinMs = 3000;
+    const decoy = pickTrackFinalistDecoy(row);
+    const spinMs = 2200;
     const started = performance.now();
     let finished = false;
 
     const finish = () => {
       if (finished || isCancelled()) return;
       finished = true;
+      reel.classList.remove('is-spinning', 'is-decoy', 'is-fake');
+      machine.classList.remove('is-decoy', 'is-fake');
       reveal();
     };
 
@@ -1146,53 +1291,47 @@
       reel.textContent = names[Math.floor(Math.random() * names.length)] || row.team.name;
 
       if (p < 1) {
-        later(step, 55 + 420 * Math.pow(p, 2.6));
+        later(step, 55 + 360 * Math.pow(p, 2.6));
         return;
       }
 
-      // 1. Let the decoy name land and sit there like a real winner.
       reel.classList.remove('is-spinning');
-      reel.textContent = decoy;
-      reel.classList.add('is-decoy');
-      machine.classList.add('is-decoy');
-      tag.textContent = 'And the winner is…';
-      audio.tick(900);
       audio.stopSlotSpin();
 
-      // 2. Build up over the fake winner, then fart at the PSYCH.
-      later(() => {
-        if (isCancelled()) return;
+      if (usePsych) {
+        // Flash track finalist decoy for 0.6s with one restrained sting cut, then hard-cut to real winner.
+        reel.textContent = decoy;
+        reel.classList.add('is-decoy');
+        machine.classList.add('is-decoy');
+        tag.textContent = 'Finalist verification…';
         audio.stopDrumroll();
-        audio.fakeBuild();
-      }, 500);
-      later(() => {
-        if (isCancelled()) return;
-        reel.classList.remove('is-decoy');
-        reel.classList.add('is-fake');
-        machine.classList.remove('is-decoy');
-        machine.classList.add('is-fake');
-        tag.textContent = 'PSYCH! · Just kidding…';
-        audio.psychFart();
+        audio.stingCut();
 
-        // 3. Hold the PSYCH for a beat, then snap to the real winner.
         later(() => {
           if (isCancelled()) return;
-          reel.classList.remove('is-fake');
+          reel.classList.remove('is-decoy', 'is-fake');
           reel.classList.add('is-real');
           reel.textContent = row.team.name;
-          machine.classList.remove('is-fake');
+          machine.classList.remove('is-decoy', 'is-fake');
           machine.classList.add('is-real');
-          tag.textContent = `WINNER · ${row.team.name}`;
+          tag.textContent = `Official Champion · ${row.team.name}`;
           audio.winnerBell();
-          later(finish, 650);
-        }, 1000);
-      }, 2000);
+          later(finish, 550);
+        }, 600);
+      } else {
+        reel.textContent = row.team.name;
+        reel.classList.add('is-real');
+        machine.classList.add('is-real');
+        tag.textContent = `Official Champion · ${row.team.name}`;
+        audio.winnerBell();
+        later(finish, 550);
+      }
     };
 
     reel.classList.add('is-spinning');
-    audio.slotSpin(3.1);
+    audio.slotSpin(2.3);
     step();
-    later(finish, 9000);
+    later(finish, 7000);
   }
 
   function renderEmptyRank(rank) {
@@ -1249,7 +1388,7 @@
             <span class="rv-podium-avatar rv-podium-avatar--${place}" aria-hidden="true">${esc(getInitials(row.team.name))}</span>
             <span class="rv-podium-label">${label}</span>
             <span class="rv-podium-name">${esc(row.team.name)}</span>
-            <span class="rv-podium-team">TEAM ${esc(row.team.number)} · SEC ${esc(row.team.section)}</span>
+            <span class="rv-podium-team">TEAM ${esc(row.team.number)} · ${esc(row.team.college || row.team.section)}</span>
             <span class="rv-podium-score">
               ${state.hasScores ? row.total.toFixed(1) : '—'}<small>/ ${state.maxTotal}</small>
             </span>
@@ -1367,6 +1506,7 @@
 
   function toggleAudio() {
     state.muted = !state.muted;
+    try { sessionStorage.setItem('embers_reveal_muted', state.muted ? '1' : '0'); } catch (e) {}
     audio.setMuted(state.muted);
     if (state.muted) {
       audio.stopDrumroll();
@@ -1376,6 +1516,32 @@
     }
     el.audioIcon.textContent = state.muted ? '🔇' : '🔊';
     el.audioText.textContent = state.muted ? 'MUTED' : 'SOUND ON';
+  }
+
+  function updatePsychUI() {
+    if (el.psychBtn) el.psychBtn.setAttribute('aria-pressed', state.psychEnabled ? 'true' : 'false');
+    if (el.psychIcon) el.psychIcon.textContent = state.psychEnabled ? '⚡' : '⏸️';
+    if (el.psychText) el.psychText.textContent = state.psychEnabled ? 'PSYCH ON' : 'PSYCH OFF';
+  }
+
+  function togglePsych() {
+    state.psychEnabled = !state.psychEnabled;
+    updatePsychUI();
+    saveCeremonyState();
+  }
+
+  function updateProjectorUI() {
+    document.body.classList.toggle('is-projector', state.projectorMode);
+    if (el.projectorBtn) {
+      el.projectorBtn.setAttribute('aria-pressed', state.projectorMode ? 'true' : 'false');
+      el.projectorBtn.classList.toggle('rv-tool-btn--solid', state.projectorMode);
+    }
+  }
+
+  function toggleProjector() {
+    state.projectorMode = !state.projectorMode;
+    updateProjectorUI();
+    saveCeremonyState();
   }
 
   function updateBannerForCategory() {
@@ -1410,6 +1576,8 @@
       el.confetti.blur();
     });
     el.audioBtn.addEventListener('click', toggleAudio);
+    if (el.psychBtn) el.psychBtn.addEventListener('click', togglePsych);
+    if (el.projectorBtn) el.projectorBtn.addEventListener('click', toggleProjector);
     el.fsBtn.addEventListener('click', toggleFullscreen);
     if (el.autoSelect) {
       el.autoSelect.addEventListener('change', (e) => setAutoSeconds(e.target.value));
@@ -1443,7 +1611,16 @@
       if (el.modal.classList.contains('is-open')) return;
 
       const key = e.key.toLowerCase();
-      if (/^[1-3]$/.test(e.key)) {
+      if (e.key === 'End' || (e.shiftKey && e.key === 'Enter')) {
+        e.preventDefault();
+        if (state.gate) {
+          const skipNow = state.gate;
+          state.gate = null;
+          skipNow();
+        } else {
+          setStep(STEP_PODIUM);
+        }
+      } else if (/^[1-3]$/.test(e.key)) {
         e.preventDefault();
         setStep(Number(e.key));
       } else if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'Enter') {
@@ -1501,6 +1678,7 @@
     void audio.preload();
     if (document.fullscreenElement) document.body.classList.add('is-fullscreen');
 
+    const saved = restoreCeremonyState();
     const params = new URLSearchParams(location.search);
     const rawCategory = (params.get('category') || params.get('track') || params.get('event') || '').toUpperCase();
     let urlCategory = rawCategory;
@@ -1508,19 +1686,32 @@
     if (rawCategory === 'PAPER' || rawCategory === 'TRACK_3' || rawCategory === 'TRACK3') urlCategory = 'PAPER';
     if (rawCategory === 'EMBEDDATHON' || rawCategory === 'EMBEDTHON' || rawCategory === 'TRACK_1' || rawCategory === 'TRACK1' || rawCategory === 'HACKATHON') urlCategory = 'EMBEDDATHON';
 
-    if (urlCategory && el.category) {
-      const exists = Array.from(el.category.options).some((o) => o.value === urlCategory);
-      if (exists) el.category.value = urlCategory;
+    const targetCategory = urlCategory || (saved && saved.category) || 'PAPER';
+    if (targetCategory && el.category) {
+      const exists = Array.from(el.category.options).some((o) => o.value === targetCategory);
+      if (exists) el.category.value = targetCategory;
     }
     if (el.category && el.category.value) state.category = el.category.value;
+    if (saved) {
+      if (typeof saved.psychEnabled === 'boolean') state.psychEnabled = saved.psychEnabled;
+      if (typeof saved.projectorMode === 'boolean') state.projectorMode = saved.projectorMode;
+    }
+    if (el.audioIcon) el.audioIcon.textContent = state.muted ? '🔇' : '🔊';
+    if (el.audioText) el.audioText.textContent = state.muted ? 'MUTED' : 'SOUND ON';
+    updatePsychUI();
+    updateProjectorUI();
+
     state.maxTotal = categoryMax(state.category);
     state.eventRows = computeStandings({});
 
     bind();
     updateBannerForCategory();
 
-    applyLive(rowsForCategory(state.category));  // rehearsal view immediately, no fake scores
+    applyLive(rowsForCategory(state.category));
     await syncData();
+    if (saved && typeof saved.step === 'number' && saved.step >= STEP_WELCOME && saved.step <= STEP_PODIUM && !urlCategory) {
+      setStep(saved.step);
+    }
     setInterval(syncData, POLL_MS);
   }
 

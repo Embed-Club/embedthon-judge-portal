@@ -99,6 +99,10 @@
     autoSelect: $('autoAdvanceSelect'),
     autoCount: $('autoCountdown'),
     emberField: $('emberField'),
+    psychBtn: $('btnPsychToggle'),
+    psychIcon: $('psychIcon'),
+    psychText: $('psychStatusText'),
+    projectorBtn: $('btnProjectorToggle'),
     // Test Deck Elements
     testDeck: $('testControlDeck'),
     btnToggleDataset: $('btnToggleDataset'),
@@ -118,16 +122,18 @@
     isMockMode: true,
     shuffleSeed: 1,
     style: 'mix',
-    category: 'OVERALL',
+    category: 'PAPER',
     step: STEP_WELCOME,
     gate: null,
     live: [],
     locked: [],
     eventRows: {},
-    maxTotal: 100,
+    maxTotal: 50,
     pending: false,
     hasScores: true,
-    muted: false,
+    muted: sessionStorage.getItem('embers_reveal_muted') === '1',
+    psychEnabled: true,
+    projectorMode: false,
     timers: [],
     checksum: '',
     auto: {
@@ -210,8 +216,7 @@
     },
 
     async preload() {
-      const ctx = this.ensureCtx();
-      if (!ctx) return;
+      const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
       await Promise.all(Object.entries(SFX_URLS).map(async ([key, url]) => {
         if (this.samples[key] || this.loading[key]) return;
         this.loading[key] = true;
@@ -219,7 +224,10 @@
           const res = await fetch(url, { cache: 'force-cache' });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.arrayBuffer();
-          this.samples[key] = await ctx.decodeAudioData(data);
+          if (OfflineCtx) {
+            const off = new OfflineCtx(2, 44100, 44100);
+            this.samples[key] = await off.decodeAudioData(data);
+          }
         } catch (e) {
           console.warn(`Sound effect unavailable (${url}):`, e.message || e);
         } finally {
@@ -334,12 +342,14 @@
       }
     },
 
-    psychFart() {
-      if (!this.playSample('psychFart', 0.82, { duration: 1.2, fadeOut: 0.25 })) {
-        [[392, 0.18], [370, 0.18], [349, 0.34]].forEach(([f, dur], i) => {
-          this.tone(f, dur, 0.15, 'sawtooth', 0, i * 0.17);
-        });
+    stingCut() {
+      if (!this.playSample('impact577', 0.55, { offset: 5.15, duration: 0.45, fadeOut: 0.15 })) {
+        this.tone(220, 0.25, 0.22, 'triangle', 0.75);
       }
+    },
+
+    psychFart() {
+      this.stingCut();
     },
 
     winnerBell() {
@@ -1115,6 +1125,7 @@
               </div>
               <h3 class="rv-name">${esc(row.team.name)}</h3>
               ${row.team.abstract_title ? `<p class="rv-project">“${esc(row.team.abstract_title)}”</p>` : ''}
+              ${row.team.college ? `<p class="rv-college">${esc(row.team.college)}</p>` : ''}
               <div class="rv-members">${members}</div>
               <div class="rv-scoreboard">
                 <div class="rv-total">
@@ -1656,6 +1667,22 @@
     }
 
     if (el.audioBtn) el.audioBtn.addEventListener('click', toggleAudio);
+    if (el.psychBtn) {
+      el.psychBtn.addEventListener('click', () => {
+        state.psychEnabled = !state.psychEnabled;
+        el.psychBtn.setAttribute('aria-pressed', state.psychEnabled ? 'true' : 'false');
+        if (el.psychIcon) el.psychIcon.textContent = state.psychEnabled ? '⚡' : '⏸️';
+        if (el.psychText) el.psychText.textContent = state.psychEnabled ? 'PSYCH ON' : 'PSYCH OFF';
+      });
+    }
+    if (el.projectorBtn) {
+      el.projectorBtn.addEventListener('click', () => {
+        state.projectorMode = !state.projectorMode;
+        document.body.classList.toggle('is-projector', state.projectorMode);
+        el.projectorBtn.setAttribute('aria-pressed', state.projectorMode ? 'true' : 'false');
+        el.projectorBtn.classList.toggle('rv-tool-btn--solid', state.projectorMode);
+      });
+    }
     if (el.fsBtn) el.fsBtn.addEventListener('click', toggleFullscreen);
     if (el.autoSelect) {
       el.autoSelect.addEventListener('change', (e) => setAutoSeconds(e.target.value));

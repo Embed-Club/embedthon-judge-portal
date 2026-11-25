@@ -57,24 +57,30 @@
           <span id="audioStatusText" class="rv-tool-label">SOUND ON</span>
         </button>
 
-        <select id="stageCategorySelect" class="rv-select" title="Choose the award category">
-          <optgroup label="🏆 Four Prize Categories">
-            <option value="PAPER">📄 Paper Presentation</option>
-            <option value="HARDWARE">🔧 Project Expo · Hardware</option>
-            <option value="SOFTWARE">💻 Project Expo · Software</option>
-            <option value="EMBEDDATHON">⚡ Embeddathon</option>
+        <select id="stageCategorySelect" class="rv-select" aria-label="Choose the award category" title="Choose the award category">
+          <optgroup label="🏆 Ceremony Order · Four Prizes">
+            <option value="PAPER" selected>📄 1. Paper Presentation</option>
+            <option value="HARDWARE">🔧 2. Hardware Project</option>
+            <option value="SOFTWARE">💻 3. Software Project</option>
+            <option value="EMBEDDATHON">⚡ 4. Embeddathon (Finale)</option>
           </optgroup>
-          <optgroup label="🛠️ Combined Expo">
+          <optgroup label="🛠️ Combined &amp; Sections">
             <option value="PROJECT_EXPO">🛠️ Project Expo (All)</option>
-          </optgroup>
-          <optgroup label="🏫 Section Awards (Embeddathon)">
             <option value="A">Section A (Teams 01–11)</option>
             <option value="B">Section B (Teams 12–24)</option>
-          </optgroup>
-          <optgroup label="🏆 Overall">
-            <option value="OVERALL" selected>🏆 Overall Champions (24)</option>
+            <option value="OVERALL">🏆 Overall Champions (24)</option>
           </optgroup>
         </select>
+
+        <button id="btnPsychToggle" type="button" class="rv-tool-btn" aria-pressed="true" title="Toggle Psych Beat On/Off">
+          <span id="psychIcon">⚡</span>
+          <span id="psychStatusText" class="rv-tool-label">PSYCH ON</span>
+        </button>
+
+        <button id="btnProjectorToggle" type="button" class="rv-tool-btn" aria-pressed="false" title="Toggle 1920x1080 Large-Text Projector Mode">
+          <span>📺</span>
+          <span class="rv-tool-label">Projector</span>
+        </button>
 
         <button id="btnOpenStandingsModal" type="button" class="rv-tool-btn" title="View Full Event Standings">
           <span>📋</span>
