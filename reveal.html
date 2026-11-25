@@ -2,9 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>EMBEDTHON '26 · Grand Results Reveal Ceremony</title>
   <meta name="description" content="Official Stage & Projector Results Reveal Ceremony for EmbedThon '26 and Embers '26, Department of Computer Science & Engineering, P.A. College of Engineering.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="EMBERS '26 · Grand Results Reveal Ceremony">
+  <meta property="og:description" content="Official Stage & Projector Results Reveal for Paper Presentation, Hardware Project, Software Project, and Embeddathon at P.A. College of Engineering.">
+  <meta property="og:image" content="assets/embers_logo.png">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#1a0a05">
   <link rel="icon" type="image/png" href="assets/embers_logo.png">
   <link rel="alternate icon" href="favicon.ico">
@@ -57,24 +62,30 @@
           <span id="audioStatusText" class="rv-tool-label">SOUND ON</span>
         </button>
 
-        <select id="stageCategorySelect" class="rv-select" title="Choose the award category">
-          <optgroup label="🏆 Four Prize Categories">
-            <option value="PAPER">📄 Paper Presentation</option>
-            <option value="HARDWARE">🔧 Project Expo · Hardware</option>
-            <option value="SOFTWARE">💻 Project Expo · Software</option>
-            <option value="EMBEDDATHON">⚡ Embeddathon</option>
+        <select id="stageCategorySelect" class="rv-select" aria-label="Choose the award category" title="Choose the award category">
+          <optgroup label="🏆 Ceremony Order · Four Prizes">
+            <option value="PAPER" selected>📄 1. Paper Presentation</option>
+            <option value="HARDWARE">🔧 2. Hardware Project</option>
+            <option value="SOFTWARE">💻 3. Software Project</option>
+            <option value="EMBEDDATHON">⚡ 4. Embeddathon (Finale)</option>
           </optgroup>
-          <optgroup label="🛠️ Combined Expo">
+          <optgroup label="🛠️ Combined &amp; Sections">
             <option value="PROJECT_EXPO">🛠️ Project Expo (All)</option>
-          </optgroup>
-          <optgroup label="🏫 Section Awards (Embeddathon)">
             <option value="A">Section A (Teams 01–11)</option>
             <option value="B">Section B (Teams 12–24)</option>
-          </optgroup>
-          <optgroup label="🏆 Overall">
-            <option value="OVERALL" selected>🏆 Overall Champions (24)</option>
+            <option value="OVERALL">🏆 Overall Champions (24)</option>
           </optgroup>
         </select>
+
+        <button id="btnPsychToggle" type="button" class="rv-tool-btn" aria-pressed="true" title="Toggle Psych Beat On/Off">
+          <span id="psychIcon">⚡</span>
+          <span id="psychStatusText" class="rv-tool-label">PSYCH ON</span>
+        </button>
+
+        <button id="btnProjectorToggle" type="button" class="rv-tool-btn" aria-pressed="false" title="Toggle 1920x1080 Large-Text Projector Mode">
+          <span>📺</span>
+          <span class="rv-tool-label">Projector</span>
+        </button>
 
         <button id="btnOpenStandingsModal" type="button" class="rv-tool-btn" title="View Full Event Standings">
           <span>📋</span>

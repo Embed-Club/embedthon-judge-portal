@@ -151,26 +151,56 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'teamNumber and judgeId are required.' });
       }
 
+      const idempotencyKey = body.idempotencyKey ? String(body.idempotencyKey).trim() : '';
       if (!evaluations[eventId]) evaluations[eventId] = {};
       if (!evaluations[eventId][teamNumber]) evaluations[eventId][teamNumber] = {};
 
       const existing = evaluations[eventId][teamNumber][judgeId] || {};
+      if (idempotencyKey && existing.idempotencyKey === idempotencyKey) {
+        return res.status(200).json({
+          success: true,
+          deduplicated: true,
+          eventId: eventId,
+          teamNumber: teamNumber,
+          judgeId: judgeId,
+          teamEvaluations: evaluations[eventId][teamNumber]
+        });
+      }
+
       const computed =
         event.mode === 'SINGLE'
           ? computeSingleEventRecord(eventId, body, existing)
           : computeEmbeddathonRecord(body, existing);
 
-      evaluations[eventId][teamNumber][judgeId] = {
+      const newRecord = {
         judgeId: judgeId,
         judgeName: judgeName,
         eventId: eventId,
         eventLabel: event.label,
         ...computed,
         remarks: String(body.remarks !== undefined ? body.remarks : existing.remarks || '').trim(),
+        idempotencyKey: idempotencyKey || existing.idempotencyKey || '',
         updatedAt: body.updatedAt || new Date().toISOString()
       };
 
-      await updateGistFile('evaluations.json', JSON.stringify(evaluations, null, 2));
+      // Merge & persist with 1 retry on transient Gist write conflict
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          if (attempt > 0) {
+            const freshGist = await fetchGist();
+            if (freshGist.files && freshGist.files['evaluations.json']) {
+              evaluations = normalizeEvaluations(JSON.parse(freshGist.files['evaluations.json'].content));
+            }
+          }
+          if (!evaluations[eventId]) evaluations[eventId] = {};
+          if (!evaluations[eventId][teamNumber]) evaluations[eventId][teamNumber] = {};
+          evaluations[eventId][teamNumber][judgeId] = newRecord;
+          await updateGistFile('evaluations.json', JSON.stringify(evaluations, null, 2));
+          break;
+        } catch (writeErr) {
+          if (attempt === 1) throw writeErr;
+        }
+      }
 
       return res.status(200).json({
         success: true,

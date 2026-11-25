@@ -1,0 +1,586 @@
+{
+  "consoleErrors": [
+    "[360x800] Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "[360x800] Failed to load resource: net::ERR_CONNECTION_REFUSED"
+  ],
+  "pageErrors": [],
+  "checks": [
+    {
+      "vp": "360x800",
+      "cat": "PAPER",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "PAPER",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "PAPER",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "PAPER",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "HARDWARE",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "HARDWARE",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "HARDWARE",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "HARDWARE",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "SOFTWARE",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "SOFTWARE",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "SOFTWARE",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "SOFTWARE",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "EMBEDDATHON",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "EMBEDDATHON",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "EMBEDDATHON",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "360x800",
+      "cat": "EMBEDDATHON",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 360,
+      "innerW": 360
+    },
+    {
+      "vp": "768x1024",
+      "cat": "PAPER",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "PAPER",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "PAPER",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "PAPER",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "HARDWARE",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "HARDWARE",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "HARDWARE",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "HARDWARE",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "SOFTWARE",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "SOFTWARE",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "SOFTWARE",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "SOFTWARE",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "EMBEDDATHON",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "EMBEDDATHON",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "EMBEDDATHON",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "768x1024",
+      "cat": "EMBEDDATHON",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 768,
+      "innerW": 768
+    },
+    {
+      "vp": "1280x720",
+      "cat": "PAPER",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "PAPER",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "PAPER",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "PAPER",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "HARDWARE",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "HARDWARE",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "HARDWARE",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "HARDWARE",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "SOFTWARE",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "SOFTWARE",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "SOFTWARE",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "SOFTWARE",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "EMBEDDATHON",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "EMBEDDATHON",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "EMBEDDATHON",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1280x720",
+      "cat": "EMBEDDATHON",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1280,
+      "innerW": 1280
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "PAPER",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "PAPER",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "PAPER",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "PAPER",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "HARDWARE",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "HARDWARE",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "HARDWARE",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "HARDWARE",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "SOFTWARE",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "SOFTWARE",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "SOFTWARE",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "SOFTWARE",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "EMBEDDATHON",
+      "step": "3rd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "EMBEDDATHON",
+      "step": "2nd",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "EMBEDDATHON",
+      "step": "1st",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    },
+    {
+      "vp": "1920x1080",
+      "cat": "EMBEDDATHON",
+      "step": "podium",
+      "docOverflow": false,
+      "cardClipped": false,
+      "scrollW": 1920,
+      "innerW": 1920
+    }
+  ],
+  "failures": []
+}

@@ -846,8 +846,9 @@ body.ceremony-brand::before {
 
 .rv-card {
   position: relative;
+  box-sizing: border-box;
   width: 100%;
-  max-width: 770px;
+  max-width: min(770px, calc(100vw - 24px));
   padding: clamp(18px, 3vw, 30px);
   border-radius: 24px;
   background: linear-gradient(180deg, #fffefb 0%, #fff7ec 100%);
@@ -1894,7 +1895,6 @@ body.is-fullscreen .rv-welcome-status,
 body.is-fullscreen .rv-welcome-hint,
 body.is-fullscreen .rv-rank-sub,
 body.is-fullscreen .rv-card-top,
-body.is-fullscreen .rv-project,
 body.is-fullscreen .rv-members,
 body.is-fullscreen .rv-split,
 body.is-fullscreen .rv-note,
@@ -2083,6 +2083,48 @@ body.is-fullscreen .rv-final-shapes {
   font-size: clamp(1.6rem, 4.2vw, 3.2rem);
   color: #f87171;
   text-shadow: 0 0 28px rgba(248, 113, 113, 0.75);
+}
+
+/* Winning college line on reveal card */
+.rv-college {
+  margin: 4px 0 12px;
+  font-size: clamp(0.88rem, 1.45vw, 1.12rem);
+  font-weight: 700;
+  color: #7c2d12;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+/* Large-text 1920x1080 Projector Mode */
+body.is-projector .rv-card {
+  max-width: min(1220px, 94vw);
+  padding: clamp(28px, 4.2vw, 56px);
+}
+body.is-projector .rv-name {
+  font-size: clamp(3.4rem, 7.2vw, 6.4rem);
+  line-height: 1.05;
+}
+body.is-projector .rv-project {
+  font-size: clamp(1.35rem, 2.2vw, 1.95rem);
+}
+body.is-projector .rv-college {
+  font-size: clamp(1.15rem, 1.8vw, 1.55rem);
+}
+body.is-projector .rv-podium-name {
+  font-size: clamp(1.45rem, 2.2vw, 2.1rem);
+}
+body.is-projector .rv-podium-score {
+  font-size: clamp(1.6rem, 2.5vw, 2.3rem);
+}
+
+/* Visible keyboard focus states (WCAG 2.1 AA) */
+.rv-btn:focus-visible,
+.rv-tool-btn:focus-visible,
+.rv-select:focus-visible,
+.rv-auto-select:focus-visible,
+.rv-modal-close:focus-visible {
+  outline: 3px solid #ffd166;
+  outline-offset: 2px;
 }
 
 @keyframes rvStampPop {
