@@ -6,21 +6,11 @@
 
 ---
 
-## Task 1: Reveal Ceremony Analysis & Redesign
-
 ## Task 0: Security & Privacy Audit (Blocking)
 
 ### 1. Hardcoded Secrets Inventory
 | Severity | Secret / Default | Evidence (File & Line) | What Changed / Status |
-| :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign |
+| :--- | :--- | :--- | :--- |
 | **Critical** | Admin PIN `'5012'` | `api/config.js:5,71`, `api/login.js:5,78,84`, `api/embers.js:185`, `api/reset.js:21,28`, `admin.js:20,179,1284`, `app.js:36`, `embers.js:94,137,171` | Removed from `fix/auth-env-secrets` (`7d99511`), replaced by `requireEnv('ADMIN_PIN')`. **Needs owner approval to merge.** |
 | **Critical** | Fallback Admin PIN `'2026'` | `api/login.js:84` | Removed in `fix/auth-env-secrets` (`7d99511`). |
 | **Critical** | Judge PINs `'1111'`–`'8888'` & client fallbacks (`'3842'`, `'7195'`, etc.) | `api/config.js:7-16`, `api/login.js:7-16`, `app.js:38-45` | Moved to `JUDGE_PINS_JSON` env var in `fix/auth-env-secrets`; stripped from `GET /api/config`. |
@@ -29,46 +19,15 @@
 
 ### 2. Student PII & Privacy Incident (DPDP Act 2023)
 | Severity | Finding | Evidence | Status / Decision Needed |
-| :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign |
+| :--- | :--- | :--- | :--- |
 | **Critical** | Student names, USNs, phone numbers, WhatsApp links, and emails stored in git and served unauthenticated | `api/registrations.json:1-5316` (404 direct on Vercel `api/`, **but** served at `GET /api/embers` HTTP 200, 165,167 bytes); `teams.js` served publicly at `/teams.js` HTTP 200 (189,216 bytes) | **Nothing deleted.** Under India's **Digital Personal Data Protection Act, 2023 (Sections 4–6, 8(5)–(7), 12)**: (1) `GET /api/embers` PII is redacted when unauthenticated in `fix/auth-env-secrets`; (2) **Decision needed:** approve stripping `phone`/`email`/`tel_link`/`wa_link`/`email_link` from `teams.js` & moving `api/registrations.json` to private admin-only storage, and assess DPDP Section 8(6) breach notice if repo/URLs were public. |
 
 ### 3. Unauthenticated Endpoints & Login Brute-Force Exposure
 | Severity | Finding | Evidence | Status |
-| :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign |
+| :--- | :--- | :--- | :--- |
 | **Critical** | `POST /api/evaluations` had zero auth | `api/evaluations.js:129-173` | Fixed in `fix/auth-env-secrets` (`7d99511`): requires signed HMAC `sessionToken` or `ADMIN_PIN`. |
 | **Critical** | `GET /api/config` leaked `adminPin` & all judge PINs | `api/config.js:60-65` | Fixed in `fix/auth-env-secrets`: `stripSecretsFromConfig()` strips all PINs. |
 | **High** | `POST /api/login` had no rate limiting (4-digit PINs) | `api/login.js:30-161` | Fixed in `fix/auth-env-secrets`: sliding-window rate limiter (`5` failed attempts / 15 min -> `HTTP 429`). |
-
-### 4. Mobile Session Persistence & `admin.html` Auth Bypass Review (`431c7f7` on `fix/auth-env-secrets`)
-| Severity | Finding | Evidence (File & Line) | Remediation in `fix/auth-env-secrets` (`431c7f7`) |
-| :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign |
-| **Critical** | `admin.html` auto-unlocked from client `localStorage` (`embedthon_admin_auth`) with zero expiry, zero signature, and zero server check — leaving Chrome and returning bypassed the PIN gate indefinitely | `admin.js:111-121` | Removed `localStorage` auto-unlock; `admin.js` & `embers.js` now verify server-signed `HttpOnly; Secure; SameSite=Strict` cookie (`embers_session`, 30-min Admin TTL) via `GET /api/session`. |
-| **Critical** | `admin.js` fetched config, evaluations, and student PII (`fetchEmbersLogistics()`) BEFORE checking authentication | `admin.js:100-108` | Moved all data fetches inside `unlockConsole()`, which runs only after `/api/session` or `/api/login` succeeds. |
-| **High** | Mobile Chrome bfcache & background tab suspension kept unlocked admin DOM & `sessionStorage` alive when leaving Chrome and returning | `admin.js`, `embers.js`, `vercel.json` | Added `visibilitychange` (`>= 10s` background -> `lockConsole(true)` + `DELETE /api/session`), `pageshow` (`persisted` -> re-lock & re-verify), 10-min idle timeout, and `Cache-Control: no-store, no-cache, must-revalidate, private` + `X-Frame-Options: DENY` headers in `vercel.json`. |
 
 ---
 
@@ -90,8 +49,6 @@
 
 ---
 
-## Task 1: Reveal Ceremony Analysis & Redesign
-
 ## Task 2: Layout Verification (`3661508`)
 - **Test Coverage:** `qa/verify_layouts.py` tested `360x800`, `768x1024`, `1280x720`, and `1920x1080` (with large-text projector mode) across all 4 prizes (`PAPER`, `HARDWARE`, `SOFTWARE`, `EMBEDDATHON`) x 4 steps (`3rd`, `2nd`, `1st`, `podium`) = **64 checks**, plus `M` mute and `End` skip shortcuts. Screenshots saved in `qa/screenshots/`.
 - **Failure Found & Fixed:**
@@ -100,8 +57,6 @@
 - **Final Result:** **64/64 checks PASS**, `0` horizontal overflows, `0` clipped cards, `0` console/page errors.
 
 ---
-
-## Task 1: Reveal Ceremony Analysis & Redesign
 
 ## Task 3: Audio Audit & Normalization (`5f74c01`)
 - **Removed Comedic / Game-Show / Unconfirmed Sounds from `SFX_URLS`:** Retired `psych-fart.mp3`, `winner-bell.mp3`, `slot-payout.mp3`, `slot-tick.mp3`, `fake-build-riser.mp3`, and `podium-brass.mp3` from `reveal.js` and `test-reveal.js`; 100% of active `SFX_URLS` now use Mixkit commercial-license SFX (`fanfare-horns.mp3`, `drumroll-566.mp3`, `impact-577.mp3`, `whoosh-fast-1489.mp3`, `whoosh-deep.mp3`, `applause-crowd.mp3`) + Web Audio API synthesis.
@@ -118,16 +73,12 @@
 
 ---
 
-## Task 1: Reveal Ceremony Analysis & Redesign
-
 ## Task 4: Reliability Under Live Load (`8057a64`)
 - **Idempotency & Concurrent Writes (`api/evaluations.js:145-190`):** Added `idempotencyKey` deduplication and a 2-attempt fresh-Gist merge-and-retry loop so concurrent judge submissions never overwrite each other or double-count.
 - **Client Retry & Offline Queue (`app.js:630-678, 1743-1748`):** Added `postEvaluationWithRetry()` (3 attempts, exponential backoff) and `embers_pending_eval_queue` in `localStorage`, auto-flushing on `online` and `syncDataSilently()`.
 - **Reveal Resilience (`reveal.js`):** Added network-offline fallback badge (`NETWORK OFFLINE · RETRYING SYNC`), `sessionStorage` ceremony step resume (`embers_reveal_state`), and `End` / `Shift+Enter` manual override to jump straight to the real result.
 
 ---
-
-## Task 1: Reveal Ceremony Analysis & Redesign
 
 ## Task 5: Accessibility & SEO
 - Removed `maximum-scale=1.0, user-scalable=no` from `index.html` and `reveal.html` (WCAG 2.1 AA 1.4.4 zoom compliance).
@@ -137,35 +88,15 @@
 
 ---
 
-## Task 1: Reveal Ceremony Analysis & Redesign
-
 ## Ceremony Running Order (4 Prizes)
 | Order | Prize Track | Accent | 3rd Place | 2nd Place | 1st Place Finale | Psych Beat | Max Intro |
-| :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign | :---
-
-## Task 1: Reveal Ceremony Analysis & Redesign |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | **Paper Presentation** (`PAPER`) | `#6366f1` | `stamp` (2.2s, chime) | `elimination` (2.7s, horns) | `decrypt` (2.5s, impact + applause) | **OFF** | 2.0s |
 | 2 | **Hardware Project** (`HARDWARE`) | `#f59e0b` | `decrypt` (2.5s, chime) | `stamp` (2.2s, horns) | `elimination` (3.1s, `stingCut` + impact + applause) | **ON (1st only, 0.6s)** | 2.2s |
 | 3 | **Software Project** (`SOFTWARE`) | `#10b981` | `elimination` (2.7s, chime) | `decrypt` (2.5s, horns) | `stamp` (2.6s, impact + applause) | **OFF** | 2.2s |
 | 4 | **Embeddathon** (`EMBEDDATHON`) | `#ea580c` | `stamp` (2.2s, chime) | `elimination` (2.7s, horns) | `slot` (3.3s, `stingCut` + impact + applause) | **ON (1st only, 0.6s)** | 2.2s |
 
 ---
-
-## Task 1: Reveal Ceremony Analysis & Redesign
 
 ## Go-Live Checklist
 1. **Review & Merge Auth PR:** Approve and merge `fix/auth-env-secrets` (`7d99511`) after setting all 6 Vercel env vars (`GITHUB_TOKEN`, `GIST_ID`, `ADMIN_PIN`, `EMBERS_WEBHOOK_TOKEN`, `JUDGE_PINS_JSON`, `SESSION_SECRET`).
