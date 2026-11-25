@@ -846,8 +846,9 @@ body.ceremony-brand::before {
 
 .rv-card {
   position: relative;
+  box-sizing: border-box;
   width: 100%;
-  max-width: 770px;
+  max-width: min(770px, calc(100vw - 24px));
   padding: clamp(18px, 3vw, 30px);
   border-radius: 24px;
   background: linear-gradient(180deg, #fffefb 0%, #fff7ec 100%);
@@ -1894,7 +1895,6 @@ body.is-fullscreen .rv-welcome-status,
 body.is-fullscreen .rv-welcome-hint,
 body.is-fullscreen .rv-rank-sub,
 body.is-fullscreen .rv-card-top,
-body.is-fullscreen .rv-project,
 body.is-fullscreen .rv-members,
 body.is-fullscreen .rv-split,
 body.is-fullscreen .rv-note,
